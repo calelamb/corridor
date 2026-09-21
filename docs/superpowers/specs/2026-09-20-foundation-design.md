@@ -1,13 +1,13 @@
-# Corridor Phase 1 foundation design — review draft
+# Corridor Phase 1 foundation design
 
-Status: proposed; implementation has not started.
+Status: approved by the user on 2026-09-21 UTC; implementation has not started.
 Authority: [user brief](../../BRIEF.md), [research](../../RESEARCH.md), [source ledger](../../../data/SOURCES.md).
 
 ## Intended outcome
 
 An agency planner, researcher, field reporter, or driver can open a fast, accessible Corridor shell whose map and source status clearly distinguish missing data from low risk. Phase 1 establishes the requested single Go server, static SvelteKit frontend, spatial database, private object storage, spec-first API contract, and automated checks. Later phases add verified data and analysis in the user's order.
 
-Your brief supplies the stack, audiences, phase order, and quality criteria. Proposed defaults below concern build mechanics, empty-state behavior, and API details; they do not claim approval of implementation.
+Your brief supplies the stack, audiences, phase order, and quality criteria. The approved defaults below concern build mechanics, empty-state behavior, and API details. The implementation plan is tracked separately.
 
 ## Options and recommendation
 
