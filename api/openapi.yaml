@@ -1,0 +1,151 @@
+openapi: 3.1.0
+info:
+  title: Corridor API
+  version: 0.1.0
+  description: Public foundation endpoints. Counts describe approved public records, not all collisions.
+servers:
+  - url: /
+paths:
+  /healthz:
+    get:
+      operationId: Health
+      responses:
+        '200':
+          description: Process is alive
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HealthEnvelope' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /readyz:
+    get:
+      operationId: Ready
+      responses:
+        '200':
+          description: Dependencies are ready
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HealthEnvelope' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/coverage:
+    get:
+      operationId: Coverage
+      responses:
+        '200':
+          description: Current publicly releasable data coverage
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CoverageEnvelope' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/sources:
+    get:
+      operationId: Sources
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 25 }
+        - name: offset
+          in: query
+          schema: { type: integer, minimum: 0, maximum: 100000, default: 0 }
+      responses:
+        '200':
+          description: Ingested public source summaries; research candidates are not included
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SourcesEnvelope' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+components:
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    Unavailable:
+      description: Dependencies unavailable
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    RateLimited:
+      description: Request limit exceeded
+      headers:
+        Retry-After:
+          schema: { type: integer, minimum: 1 }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+  schemas:
+    HealthData:
+      type: object
+      additionalProperties: false
+      required: [available]
+      properties:
+        available: { type: boolean }
+    CoverageData:
+      type: object
+      additionalProperties: false
+      required: [state, ingested_events, model_available]
+      properties:
+        state: { type: string, enum: [empty, unmodeled] }
+        ingested_events: { type: integer, format: int64, minimum: 0 }
+        model_available: { type: boolean, enum: [false] }
+    SourceSummary:
+      type: object
+      additionalProperties: false
+      required: [id, name, url, license, status]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        url: { type: string, format: uri }
+        license: { type: string }
+        status: { type: string }
+    Page:
+      type: object
+      additionalProperties: false
+      required: [total, limit, offset]
+      properties:
+        total: { type: integer, format: int64, minimum: 0 }
+        limit: { type: integer, minimum: 1, maximum: 100 }
+        offset: { type: integer, minimum: 0 }
+    HealthEnvelope:
+      type: object
+      additionalProperties: false
+      required: [status, data, error, meta]
+      properties:
+        status: { type: string, enum: [success] }
+        data: { $ref: '#/components/schemas/HealthData' }
+        error: { type: 'null' }
+        meta: { type: 'null' }
+    CoverageEnvelope:
+      type: object
+      additionalProperties: false
+      required: [status, data, error, meta]
+      properties:
+        status: { type: string, enum: [success] }
+        data: { $ref: '#/components/schemas/CoverageData' }
+        error: { type: 'null' }
+        meta: { type: 'null' }
+    SourcesEnvelope:
+      type: object
+      additionalProperties: false
+      required: [status, data, error, meta]
+      properties:
+        status: { type: string, enum: [success] }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/SourceSummary' }
+        error: { type: 'null' }
+        meta: { $ref: '#/components/schemas/Page' }
+    ErrorEnvelope:
+      type: object
+      additionalProperties: false
+      required: [status, data, error, meta]
+      properties:
+        status: { type: string, enum: [error] }
+        data: { type: 'null' }
+        error: { type: string }
+        meta: { type: 'null' }
