@@ -52,6 +52,7 @@ func run(ctx context.Context) error {
 	return server.Run(ctx, listener, handler, slog.Default())
 }
 func main() {
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, nil)))
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 	if err := run(ctx); err != nil {

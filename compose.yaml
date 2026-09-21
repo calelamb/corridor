@@ -1,0 +1,92 @@
+x-app: &app
+  image: corridor:foundation
+  read_only: true
+  tmpfs:
+    - /tmp
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+x-public-env: &public-env
+  CORRIDOR_DATABASE_URL: postgres://corridor_app:${CORRIDOR_DB_PASSWORD:?required}@postgres:5432/corridor?sslmode=disable
+  CORRIDOR_S3_ENDPOINT: http://minio:9000
+  CORRIDOR_S3_ACCESS_KEY: ${CORRIDOR_S3_ACCESS_KEY:?required}
+  CORRIDOR_S3_SECRET_KEY: ${CORRIDOR_S3_SECRET_KEY:?required}
+  CORRIDOR_S3_BUCKET: ${CORRIDOR_S3_BUCKET:?required}
+services:
+  postgres:
+    image: corridor-postgres:foundation
+    build:
+      context: .
+      dockerfile: deploy/postgres.Dockerfile
+    environment:
+      POSTGRES_DB: corridor
+      POSTGRES_USER: corridor_admin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?required}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U corridor_admin -d corridor']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  minio:
+    image: corridor-minio:foundation
+    build:
+      context: .
+      dockerfile: deploy/minio.Dockerfile
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?required}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?required}
+    volumes:
+      - object-data:/data
+    healthcheck:
+      test: [CMD, curl, --fail, --silent, http://localhost:9000/minio/health/live]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  migrate:
+    <<: *app
+    entrypoint: [corridorctl, migrate]
+    environment:
+      CORRIDOR_MIGRATION_DATABASE_URL: postgres://corridor_admin:${POSTGRES_PASSWORD:?required}@postgres:5432/corridor?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+  setup:
+    <<: *app
+    entrypoint: [corridorctl, setup]
+    environment:
+      <<: *public-env
+      CORRIDOR_DB_PASSWORD: ${CORRIDOR_DB_PASSWORD:?required}
+      CORRIDOR_MIGRATION_DATABASE_URL: postgres://corridor_admin:${POSTGRES_PASSWORD:?required}@postgres:5432/corridor?sslmode=disable
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?required}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?required}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      minio:
+        condition: service_healthy
+  corridor:
+    <<: *app
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile
+    environment:
+      <<: *public-env
+      CORRIDOR_HTTP_ADDRESS: :8080
+      CORRIDOR_ENV: production
+    ports:
+      - 127.0.0.1:8080:8080
+    healthcheck:
+      test: [CMD, corridorctl, health]
+      interval: 5s
+      timeout: 4s
+      retries: 20
+      start_period: 5s
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+volumes:
+  postgres-data:
+  object-data:

@@ -51,3 +51,11 @@ func TestCommands(t *testing.T) {
 		}
 	}
 }
+
+func TestProbeFailure(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if Run(ctx, []string{"health"}, io.Discard, io.Discard) == nil {
+		t.Fatal("canceled probe succeeded")
+	}
+}

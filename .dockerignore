@@ -9,3 +9,6 @@ web/.svelte-kit
 web/test-results
 web/playwright-report
 coverage
+internal/web/dist
+web/coverage
+web/.lighthouseci
