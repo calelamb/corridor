@@ -34,8 +34,46 @@ type Event struct {
 	Raw           []byte
 }
 
+type MigrationCell struct {
+	SourceID pgtype.UUID
+	Cell     string
+}
+
+type MigrationRoute struct {
+	SourceID pgtype.UUID
+	NativeID string
+	Geom     interface{}
+}
+
 type PublicCoverage struct {
 	IngestedEvents int64
+}
+
+type PublicMigration struct {
+	Cell      string
+	Geom      interface{}
+	Name      string
+	License   string
+	SourceUrl pgtype.Text
+	Meaning   string
+	Period    string
+}
+
+type PublicObservation struct {
+	SourceID      string
+	Source        string
+	License       string
+	SourceUrl     pgtype.Text
+	Cell          string
+	Geom          interface{}
+	Species       string
+	Road          string
+	Survey        string
+	Year          int32
+	Month         int32
+	Records       int64
+	Animals       int64
+	ReleasePolicy string
 }
 
 type PublicSource struct {
@@ -78,4 +116,21 @@ type Species struct {
 	ID        pgtype.UUID
 	Name      string
 	Sensitive bool
+}
+
+type WildlifeObservation struct {
+	SourceID        pgtype.UUID
+	ArtifactID      pgtype.UUID
+	NativeID        string
+	Species         string
+	Road            string
+	Survey          string
+	Geom            interface{}
+	UncertaintyM    float64
+	PeriodStart     pgtype.Timestamptz
+	PeriodEnd       pgtype.Timestamptz
+	TimePrecision   string
+	Quantity        int64
+	ObservationKind pgtype.Text
+	ReferenceText   string
 }

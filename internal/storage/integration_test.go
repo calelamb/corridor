@@ -7,6 +7,7 @@ import (
 	"context"
 	"corridor/internal/config"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -54,6 +55,18 @@ func TestPrivateSetup(t *testing.T) {
 	admin, err := New(config.Config{S3Endpoint: cfg.S3Endpoint, S3Bucket: cfg.S3Bucket, S3AccessKey: "synthetic-admin", S3SecretKey: "synthetic-admin-password"})
 	if err != nil {
 		t.Fatal(err)
+	}
+	key := "sha256/" + strings.Repeat("a", 64) + "/synthetic.csv"
+	for range 2 {
+		if err := admin.Archive(ctx, key, bytes.NewReader([]byte("test")), 4); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := admin.Archive(ctx, "bad", bytes.NewReader(nil), 0); err == nil {
+		t.Fatal("invalid archive accepted")
+	}
+	if err := app.Archive(ctx, "sha256/"+strings.Repeat("b", 64)+"/synthetic.csv", bytes.NewReader([]byte("test")), 4); err == nil {
+		t.Fatal("public app archived raw data")
 	}
 	if _, err := admin.api.PutObject(ctx, cfg.S3Bucket, "test.txt", bytes.NewReader([]byte("synthetic test")), 14, minio.PutObjectOptions{}); err != nil {
 		t.Fatal(err)

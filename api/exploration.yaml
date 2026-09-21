@@ -1,0 +1,77 @@
+openapi: 3.1.0
+info:
+  title: Corridor exploration API
+  version: 0.2.0
+  description: Public fixed H3 resolution-6 projections. Raw coordinates and acquisition URLs are never returned. Failures are unavailable, not zero evidence.
+paths:
+  /v1/explore:
+    get:
+      operationId: Explore
+      parameters:
+        - {name: bbox, in: query, schema: {type: string}, description: 'west,south,east,north; finite non-crossing bounds in [-180,180] / [-85,85]'}
+        - {name: species, in: query, schema: {type: string, maxLength: 300}}
+        - {name: source, in: query, schema: {type: string, maxLength: 300}}
+        - {name: road, in: query, schema: {type: string, maxLength: 300}}
+        - {name: q, in: query, schema: {type: string, maxLength: 300}, description: Literal substring search of indexed species and road labels}
+        - {name: cell, in: query, schema: {type: string, pattern: '^[0-9a-f]{15}$'}}
+        - {name: season, in: query, schema: {type: string, enum: [spring, summer, autumn, winter]}}
+        - {name: start, in: query, schema: {type: integer, minimum: 1900, maximum: 2026, default: 1900}}
+        - {name: end, in: query, schema: {type: integer, minimum: 1900, maximum: 2026, default: 2026}}
+        - {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 500, default: 100}}
+        - {name: offset, in: query, schema: {type: integer, minimum: 0, maximum: 100000, default: 0}}
+      responses:
+        '200':
+          description: Filtered generalized cells, totals and time bins; facets reflect all released collision evidence. No filter can query raw data. Pagination affects feature list only.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, data]
+                properties:
+                  status: {const: success}
+                  data:
+                    type: object
+                    required: [type, features, summary, timeline, months, facets, policy, limit, offset]
+                    properties:
+                      type: {const: FeatureCollection}
+                      features: {type: array, maxItems: 500, items: {type: object}}
+                      summary: {type: object, required: [records, animals, cells, undated_month_records]}
+                      timeline: {type: array, items: {type: object}}
+                      months: {type: array, items: {type: object}}
+                      facets: {type: object}
+                      policy: {const: h3-r6-month-v1}
+                      limit: {type: integer}
+                      offset: {type: integer}
+        '400': {description: 'Invalid or unknown filters'}
+        '429': {description: 'Rate limited'}
+        '503': {description: 'Evidence unavailable'}
+  /v1/explore/config:
+    get:
+      operationId: ExploreConfig
+      responses:
+        '200': {description: 'Pilot extent, public policy, precision and evidence semantics'}
+  /v1/migration:
+    get:
+      operationId: Migration
+      responses:
+        '200': {description: 'GeoJSON fixed H3 migration areas with source attribution and 2011–2017 study period; separate from collision filters and not timestamped tracks'}
+        '503': {description: 'Migration evidence unavailable'}
+  /tiles/evidence/{z}/{x}/{y}.mvt:
+    get:
+      operationId: EvidenceTile
+      description: Same filters as /v1/explore; pagination has no effect. All public responses use no-store so source withdrawal and filter state cannot reuse stale tiles.
+      parameters:
+        - {name: z, in: path, required: true, schema: {type: integer, minimum: 0, maximum: 14}}
+        - {name: x, in: path, required: true, schema: {type: integer, minimum: 0}}
+        - {name: y, in: path, required: true, schema: {type: integer, minimum: 0}}
+      responses:
+        '200': {description: 'Mapbox vector tile; tiny areas may be omitted at overview scales'}
+        '400': {description: 'Invalid tile or filters'}
+        '503': {description: 'Evidence unavailable'}
+  /maps/region.pmtiles:
+    get:
+      operationId: RegionalBasemap
+      responses:
+        '200': {description: 'Operator-configured public regional Protomaps archive'}
+        '206': {description: 'Requested byte range'}
+        '503': {description: 'Archive not provisioned'}

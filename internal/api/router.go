@@ -27,6 +27,7 @@ type Dependencies struct {
 	Limiter *rate.Limiter
 	Timeout time.Duration
 	Web     http.Handler
+	Explore http.Handler
 }
 type service struct{ deps Dependencies }
 
@@ -56,6 +57,13 @@ func NewRouter(deps Dependencies) http.Handler {
 		}
 		writeError(w, 404, "Not found")
 	})
+	if deps.Explore != nil {
+		r.Get("/v1/explore", deps.Explore.ServeHTTP)
+		r.Get("/v1/explore/config", deps.Explore.ServeHTTP)
+		r.Get("/v1/migration", deps.Explore.ServeHTTP)
+		r.Get("/tiles/evidence/{z}/{x}/{y}", deps.Explore.ServeHTTP)
+		r.Get("/maps/region.pmtiles", deps.Explore.ServeHTTP)
+	}
 	r.MethodNotAllowed(func(w http.ResponseWriter, _ *http.Request) { writeError(w, 405, "Method not allowed") })
 	bad := func(w http.ResponseWriter, _ *http.Request, _ error) { writeError(w, 400, "Invalid request") }
 	strict := NewStrictHandlerWithOptions(service{deps}, nil, StrictHTTPServerOptions{RequestErrorHandlerFunc: bad, ResponseErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, _ error) {

@@ -76,6 +76,9 @@ services:
       <<: *public-env
       CORRIDOR_HTTP_ADDRESS: :8080
       CORRIDOR_ENV: production
+      CORRIDOR_BASEMAP_PATH: /maps/region.pmtiles
+    volumes:
+      - ./data/raw/exploration/region.pmtiles:/maps/region.pmtiles:ro
     ports:
       - 127.0.0.1:8080:8080
     healthcheck:
@@ -87,6 +90,24 @@ services:
     depends_on:
       setup:
         condition: service_completed_successfully
+  ingest:
+    <<: *app
+    profiles: [tools]
+    working_dir: /workspace
+    entrypoint: [corridorctl, ingest, all]
+    volumes:
+      - ./data/raw:/workspace/data/raw:ro
+    environment:
+      <<: *public-env
+      CORRIDOR_MIGRATION_DATABASE_URL: postgres://corridor_admin:${POSTGRES_PASSWORD:?required}@postgres:5432/corridor?sslmode=disable
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?required}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?required}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
 volumes:
   postgres-data:
   object-data:

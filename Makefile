@@ -36,7 +36,7 @@ integration:
 
 coverage:
 	mkdir -p coverage
-	go test -race -tags=integration -coverprofile=coverage/go.out ./internal/...
+	go test -race -tags=integration -coverpkg=./internal/... -coverprofile=coverage/go.out ./internal/...
 	awk -f scripts/coverage.awk coverage/go.out
 
 security:

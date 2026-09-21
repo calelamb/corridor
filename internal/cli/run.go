@@ -13,12 +13,15 @@ import (
 )
 
 func Run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
+	if len(args) == 2 && args[0] == "ingest" && args[1] == "all" {
+		return ingestAll(ctx, stdout)
+	}
 	if len(args) != 1 {
-		return errors.New("usage: corridorctl help|init-dev|migrate|setup|health")
+		return errors.New("usage: corridorctl help|init-dev|migrate|setup|health|ingest all")
 	}
 	switch args[0] {
 	case "help":
-		_, err := fmt.Fprintln(stdout, "corridorctl help|init-dev|migrate|setup|health")
+		_, err := fmt.Fprintln(stdout, "corridorctl help|init-dev|migrate|setup|health|ingest all")
 		return err
 	case "init-dev":
 		return initDev(".env", rand.Reader, stdout)
