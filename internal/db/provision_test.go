@@ -3,9 +3,10 @@
 package db
 
 import (
-	"github.com/jackc/pgx/v5"
 	"strings"
 	"testing"
+
+	"github.com/jackc/pgx/v5"
 )
 
 func TestProvision(t *testing.T) {

@@ -1,11 +1,13 @@
 import 'maplibre-gl/dist/maplibre-gl.css';
 
+import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import type { Theme } from '$lib/theme/theme';
 export interface MapHandle {
 	destroy(): void;
 }
 export async function createMap(container: HTMLElement, theme: Theme): Promise<MapHandle> {
-	const { Map } = await import('maplibre-gl');
+	const { Map, setWorkerUrl } = await import('maplibre-gl');
+	setWorkerUrl(workerUrl);
 	const map = new Map({
 		container,
 		style: {

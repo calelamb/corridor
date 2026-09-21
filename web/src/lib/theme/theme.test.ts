@@ -28,3 +28,16 @@ test('denied storage does not break theme', () => {
 	).not.toThrow();
 	expect(() => saveTheme(null, 'light')).not.toThrow();
 });
+
+test('saves a chosen theme', () => {
+	let saved = '';
+	saveTheme(
+		{
+			setItem: (_key, value) => {
+				saved = value;
+			}
+		},
+		'dark'
+	);
+	expect(saved).toBe('dark');
+});

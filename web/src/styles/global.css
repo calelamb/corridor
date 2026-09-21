@@ -1,4 +1,20 @@
 @import 'tailwindcss';
+@font-face {
+	font-family: 'Public Sans Variable';
+	font-style: normal;
+	font-weight: 400 700;
+	font-display: swap;
+	src: url('../lib/assets/fonts/public-sans-ui.woff2') format('woff2');
+	unicode-range: U+0020-007E, U+00B7, U+2000-206F;
+}
+@font-face {
+	font-family: Fraunces;
+	font-style: normal;
+	font-weight: 500;
+	font-display: swap;
+	src: url('../lib/assets/fonts/fraunces-ui.woff2') format('woff2');
+	unicode-range: U+0020-007E, U+00B7, U+2000-206F;
+}
 :root {
 	--surface: #f6f3ea;
 	--panel: #fcfaf5;
@@ -561,4 +577,12 @@ nav a {
 		animation: none !important;
 		transition: none !important;
 	}
+}
+
+.map-canvas {
+	contain: strict;
+	visibility: hidden;
+}
+.map-canvas.loaded {
+	visibility: visible;
 }

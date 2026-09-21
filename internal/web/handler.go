@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"html"
 	"io/fs"
+	"mime"
 	"net/http"
 	"path"
 	"regexp"
@@ -43,7 +44,13 @@ func Handler(assets fs.FS) http.Handler {
 			cache = "public, max-age=31536000, immutable"
 		}
 		w.Header().Set("Cache-Control", cache)
-		http.ServeContent(w, r, name, time.Time{}, bytes.NewReader(data))
+		body, encoding := compressed(assets, r, name, data)
+		w.Header().Set("Vary", "Accept-Encoding")
+		if encoding != "" {
+			w.Header().Set("Content-Encoding", encoding)
+		}
+		w.Header().Set("Content-Type", mime.TypeByExtension(path.Ext(name)))
+		http.ServeContent(w, r, name, time.Time{}, bytes.NewReader(body))
 	})
 }
 func assetName(urlPath string) (string, bool) {

@@ -6,7 +6,8 @@ This is a narrow exception to the general nonce-based CSP rule: regenerating
 assets regenerates the matching hashes. Script policy never uses unsafe-inline.
 
 Scripts, fonts, connections and styles come from the same origin. MapLibre's
-bundled worker needs blob: in worker-src. Its layout updates require inline
+Vite-bundled worker has an explicit same-origin URL; worker-src permits only
+self (no blob worker allowance). Its layout updates require inline
 styles; style-src permits unsafe-inline only for styling. No third-party tile,
 font, analytics or script origin is authorized. The Go response adds frame,
 MIME, referrer and permissions protections; the prerendered CSP meta element

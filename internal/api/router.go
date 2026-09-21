@@ -2,12 +2,17 @@ package api
 
 import (
 	"context"
+	"io"
 	"log/slog"
 	"net/http"
 	"time"
 
+	"github.com/andybalholm/brotli"
+
 	"corridor/internal/db"
+
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"golang.org/x/time/rate"
 )
 
@@ -40,6 +45,10 @@ func NewRouter(deps Dependencies) http.Handler {
 	}
 	r := chi.NewRouter()
 	r.Use(protect(logger, limiter, timeout))
+	compressor := middleware.NewCompressor(6)
+	compressor.SetEncoder("br", func(w io.Writer, _ int) io.Writer { return brotli.NewWriterLevel(w, 6) })
+	r.Use(negotiatedCompression)
+	r.Use(compressor.Handler)
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		if deps.Web != nil && r.URL.Path != "/v1" && !isAPIPath(r.URL.Path) {
 			deps.Web.ServeHTTP(w, r)

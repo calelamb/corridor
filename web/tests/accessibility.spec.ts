@@ -56,3 +56,13 @@ test('200 percent zoom and keyboard disclosure', async ({ page }) => {
 	await page.keyboard.press('Enter');
 	await expect(help).toBeFocused();
 });
+
+for (const width of [375, 1440])
+	for (const theme of ['light', 'dark'])
+		test(`methods ${width} ${theme}`, async ({ page }) => {
+			await page.setViewportSize({ width, height: 1000 });
+			await page.addInitScript((value) => localStorage.setItem('corridor-theme', value), theme);
+			await page.goto('/data/');
+			await expect(page.getByRole('heading', { name: 'Evidence before inference.' })).toBeVisible();
+			expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+		});

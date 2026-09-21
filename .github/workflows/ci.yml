@@ -1,0 +1,40 @@
+name: Foundation
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a
+      - uses: actions/setup-go@e626ada899467caf4efc6cfd0484b965da944ce8
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@db0fb3a98ed314b69026b6e8c9be26a7e2fe65a8
+        with:
+          node-version: 24.21.0
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm --prefix web ci
+      - run: make images
+      - run: make verify
+      - run: npx --prefix web playwright install --with-deps
+      - run: go run ./cmd/corridorctl init-dev
+      - run: docker compose -p corridor-foundation-acceptance up --build --wait
+      - run: go test -tags=acceptance ./tests/acceptance -count=1
+      - run: npm --prefix web run test:e2e
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:8080
+      - run: npm --prefix web run performance
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: verification
+          path: |
+            coverage/
+            web/coverage/
+            web/test-results/
+            web/.lighthouseci/
+      - if: always()
+        run: docker compose -p corridor-foundation-acceptance down -v

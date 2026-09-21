@@ -19,7 +19,7 @@ export default defineConfig({
 					'default-src': ['self'],
 					'script-src': ['self'],
 					'style-src': ['self', 'unsafe-inline'],
-					'worker-src': ['self', 'blob:'],
+					'worker-src': ['self'],
 					'img-src': ['self', 'data:', 'blob:'],
 					'connect-src': ['self'],
 					'font-src': ['self'],
@@ -30,6 +30,12 @@ export default defineConfig({
 		})
 	],
 	test: {
+		coverage: {
+			include: ['src/lib/**/*.ts'],
+			exclude: ['**/*.test.ts', 'src/lib/index.ts'],
+			reporter: ['text', 'json-summary'],
+			thresholds: { statements: 80, branches: 80, functions: 80, lines: 80 }
+		},
 		expect: { requireAssertions: true },
 		projects: [
 			{

@@ -49,3 +49,19 @@ func TestEmbeddedAssets(t *testing.T) {
 		t.Fatal("missing embedded application")
 	}
 }
+
+func TestPrecompressedAssets(t *testing.T) {
+	h := Handler(fstest.MapFS{"_app/immutable/a.js": {Data: []byte("script")}, "_app/immutable/a.js.br": {Data: []byte("synthetic encoded fixture")}})
+	for _, encoding := range []string{"br", "br;q=0", ""} {
+		req := httptest.NewRequest("GET", "/_app/immutable/a.js", nil)
+		req.Header.Set("Accept-Encoding", encoding)
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, req)
+		if (w.Header().Get("Content-Encoding") == "br") != (encoding == "br") {
+			t.Fatalf("encoding %q: %s", encoding, w.Header().Get("Content-Encoding"))
+		}
+		if !strings.Contains(w.Header().Get("Content-Type"), "javascript") {
+			t.Fatal("lost MIME type")
+		}
+	}
+}

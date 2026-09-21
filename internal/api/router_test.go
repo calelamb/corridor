@@ -4,11 +4,12 @@ import (
 	"context"
 	"corridor/internal/db"
 	"errors"
-	"golang.org/x/time/rate"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"golang.org/x/time/rate"
 )
 
 type testStore struct {
@@ -81,5 +82,49 @@ func TestPanicRecovered(t *testing.T) {
 	r := request(h, "GET", "/readyz")
 	if r.Code != 500 || strings.Contains(r.Body.String(), "secret") {
 		t.Fatal(r)
+	}
+}
+
+func TestCompressAssets(t *testing.T) {
+	h := NewRouter(Dependencies{Web: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/javascript")
+		_, _ = w.Write([]byte(strings.Repeat("const x=1;", 100)))
+	})})
+	req := httptest.NewRequest("GET", "/_app/immutable/fixture.js", nil)
+	req.Header.Set("Accept-Encoding", "gzip")
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, req)
+	if w.Header().Get("Content-Encoding") != "gzip" {
+		t.Fatal("assets sent without negotiated compression")
+	}
+}
+
+func TestBrotliAssets(t *testing.T) {
+	h := NewRouter(Dependencies{Web: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/javascript")
+		_, _ = w.Write([]byte(strings.Repeat("const x=1;", 100)))
+	})})
+	req := httptest.NewRequest("GET", "/asset.js", nil)
+	req.Header.Set("Accept-Encoding", "br")
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, req)
+	if w.Header().Get("Content-Encoding") != "br" {
+		t.Fatal("missing Brotli encoding")
+	}
+}
+
+func TestCompressionQuality(t *testing.T) {
+	h := NewRouter(Dependencies{Web: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/javascript")
+		_, _ = w.Write([]byte("const x=1;"))
+	})})
+	for _, tt := range []struct{ offer, want string }{{"br;q=0,gzip;q=0", ""}, {"br;q=0.1,gzip;q=1", "gzip"}, {"*;q=1,br;q=0", "gzip"}, {"br;q=invalid", ""}} {
+		req := httptest.NewRequest("GET", "/asset.js", nil)
+		req.Header.Set("Accept-Encoding", tt.offer)
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, req)
+		if got := w.Header().Get("Content-Encoding"); got != tt.want {
+			t.Fatalf("%s: got %s want %s", tt.offer, got, tt.want)
+		}
 	}
 }

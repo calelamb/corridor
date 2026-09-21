@@ -7,10 +7,11 @@ import (
 	"time"
 )
 
-func health(ctx context.Context) error {
+func health(ctx context.Context) error { return healthAt(ctx, "http://127.0.0.1:8080/readyz") }
+func healthAt(ctx context.Context, endpoint string) error {
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://127.0.0.1:8080/readyz", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return err
 	}

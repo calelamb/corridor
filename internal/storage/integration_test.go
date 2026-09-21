@@ -6,12 +6,13 @@ import (
 	"bytes"
 	"context"
 	"corridor/internal/config"
-	"github.com/minio/minio-go/v7"
-	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/wait"
 	"net/http"
 	"testing"
 	"time"
+
+	"github.com/minio/minio-go/v7"
+	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/wait"
 )
 
 func TestPrivateSetup(t *testing.T) {

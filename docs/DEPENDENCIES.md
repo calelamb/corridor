@@ -31,3 +31,28 @@ versions; later updates are explicit reviewable changes.
 Database clients: pgx/v5 5.11.0 (MIT), goose/v3 3.28.0 (MIT),
 sqlc 1.31.1 (MIT); testcontainers-go is test-only (MIT). Exact versions and
 transitive checksums are authoritative in go.mod/go.sum.
+
+Security-tool pins: gosec 2.29.0, govulncheck 1.8.0 and goimports are managed
+as Go tools. The madmin SDK's Prometheus dependency is explicitly upgraded to
+0.311.3 to fix reachable vulnerability advisories found by govulncheck.
+Lighthouse 13.5.0 replaces the older Lighthouse CI wrapper, whose transitive
+archive/temporary-file dependencies had advisories. npm overrides cookie to
+0.7.2, preserving its parse/serialize API while removing the <0.7 advisory.
+Regression suites and npm audit validate these changes; no audit-force
+downgrade is used. Brotli 1.2.4 (MIT) handles negotiated compression; static
+variants are precompressed during the frontend build. Weighted Accept-Encoding
+offers are normalized before chi because its matching ignores q-values.
+
+The map module remains a browser-only dynamic import. The map page preloads
+its build-manifest URL to avoid a hydration download waterfall; it counts in
+the initial transfer budget. Zod Mini preserves runtime validation with a
+smaller bundle. The methods page does not preload MapLibre.
+
+Fonts are subset at build time with subset-font 2.9.0 (BSD-3-Clause) using
+HarfBuzz WASM. The English UI subset preserves ASCII and its punctuation;
+other characters use system fallbacks. Public Sans retains weight range
+400–700. Font copyright/license name records and complete OFL files remain.
+
+MapLibre 6.10 uses its documented Vite `?worker&url` entry, producing a
+self-contained same-origin worker; worker-src needs only 'self'. See the
+[official Vite integration](https://maplibre.org/maplibre-gl-js/docs/).

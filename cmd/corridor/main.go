@@ -9,12 +9,13 @@ import (
 	"corridor/internal/storage"
 	"corridor/internal/web"
 	"errors"
-	"golang.org/x/time/rate"
 	"log/slog"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"golang.org/x/time/rate"
 )
 
 func run(ctx context.Context) error {

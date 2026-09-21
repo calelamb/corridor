@@ -76,9 +76,9 @@ func TestSpatialFoundation(t *testing.T) {
 	testConstraints(t, ctx, pool)
 }
 func TestMissingH3IsAtomic(t *testing.T) {
-	ctx, dsn := testDatabase(t, "postgres:16-bookworm@sha256:efedf3595f1d6f415c08568ba171029bf54052e754cc9f030e3f2412b21f3d67")
-	if err := Migrate(ctx, dsn); err == nil {
-		t.Fatal("missing extensions accepted")
+	ctx, dsn := testDatabase(t, "corridor-postgres-no-h3:foundation")
+	if err := Migrate(ctx, dsn); err == nil || !strings.Contains(err.Error(), "extension \"h3\" is not available") {
+		t.Fatalf("expected missing H3 failure: %v", err)
 	}
 	conn, err := pgx.Connect(ctx, dsn)
 	if err != nil {
@@ -96,5 +96,50 @@ func TestOpenInvalid(t *testing.T) {
 		t.Fatal("invalid DSN accepted")
 	} else if strings.Contains(err.Error(), "password") {
 		t.Fatal("secret in error")
+	}
+}
+
+func TestStoreFailureBoundaries(t *testing.T) {
+	ctx, dsn := testDatabase(t, "corridor-postgres:foundation")
+	pool, err := Open(ctx, dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+	store := Store{Pool: pool}
+	if store.Check(ctx) == nil {
+		t.Fatal("missing schema ready")
+	}
+	if _, err := store.EventCount(ctx); err == nil {
+		t.Fatal("missing coverage accepted")
+	}
+	if _, _, err := store.Sources(ctx, 25, 0); err == nil {
+		t.Fatal("missing source schema accepted")
+	}
+	if err := Migrate(ctx, dsn); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Check(ctx); err != nil {
+		t.Fatal(err)
+	}
+	for _, pair := range [][2]int32{{0, 0}, {101, 0}, {1, -1}, {1, 100001}} {
+		if _, _, err := store.Sources(ctx, pair[0], pair[1]); err == nil {
+			t.Fatal("invalid pagination accepted")
+		}
+	}
+	canceled, cancel := context.WithCancel(ctx)
+	cancel()
+	if _, err := Open(canceled, dsn); err == nil {
+		t.Fatal("canceled connection accepted")
+	}
+	if err := Provision(canceled, dsn, strings.Repeat("x", 32)); err == nil {
+		t.Fatal("canceled provisioning accepted")
+	}
+	pool.Close()
+	if _, _, err := store.Sources(ctx, 25, 0); err == nil {
+		t.Fatal("closed pool accepted")
+	}
+	if store.Check(ctx) == nil {
+		t.Fatal("closed pool ready")
 	}
 }

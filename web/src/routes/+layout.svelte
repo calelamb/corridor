@@ -1,7 +1,5 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import '@fontsource/fraunces/latin-500.css';
-	import '@fontsource-variable/public-sans';
 	import '../styles/global.css';
 	import { onMount } from 'svelte';
 	import { readTheme, saveTheme, browserStorage, type Theme } from '$lib/theme/theme';

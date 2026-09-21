@@ -1,0 +1,97 @@
+{
+  "initialJSGzipBytes": 306279,
+  "initialCSSGzipBytes": 14240,
+  "url": "http://127.0.0.1:8080",
+  "settings": "mobile 375x812; simulated 4G 150ms/1638.4Kbps, CPU 4x; map-ready uses applied network throttling",
+  "measurements": [
+    {
+      "performance": 95,
+      "accessibility": 100,
+      "lcp": 2730.7001499999997
+    },
+    {
+      "performance": 94,
+      "accessibility": 100,
+      "lcp": 2737.76365
+    },
+    {
+      "performance": 95,
+      "accessibility": 100,
+      "lcp": 2716.3606
+    }
+  ],
+  "median": {
+    "performance": 95,
+    "accessibility": 100
+  },
+  "mapReadyMs": 1919.800000000745,
+  "js": [
+    {
+      "file": "entry/start.BaeS6EQN.js",
+      "gzipBytes": 89,
+      "bytes": 77
+    },
+    {
+      "file": "chunks/BJ_7Ivv8.js",
+      "gzipBytes": 10528,
+      "bytes": 27394
+    },
+    {
+      "file": "entry/app.D6X8YxQ8.js",
+      "gzipBytes": 1353,
+      "bytes": 3001
+    },
+    {
+      "file": "chunks/45lT3CKy.js",
+      "gzipBytes": 14642,
+      "bytes": 38555
+    },
+    {
+      "file": "chunks/xihTtKlq.js",
+      "gzipBytes": 79,
+      "bytes": 65
+    },
+    {
+      "file": "chunks/uBIymjUX.js",
+      "gzipBytes": 688,
+      "bytes": 1233
+    },
+    {
+      "file": "nodes/0.CbunksT2.js",
+      "gzipBytes": 993,
+      "bytes": 1802
+    },
+    {
+      "file": "nodes/2.PsIqXEfA.js",
+      "gzipBytes": 8213,
+      "bytes": 22173
+    },
+    {
+      "file": "chunks/D35MPMqU.js",
+      "gzipBytes": 269368,
+      "bytes": 1010367
+    },
+    {
+      "file": "nodes/1.CH_sdqXJ.js",
+      "gzipBytes": 326,
+      "bytes": 576
+    }
+  ],
+  "css": [
+    {
+      "file": "assets/0.CYGK9lY7.css",
+      "gzipBytes": 3725,
+      "bytes": 12484
+    },
+    {
+      "file": "assets/2.CKRTiAqP.css",
+      "gzipBytes": 10515,
+      "bytes": 82869
+    }
+  ],
+  "deferredWorker": {
+    "file": "maplibre-gl-worker-CNLXcz58.js",
+    "bytes": 508485,
+    "gzipBytes": 144184
+  }
+}

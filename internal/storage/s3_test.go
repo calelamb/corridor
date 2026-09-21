@@ -45,3 +45,28 @@ func TestInvalid(t *testing.T) {
 		}
 	}
 }
+
+func TestSetupBoundaries(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	if Setup(ctx, config.Config{}, "", "") == nil {
+		t.Fatal("missing setup credentials")
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusForbidden) }))
+	defer srv.Close()
+	cfg := config.Config{S3Endpoint: srv.URL, S3Bucket: "test-bucket", S3AccessKey: "app", S3SecretKey: "test-secret"}
+	if Setup(ctx, cfg, "root", "test-secret") == nil {
+		t.Fatal("denied administrator accepted")
+	}
+	missing := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "HEAD" {
+			w.WriteHeader(404)
+		} else {
+			w.WriteHeader(403)
+		}
+	}))
+	defer missing.Close()
+	if Setup(ctx, config.Config{S3Endpoint: missing.URL, S3Bucket: "test-bucket", S3AccessKey: "app", S3SecretKey: "test-secret"}, "root", "test-secret") == nil {
+		t.Fatal("denied create accepted")
+	}
+}

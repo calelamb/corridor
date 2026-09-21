@@ -1,0 +1,13 @@
+Corridor
+Original project code is licensed under Apache License 2.0.
+
+The frontend uses Svelte, SvelteKit, MapLibre GL JS and other dependencies under
+their respective licenses; npm's lockfile and Go's module files pin versions.
+Fraunces and Public Sans fonts are self-hosted under SIL OFL 1.1. Their full
+licenses are included in web/static/licenses and the embedded distribution.
+
+PostgreSQL, PostGIS and MinIO are separate companion services. PostgreSQL uses
+the PostgreSQL License; PostGIS GPL-2.0-or-later; h3-pg Apache-2.0; MinIO AGPL-3.0.
+The MinIO Dockerfile retains its license and pins the complete source archive.
+Dataset licenses are independent of this repository's code license. Public
+access does not imply redistribution permission; see data/SOURCES.md.

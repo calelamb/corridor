@@ -4,6 +4,7 @@
 	let { theme }: { theme: Theme } = $props();
 	let container: HTMLDivElement;
 	let fallback = $state(false);
+	let loaded = $state(false);
 	$effect(() => {
 		const current = theme;
 		let canceled = false;
@@ -12,7 +13,10 @@
 			createMap(container, current)
 				.then((map) => {
 					if (canceled) map.destroy();
-					else destroy = map.destroy;
+					else {
+						destroy = map.destroy;
+						loaded = true;
+					}
 				})
 				.catch(() => {
 					if (!canceled) fallback = true;
@@ -24,7 +28,7 @@
 	});
 </script>
 
-<div class="map-canvas" bind:this={container} aria-hidden="true"></div>
+<div class="map-canvas" class:loaded bind:this={container} aria-hidden="true"></div>
 <div class="canvas-caption">
 	<span class="crosshair" aria-hidden="true">＋</span>
 	<p>{fallback ? 'Map canvas unavailable' : 'Your next perspective starts here.'}</p>

@@ -2,8 +2,10 @@ package api
 
 import (
 	"context"
-	"github.com/getkin/kin-openapi/openapi3"
+	"slices"
 	"testing"
+
+	"github.com/getkin/kin-openapi/openapi3"
 )
 
 func TestContract(t *testing.T) {
@@ -30,6 +32,9 @@ func TestContract(t *testing.T) {
 	}
 	for _, name := range []string{"HealthEnvelope", "CoverageEnvelope", "SourcesEnvelope", "ErrorEnvelope"} {
 		schema := doc.Components.Schemas[name].Value
+		if !slices.Contains(schema.Required, "status") {
+			t.Fatalf("%s does not require status", name)
+		}
 		if err := schema.VisitJSON(map[string]any{"data": nil, "error": nil, "meta": nil}); err == nil {
 			t.Fatalf("%s accepts missing status", name)
 		}

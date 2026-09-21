@@ -7,6 +7,7 @@ import (
 	"net/url"
 
 	"corridor/internal/config"
+
 	"github.com/minio/madmin-go/v3"
 	"github.com/minio/minio-go/v7"
 )

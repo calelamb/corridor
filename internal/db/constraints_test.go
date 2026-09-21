@@ -4,8 +4,11 @@ package db
 
 import (
 	"context"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"fmt"
+
 	"testing"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func testConstraints(t *testing.T, ctx context.Context, pool *pgxpool.Pool) {
@@ -54,5 +57,29 @@ func testConstraints(t *testing.T, ctx context.Context, pool *pgxpool.Pool) {
 	count, err = store.EventCount(ctx)
 	if err != nil || count != 1 {
 		t.Fatalf("released count %d %v", count, err)
+	}
+}
+
+func TestArtifactSourceIntegrity(t *testing.T) {
+	ctx, dsn := testDatabase(t, "corridor-postgres:foundation")
+	if err := Migrate(ctx, dsn); err != nil {
+		t.Fatal(err)
+	}
+	pool, err := Open(ctx, dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+	var first, second, artifact string
+	for i, dest := range []*string{&first, &second} {
+		if err := pool.QueryRow(ctx, "INSERT INTO sources(name,url,license,status) VALUES ($1,'https://example.invalid','synthetic test','quarantined') RETURNING id", fmt.Sprint("Synthetic source ", i)).Scan(dest); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := pool.QueryRow(ctx, "INSERT INTO source_artifacts(source_id,object_key,retrieved_at,sha256) VALUES ($1,'test-only',now(),repeat('b',64)) RETURNING id", first).Scan(&artifact); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, "INSERT INTO events(source_id,artifact_id,native_id,geom,observed_at,time_precision,uncertainty_m) VALUES ($1,$2,'cross-source',ST_Point(0,0,4326),now(),'day',0)", second, artifact); err == nil {
+		t.Fatal("event accepted another source's artifact")
 	}
 }
