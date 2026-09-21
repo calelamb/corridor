@@ -69,6 +69,26 @@ await page.waitForFunction(() => performance.getEntriesByName('corridor-map-read
 const mapReady = await page.evaluate(
 	() => performance.getEntriesByName('corridor-map-ready')[0].startTime
 );
+await page.waitForLoadState('networkidle');
+const geographyBytes = await page.evaluate(() => {
+	const resources = performance.getEntriesByType('resource');
+	return Object.fromEntries(
+		['basemap', 'evidence', 'migration'].map((kind) => [
+			kind,
+			resources
+				.filter((entry) =>
+					entry.name.includes(
+						kind === 'basemap'
+							? '/maps/region.pmtiles'
+							: kind === 'evidence'
+								? '/tiles/evidence/'
+								: '/v1/migration'
+					)
+				)
+				.reduce((sum, entry) => sum + entry.transferSize, 0)
+		])
+	);
+});
 const requested = await page.evaluate(() =>
 	performance.getEntriesByType('resource').map((entry) => new URL(entry.name).pathname)
 );
@@ -101,6 +121,9 @@ const summary = {
 	measurements,
 	median: { performance: median('performance'), accessibility: median('accessibility') },
 	mapReadyMs: mapReady,
+	pageObservedGeographyTransferBytes: geographyBytes,
+	geographyMeasurementLimit:
+		'Page resource timing only; dedicated worker requests may be absent. Zero is not proof of no transfer.',
 	js,
 	css
 };

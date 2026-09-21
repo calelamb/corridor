@@ -14,11 +14,25 @@
 	<h1>Evidence before inference.</h1>
 	<p class="intro">A useful map starts with knowing what we know — and what we don’t.</p>
 	<section>
-		<h2>No sources ingested yet</h2>
+		<h2>A roadkill pilot and a migration study</h2>
 		<p>
-			The research inventory is not a live dataset. Source records appear only after provenance,
-			permissions and ingestion checks. No collision observations or model scores are loaded in this
-			foundation.
+			The cleared Global Roadkill v5 US pilot contains 5,211 source records representing 8,854
+			reported animals, from 1983–2023. The map exposes generalized areas, not precise carcass
+			locations. The separate USGS Pequop mule-deer layer describes mapped migration routes from
+			2011–2017; it is not live telemetry.
+		</p>
+		<p>
+			<a
+				class="text-link"
+				href="https://doi.org/10.6084/m9.figshare.25714233.v5"
+				target="_blank"
+				rel="noreferrer">Global Roadkill · Grilo et al. · CC BY 4.0 ↗</a
+			>
+		</p>
+		<p>
+			<a class="text-link" href="https://doi.org/10.5066/P9O2YM6I" target="_blank" rel="noreferrer"
+				>USGS / Nevada Department of Wildlife · CC0 ↗</a
+			>
 		</p>
 	</section>
 	<div class="method-grid">
@@ -35,7 +49,8 @@
 			<h2>Uncertainty stays visible</h2>
 			<p>
 				Missing data is not evidence of low risk. Collection effort, date precision and location
-				uncertainty will accompany future analysis.
+				uncertainty constrain how these records can be interpreted. Seasonal filters exclude records
+				without a known month.
 			</p>
 		</section>
 		<section>
@@ -48,10 +63,11 @@
 		</section>
 	</div>
 	<section class="methods-note">
-		<h2>A foundation, not a forecast</h2>
+		<h2>What the evidence cannot establish</h2>
 		<p>
-			Risk modeling, reporting, route planning and public data downloads arrive in later phases.
-			Corridor currently provides a tested starting point for that work.
+			Reporting density is affected by survey effort and road coverage. It does not establish
+			collision probability, safe roads, or future animal paths. No validated forecast model is
+			served yet. Detailed basemap coverage is regional; zoomed-out context elsewhere is limited.
 		</p>
 	</section>
 </main>
