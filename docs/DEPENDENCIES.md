@@ -45,8 +45,8 @@ offers are normalized before chi because its matching ignores q-values.
 
 The map module remains a browser-only dynamic import. The map page preloads
 its build-manifest URL to avoid a hydration download waterfall; it counts in
-the initial transfer budget. Zod Mini preserves runtime validation with a
-smaller bundle. The methods page does not preload MapLibre.
+the initial transfer budget. Zod validates exploration responses at the network boundary; the legacy
+coverage client uses Zod Mini. The methods page does not preload MapLibre.
 
 Fonts are subset at build time with subset-font 2.9.0 (BSD-3-Clause) using
 HarfBuzz WASM. The English UI subset preserves ASCII and its punctuation;
@@ -56,3 +56,9 @@ other characters use system fallbacks. Public Sans retains weight range
 MapLibre 6.10 uses its documented Vite `?worker&url` entry, producing a
 self-contained same-origin worker; worker-src needs only 'self'. See the
 [official Vite integration](https://maplibre.org/maplibre-gl-js/docs/).
+
+Exploration adds PMTiles 4.5.0 (BSD-3-Clause) for same-origin range access and
+`github.com/jonas-p/go-shp` 0.1.1 (MIT) for the pinned USGS shapefile adapter.
+Map label PBFs retain Noto's OFL license and checksums in the source ledger.
+The populated map currently exceeds the initial JavaScript and map-ready
+budgets; see the exploration verification report.

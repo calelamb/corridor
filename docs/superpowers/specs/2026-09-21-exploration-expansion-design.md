@@ -1,6 +1,6 @@
 # Corridor ranger map, movement and prediction workbench
 
-Status: proposed for user review; no implementation of this expansion yet.
+Status: approved for native continuation by the user on 2026-09-21 after the data sweep; implementation in progress.
 
 ## Intent
 

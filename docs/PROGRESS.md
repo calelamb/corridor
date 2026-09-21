@@ -4,14 +4,14 @@ Updated: 2026-09-21.
 
 ## Current state
 
-The Phase 1 foundation now runs locally as a Go application with embedded SvelteKit, PostgreSQL/PostGIS/H3 and private storage. Independent review findings were fixed and local verification passed. The original brief is preserved in [BRIEF.md](BRIEF.md). No collision ingestion, trained model, hosted deployment or populated risk-map result is claimed.
+The Phase 1 foundation now runs locally as a Go application with embedded SvelteKit, PostgreSQL/PostGIS/H3 and private storage. Independent review findings were fixed and local verification passed. The original brief is preserved in [BRIEF.md](BRIEF.md). The approved exploration increment now imports real collision reports and mapped migration geography into a populated local map. No trained prediction model or hosted deployment is claimed.
 
 | Phase | State | Evidence / remaining gate |
 | --- | --- | --- |
-| 0 Research | Research inventory and literature review written; source-level verification complete for 16 public/conditional source families | [RESEARCH.md](RESEARCH.md), [SOURCES.md](../data/SOURCES.md). Thirty ledger entries including restricted/unresolved candidates; only three raw artifacts acquired. Per-artifact schema/license clearance remains necessary before ingestion. This is not 16 production-ready datasets. |
+| 0 Research | Research inventory and literature review written; source-level verification complete for 16 public/conditional source families | [RESEARCH.md](RESEARCH.md), [SOURCES.md](../data/SOURCES.md). Thirty ledger entries including restricted/unresolved candidates. Two cleared products are now imported; other candidates still require artifact-specific clearance. This is not 16 production-ready datasets. |
 | 1 Foundation | Complete for the approved Phase 1 scope; review fixes and local verification passed | [Verification evidence](verification/phase-1.md), [foundation design](superpowers/specs/2026-09-20-foundation-design.md), [implementation plan](superpowers/plans/2026-09-21-foundation.md). |
-| 2 Ingestion | Not started | Need exact public-source artifacts, verified rights, Go adapters, object storage, privacy, idempotency and QA tests. |
-| 3 Exploration | Not started | Depends on ingestion and shared public-release policy. |
+| 2 Ingestion | Pilot implemented; broader phase incomplete | 5,211 US Global Roadkill v5 records, 8,854 animals, 218 Pequop routes. Pinned Go adapters, private originals, idempotency and H3-only public release tested. Other states/parks and precise road matching remain open. |
+| 3 Exploration | Interactive pilot implemented; broader phase incomplete | Basemap, filters, connected selection/list, reporting timeline, migration context and share state. [Verification](verification/highway-exploration.md). Populated performance budgets and remaining design features still open. |
 | 4 Hotspots | Not started | Define/test all four methods and obtain a suitable WA comparison product with cleared terms. |
 | 5 Features and ML | Not started | No licensed multi-state longitudinal training corpus yet. No evaluation scores or trained weights. |
 | 6 Prioritization | Not started | Primary economic inputs, treatment-specific effectiveness and uncertainty still required. |
@@ -41,7 +41,15 @@ These Phase 0 checks are research-artifact checks, separate from the Phase 1 app
 
 ## Next work
 
-Finish independent foundation review, then scope Phase 2 against exact cleared artifacts. The public map currently has no basemap, collision records or risk model. MinIO remains an archived, isolated development companion; production storage requires a maintained service decision. No remote CI run is claimed.
+The running map is at http://127.0.0.1:8080. The next scientific work is study-specific
+survey-effort recovery, road matching and the Phase 4 hotspot comparison. The
+[feasibility report](research/2026-09-21-model-feasibility.md) records actual I-84
+support and why these reports do not yet justify collision probabilities or
+animal-track playback. UI follow-through includes geographic search, viewport
+filtering, broader basemap coverage and performance optimization.
+
+MinIO remains an archived, isolated development companion; production storage
+requires a maintained service decision. No remote CI run is claimed.
 
 During Phase 2, verify each exact artifact's rights and schema; promote source states only on evidence. No source requests have been sent, no accounts created, no paid services purchased, and no remote repository configured. Do not silently count unavailable data toward the required WA/CA/MT/UT and national-park coverage.
 
@@ -52,7 +60,7 @@ Four research lanes investigated collision records, movement/corridors, map and
 prediction covariates, and global/citizen-science/image sources. The
 [consolidated sweep](research/2026-09-21-data-sweep.md) records candidates,
 artifact acquisitions, rights limitations and an ordered integration backlog.
-Downloads remain private research artifacts; no new application ingestion,
-movement animation or trained prediction is claimed. The expanded ranger
-workbench design remains proposed, and research is now more concrete than the
-original Phase 0 inventory.
+Two cleared artifacts were subsequently imported under the approved ranger
+exploration plan. Other downloads remain research-only. No observed-track
+animation or trained prediction is claimed; source discovery does not imply
+permission, spatial overlap or sufficient training support.

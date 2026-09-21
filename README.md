@@ -2,13 +2,15 @@
 
 Open wildlife–vehicle collision intelligence for safer roads and connected habitats.
 
-The foundation runs one Go application with an embedded SvelteKit interface,
-PostgreSQL/PostGIS/H3 and private S3-compatible storage. It clearly separates
-empty coverage from unavailable data. Ingestion, risk modeling, prioritization,
-field reporting and routing remain future phases. No collision observations or
-invented risk scores are bundled.
+The local pilot runs one Go application with an embedded SvelteKit explorer,
+PostgreSQL/PostGIS/H3 and private S3-compatible storage. It supports an interactive
+regional highway basemap, real roadkill evidence, filters, a reporting timeline
+and mapped mule-deer migration context. Predictions, observed-track playback,
+prioritization, field reporting and routing remain future phases.
 
-![Corridor desktop](docs/verification/phase-1-1440-light.png)
+Raw observations and basemap archives are not bundled in Git. Follow the pinned
+[acquisition and import instructions](data/SOURCES.md#reproduce-the-local-pilot)
+to populate a fresh installation. Empty and unavailable data remain distinct.
 
 ## Run locally
 
@@ -37,14 +39,14 @@ non-root user, and has a read-only filesystem. Node is a build dependency only.
 
 ## Current scope
 
-- OpenAPI 3.1 health, readiness, publication-safe coverage and source endpoints.
-- Provenance schema, immutable artifacts, spatial constraints, least-privilege
-  public projections, and a sensitive-record publication delay.
-- Responsive light/dark map shell, methods page, keyboard controls and WebGL
-  fallback. The geography-free canvas is intentional: no licensed basemap or
-  ingested collision dataset is bundled. Blank space does not mean low risk.
-- Real PostGIS/S3 integration and browser checks. See the exact evidence and
-  limitations in [verification](docs/verification/phase-1.md).
+- Publication-safe exploration APIs and vector tiles: [contract](api/exploration.yaml).
+- Private original artifacts, strict validation, idempotent Go imports and fixed
+  H3 resolution-6 public projections with a 30-day delay.
+- Highway/species/source/year/season search and filters, map/list selection,
+  yearly report playback, migration geography and shareable view state.
+- Light/dark themes, keyboard controls, reduced motion and a usable evidence
+  list when WebGL or basemap geography is unavailable.
+- [Exploration verification and remaining limits](docs/verification/highway-exploration.md).
 
 MinIO upstream is archived. The pinned source build is an isolated development
 companion, not a recommendation for a maintained production deployment. Choose

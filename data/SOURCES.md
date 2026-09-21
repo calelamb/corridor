@@ -97,3 +97,75 @@ The California CSV header is `observed_on,time_observed_at,quality_grade,latitud
 ## Ingestion acceptance policy
 
 Each future adapter must pin the artifact/version, record source and retrieval timestamps separately, verify its hash, validate schema/CRS/units/sentinels, respect licenses and sensitive data, preserve raw bytes and row provenance, and produce accepted/rejected/duplicate/unsnapped counts. License-conflicted or unapproved sources are skipped with an explicit reason. A successful `ingest all` must not imply requested or inaccessible sources were imported.
+
+## Approved exploration pilot — 2026-09-21
+
+The local application now imports two artifact-level-cleared products through
+`corridorctl ingest all`. The other research candidates are not implicitly
+approved. Repeated import preserved 5,211 US records / 8,854 reported animals;
+218 Pequop route geometries generate 163 public H3 areas. No trained model.
+
+| Artifact | Exact acquisition URL and retrieval | License / coverage / schema | SHA-256 |
+| --- | --- | --- | --- |
+| Global Roadkill v5 CSV | https://ndownloader.figshare.com/files/53393273 · 2026-09-21T21:04:30Z | Grilo et al., CC BY 4.0; https://doi.org/10.6084/m9.figshare.25714233.v5. US subset 1983–2023, WGS84, occurrence IDs, date intervals, reported multiplicity and uncertainty. Full raw CSV preserved privately. | `ba005179e7f02bae33ba4b9374b6957cdf795f04a8ada773ef4887fe61a46c16` |
+| Pequop migration SHP | https://www.sciencebase.gov/catalog/file/get/5f8db5c282ce32418791d554?f=__disk__e0%2F23%2F33%2Fe02333b80946b422fe4fae052e5a3ce19ac9d404 · 2026-09-21T21:38Z | USGS / Nevada Department of Wildlife, CC0, Volume 1 DOI 10.5066/P9O2YM6I. 218 polylines, 2011–2017 study period. NAD83 / Conus Albers EPSG:5070 confirmed by published XML and PRJ. Go reads shapes; PostGIS transforms CRS. No timestamps or animal IDs are published. | `07e52bd6218e59f4fccae43af48d2c24e052995a0827327a5fc8c0ed9aaa18bd` |
+| Pequop PRJ evidence | https://www.sciencebase.gov/catalog/file/get/5f8db5c282ce32418791d554?f=__disk__55%2F2f%2F8d%2F552f8dc509e09e20768885f97391b0dfd70dfabf · 2026-09-21T21:38Z | Same CC0 release. NAD83/GRS1980; parallels 29.5/45.5, origin 23, meridian −96, metres. Local evidence retained. | `baa291f16322a5a674a2a202b8565016be7c5414ebc9b134d665957e608a3aa0` |
+| Regional basemap extract | https://build.protomaps.com/20260921.pmtiles · 2026-09-21T21:28Z | Protomaps 4.15.2, ODbL Produced Work; OSM, Natural Earth and WorldCover attribution retained. Go PMTiles CLI 1.31.2, bbox −118,40,−109,46, zooms 0–10; ~11 MB, archive verification passed. Regional context, not analytical road segments. | `ca6ff0ff628140a8ae01992a47babdcde81e6a0e9c9835eaed1e5e8a1b51d9bc` |
+
+Public release `h3-r6-month-v1` generalizes **all** collision locations to H3
+resolution 6 and strips exact dates, raw IDs, row references and raw coordinates.
+Intervals must end at least 30 days ago; uncertainty over 1,000 m is withheld
+until a suitable coarser product exists. All current US records pass these gates.
+A fixed cell/species/road/source/year/month product underlies counts, filters,
+details and vector tiles; source withdrawal is checked on every request and
+public evidence responses use `no-store`. Quantity >1 is explicitly stored as an
+aggregate observation, not duplicated event points. All 5,211 records are currently
+unsnapped: the map does not claim surveyed or precisely matched road segments.
+
+Migration display is a separate static product: route geometries are transformed,
+densified at 500 m, and generalized to H3 resolution 6. Study routes are not GPS
+fixes; no animation or collision labels are inferred. Yellowstone raw telemetry
+remains withheld pending coordinate/time validation and a track release review.
+
+### Reproduce the local pilot
+
+Preserve the pinned original files at these ignored paths:
+
+- `data/raw/sweep-2026-09-21/global-roadkill-v5.csv`
+- `data/raw/exploration/pequop.shp`
+- `data/raw/exploration/pequop.prj` (CRS evidence)
+- `data/raw/exploration/region.pmtiles` (explicitly public basemap product)
+
+Acquire the first three from the exact URLs above using normal TLS-verified
+HTTP downloads. Use the official PMTiles CLI for the bounded extract:
+
+```sh
+pmtiles extract https://build.protomaps.com/20260921.pmtiles data/raw/exploration/region.pmtiles --bbox=-118,40,-109,46 --maxzoom=10
+pmtiles verify data/raw/exploration/region.pmtiles
+docker compose build corridor
+docker compose up -d
+docker compose --profile tools run --rm ingest
+```
+
+Verify the pilot with `shasum -a 256 -c data/EXPLORATION_SHA256SUMS`. Daily provider URLs have limited retention;
+if the pinned build expires, use a reviewed replacement acquisition with a new
+checksum rather than silently substituting another build. Collision/migration
+originals are copied to content-addressed private MinIO keys before database
+import. The public basemap extract remains a separate read-only mounted asset,
+never a general raw-directory HTTP route. Per-source database transactions are
+idempotent; an error in a later source leaves earlier completed imports intact,
+so the command exits nonzero and can safely be rerun.
+
+Map labels use the Noto Sans Regular 0–255 PBF from
+https://protomaps.github.io/basemaps-assets/fonts/Noto%20Sans%20Regular/0-255.pbf,
+retrieved 2026-09-21. Font license is retained at
+`web/static/licenses/noto-OFL.txt`; this is a UI font asset, not a wildlife dataset.
+
+Label glyph artifacts, retrieved 2026-09-21 from the same Noto Sans Regular
+endpoint (replace the final filename), are tracked as licensed UI assets:
+
+| Filename | SHA-256 |
+| --- | --- |
+| `0-255.pbf` | `62c6d49b15fa836eb6aa45e259c7ca6762f44b011b09e47776efbe4a6db1b397` |
+| `256-511.pbf` | `2eca7561f9f566bcacfda5dd04fb5880baec1328ec0f5484678289a13994de8a` |
+| `8192-8447.pbf` | `8ea977a587352fe31b4159ffdbc9a40be79056f2472017c742ea1e4a931864b9` |
