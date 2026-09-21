@@ -9,3 +9,6 @@
 
 /.worktrees/
 /.superpowers/
+/internal/web/dist/
+/web/coverage/
+/web/.lighthouseci/

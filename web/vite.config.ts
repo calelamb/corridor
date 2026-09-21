@@ -12,7 +12,21 @@ export default defineConfig({
 				runes: ({ filename }) =>
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
-			adapter: adapter()
+			adapter: adapter({ pages: '../internal/web/dist', assets: '../internal/web/dist' }),
+			csp: {
+				mode: 'hash',
+				directives: {
+					'default-src': ['self'],
+					'script-src': ['self'],
+					'style-src': ['self', 'unsafe-inline'],
+					'worker-src': ['self', 'blob:'],
+					'img-src': ['self', 'data:', 'blob:'],
+					'connect-src': ['self'],
+					'font-src': ['self'],
+					'object-src': ['none'],
+					'base-uri': ['self']
+				}
+			}
 		})
 	],
 	test: {
@@ -20,6 +34,7 @@ export default defineConfig({
 		projects: [
 			{
 				extends: './vite.config.ts',
+				resolve: { conditions: ['browser'] },
 				test: {
 					name: 'server',
 					environment: 'node',
