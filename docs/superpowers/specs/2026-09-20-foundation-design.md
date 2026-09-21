@@ -1,6 +1,6 @@
 # Corridor Phase 1 foundation design
 
-Status: approved by the user on 2026-09-21 UTC; implementation has not started.
+Status: approved and implemented on 2026-09-21 UTC. See [verification](../../verification/phase-1.md) for evidence and limits.
 Authority: [user brief](../../BRIEF.md), [research](../../RESEARCH.md), [source ledger](../../../data/SOURCES.md).
 
 ## Intended outcome

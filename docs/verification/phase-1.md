@@ -10,10 +10,10 @@ Playwright 1.63.0, Vitest 4.1.11. Branch: `feat/foundation`.
 | --- | --- |
 | `make verify` | Passing generation checks, frontend types/lint/unit coverage/build, Go formatting/goimports/vet/race, per-package coverage, gosec, govulncheck, npm audit |
 | `make images` / image builds | PostgreSQL 16/PostGIS 3.6.4/H3 4.2.3 and checksum-pinned MinIO source build; local ARM64 |
-| Tagged DB integration | Transactional migration, repeat application, actual missing-H3 failure after PostGIS availability, private-table permission denial, delayed sensitive count, immutable artifacts, source-matching artifact references |
+| Tagged DB integration | Transactional migration, repeat application, actual missing-H3 failure after PostGIS availability, private-table permission denial, delayed sensitive count, immutable artifacts, source-matching artifact references; credential-bearing acquisition URLs withheld until a separate safe public URL is reviewed |
 | Tagged storage integration | Private bucket, repeat setup, application write denial, anonymous object read denial |
 | `docker compose -p corridor-foundation-acceptance up --build --wait` | Healthy application after migration and setup; real empty database and private storage |
-| `go test -tags=acceptance ./tests/acceptance -count=1` | Both acceptance tests pass; actual executable health probe and root/data/coverage; DB shutdown gives 503 for readiness/coverage/sources while liveness remains 200; restart retains volumes |
+| `go test -tags=acceptance ./tests/acceptance -count=1` | All three acceptance tests pass; actual executable health probe and root/data/coverage; DB shutdown gives 503 for readiness/coverage/sources while liveness remains 200; restart retains volumes; isolated paused initialization stays unready until TCP is available and migrations then succeed |
 | Embedded runtime | No `/src` or Node executable in application container; attempted root-filesystem write rejected; only loopback port 8080 exposed |
 | Missing environment | `--env-file /dev/null config --quiet` fails before startup |
 | Warm start | `docker compose ... up -d --wait`: 2.47 seconds with existing images/volumes. First builds/downloads are excluded |
@@ -85,7 +85,33 @@ performance claim is made.
   public H3-generalized spatial products belong to ingestion/release phases.
 - MinIO is an archived, private development companion. Production hosting
   requires a maintained S3 service and deployment/security decisions.
-- Final independent review outcome is recorded separately below when complete.
+
+## Independent review and fix verification
+
+A fresh-context reviewer inspected `bc7af3f..1e06b83` and requested changes for
+two Important findings. No Critical or Minor findings were reported. One fix
+pass addressed both in `64f7de1`, with regressions observed failing first:
+
+1. **Acquisition URL credentials:** `TestAcquisitionCredentialsStayPrivate`
+   reproduced userinfo passwords and signed queries in the public source
+   projection. Migration 00003 adds a separate `public_url`; only approved
+   sources with a reviewed public URL and an artifact appear in the public
+   source list. It rejects userinfo, queries, fragments, whitespace and
+   backslashes. Acquisition URLs remain private and unchanged. No backfill is
+   inferred. Operators must also inspect landing-page paths for secrets.
+2. **Fresh-start readiness race:** `TestFreshPostgresWaitsForTCP` paused the
+   actual initialization server and reproduced its premature healthy status.
+   The Compose probe now targets TCP `127.0.0.1`. The test confirms unready
+   status during initialization and successful migrations after release, then
+   removes only its isolated project and volumes.
+
+The author verified both fixes and reran the full suite; a second independent
+review was not commissioned. Existing acceptance volumes upgraded to migration
+3 without replacement. The reviewer did not independently execute remote CI,
+AMD64, manual screen-reader checks, future products or destructive outage
+acceptance; the scope decisions and all implementation rulings are preserved
+in [the execution record](phase-1-execution.md). No deferred minor findings.
+
 
 ![Desktop light](phase-1-1440-light.png)
 ![Mobile dark](phase-1-375-dark.png)

@@ -271,4 +271,4 @@ Spec coverage: runtime/config/health (Tasks 1–4), private spatial/provenance f
 
 Recommend native execution in this task with task-level review and a final independent branch review: the eight deliverables share API/schema/build interfaces, so keeping implementation context together should reduce coordination overhead. Use subagent-driven execution if separate implementation/review contexts per task are preferred. The user's global agent roles name models unavailable in this Codex toolset; use supported roles/models only, and do not invoke nonexistent model aliases.
 
-Plan status: ready for user review. No product code or dependencies have been installed by this planning turn. Review and execution-method selection are the next gate.
+Plan status: all eight tasks executed natively after user approval. Independent review findings were fixed; see [verification](../../verification/phase-1.md) and [execution record](../../verification/phase-1-execution.md) for exact evidence, deviations and remaining limits.

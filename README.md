@@ -59,7 +59,10 @@ a maintained S3 service before production hosting; see [ADR 0004](docs/decisions
 - [Dependency versions and licenses](docs/DEPENDENCIES.md)
 
 Original code is Apache-2.0. Data and dependencies retain their own licenses.
-Raw research files remain private and ignored. No hosted demo or trained model
+Raw research files remain private and ignored. Acquisition URLs stay private;
+public source attribution requires a separately reviewed `sources.public_url`
+landing page with no credentials, query or fragment. Never copy signed download
+URLs into that field. Existing sources are not automatically backfilled. No hosted demo or trained model
 is claimed.
 
 ## Troubleshooting

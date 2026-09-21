@@ -4,12 +4,12 @@ Updated: 2026-09-21.
 
 ## Current state
 
-The Phase 1 foundation now runs locally as a Go application with embedded SvelteKit, PostgreSQL/PostGIS/H3 and private storage. Final independent review is pending. The original brief is preserved in [BRIEF.md](BRIEF.md). No collision ingestion, trained model, hosted deployment or populated risk-map result is claimed.
+The Phase 1 foundation now runs locally as a Go application with embedded SvelteKit, PostgreSQL/PostGIS/H3 and private storage. Independent review findings were fixed and local verification passed. The original brief is preserved in [BRIEF.md](BRIEF.md). No collision ingestion, trained model, hosted deployment or populated risk-map result is claimed.
 
 | Phase | State | Evidence / remaining gate |
 | --- | --- | --- |
 | 0 Research | Research inventory and literature review written; source-level verification complete for 16 public/conditional source families | [RESEARCH.md](RESEARCH.md), [SOURCES.md](../data/SOURCES.md). Thirty ledger entries including restricted/unresolved candidates; only three raw artifacts acquired. Per-artifact schema/license clearance remains necessary before ingestion. This is not 16 production-ready datasets. |
-| 1 Foundation | Implemented; local verification passed, independent review pending | [Verification evidence](verification/phase-1.md), [foundation design](superpowers/specs/2026-09-20-foundation-design.md), [implementation plan](superpowers/plans/2026-09-21-foundation.md). |
+| 1 Foundation | Complete for the approved Phase 1 scope; review fixes and local verification passed | [Verification evidence](verification/phase-1.md), [foundation design](superpowers/specs/2026-09-20-foundation-design.md), [implementation plan](superpowers/plans/2026-09-21-foundation.md). |
 | 2 Ingestion | Not started | Need exact public-source artifacts, verified rights, Go adapters, object storage, privacy, idempotency and QA tests. |
 | 3 Exploration | Not started | Depends on ingestion and shared public-release policy. |
 | 4 Hotspots | Not started | Define/test all four methods and obtain a suitable WA comparison product with cleared terms. |
