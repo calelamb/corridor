@@ -55,12 +55,15 @@ type RoadSegment struct {
 }
 
 type Source struct {
-	ID        pgtype.UUID
-	Name      string
+	ID   pgtype.UUID
+	Name string
+	// Private acquisition URL; may contain credentials. Never publish.
 	URL       string
 	License   string
 	Status    string
 	CreatedAt pgtype.Timestamptz
+	// Reviewed public landing page. No userinfo, query, fragment, whitespace, or backslash. Check path for secrets before approval.
+	PublicUrl pgtype.Text
 }
 
 type SourceArtifact struct {
