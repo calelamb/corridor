@@ -6,6 +6,21 @@ This is a research inventory, not a claim of ingested coverage. `public_catalog`
 
 For every source below, **data retrieval date and data SHA-256 are `null` unless an artifact is explicitly listed in the acquisition table**. A page visit is not data retrieval, and an evidence checksum is not a dataset checksum. Exact files, versions, schemas, and third-party notices must be checked again at ingestion. Sources retain their own terms; Apache-2.0 will apply to Corridor code only.
 
+## Expanded multi-agent sweep — 2026-09-21
+
+The [full sweep and acquisition priorities](../docs/research/2026-09-21-data-sweep.md)
+adds concrete collision, movement, corridor, predictor and image datasets beyond
+this original 30-entry inventory. Domain reports distinguish verified source
+policies, downloaded artifacts, failed endpoints and uncleared publication.
+See the [sweep manifest](sweeps/2026-09-21/artifacts.json) for exact artifact URLs,
+retrieval times, byte counts and SHA256 values. Downloaded originals remain in
+ignored research storage; **none were ingested or published by the sweep**.
+
+The original S01–S30 entries below are retained as the earlier research snapshot.
+For current access/rights findings, consult the sweep, especially CROS, Montana,
+Utah derived model inputs, PRISM, Daymet and updated migration releases. A new
+permissive dataset does not clear another artifact from the same provider.
+
 ## Sources with confirmed public access or conditional reuse policies
 
 Sixteen source families below have publisher documentation for access and reuse policy. Conditional platforms are not counted as cleared individual datasets. NHD, NHDPlus, and WBD are related products and must not be treated as independent ecological evidence.
@@ -62,7 +77,7 @@ USGS policy is a source-level basis, not permission to ignore third-party notice
 
 ## Acquisition record
 
-All artifacts retrieved **2026-09-21 UTC**. Raw bytes remain in the ignored local research cache. They must be uploaded to private object storage with immutable keys during Phase 2 before they can become production inputs. That storage does not exist yet. Metadata/README downloads preserve evidence only and do not inherit the code license.
+All artifacts retrieved **2026-09-21 UTC**. Raw bytes remain in the ignored local research cache. They must be uploaded to private object storage with immutable keys during Phase 2 before they can become production inputs. The Phase 1 private storage foundation now exists, but these research artifacts have not been imported into it. Metadata/README downloads preserve evidence only and do not inherit the code license.
 
 | Local artifact | Exact acquisition URL / origin | SHA-256 |
 | --- | --- | --- |

@@ -44,3 +44,15 @@ These Phase 0 checks are research-artifact checks, separate from the Phase 1 app
 Finish independent foundation review, then scope Phase 2 against exact cleared artifacts. The public map currently has no basemap, collision records or risk model. MinIO remains an archived, isolated development companion; production storage requires a maintained service decision. No remote CI run is claimed.
 
 During Phase 2, verify each exact artifact's rights and schema; promote source states only on evidence. No source requests have been sent, no accounts created, no paid services purchased, and no remote repository configured. Do not silently count unavailable data toward the required WA/CA/MT/UT and national-park coverage.
+
+## Ranger expansion data sweep — 2026-09-21
+
+The user requested a full multi-agent data search before implementation planning.
+Four research lanes investigated collision records, movement/corridors, map and
+prediction covariates, and global/citizen-science/image sources. The
+[consolidated sweep](research/2026-09-21-data-sweep.md) records candidates,
+artifact acquisitions, rights limitations and an ordered integration backlog.
+Downloads remain private research artifacts; no new application ingestion,
+movement animation or trained prediction is claimed. The expanded ranger
+workbench design remains proposed, and research is now more concrete than the
+original Phase 0 inventory.

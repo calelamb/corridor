@@ -1,0 +1,190 @@
+{
+  "checked_date": "2026-09-21",
+  "purpose": "Research integration backlog; not executable ingestion configuration or license approval. IDs resolve in domain reports.",
+  "production_ingestion_enabled": false,
+  "items": [
+    {
+      "id": "Q01",
+      "sources": [
+        "G01"
+      ],
+      "feature": "US collision pilot",
+      "readiness": "acquired_schema_checked",
+      "rights_basis": "CC BY 4.0",
+      "next_action": "Validate dates, multiplicities, duplicates, source lineage and public privacy; determine actually covered road extents."
+    },
+    {
+      "id": "Q02",
+      "sources": [
+        "M08"
+      ],
+      "feature": "Historical Yellowstone elk movement",
+      "readiness": "acquired_schema_checked",
+      "rights_basis": "CC0",
+      "next_action": "Confirm CRS/timezone; validate fix gaps; publish anonymous/aggregated elk only after privacy checks; exclude predation as WVC labels."
+    },
+    {
+      "id": "Q03",
+      "sources": [
+        "M01",
+        "M02",
+        "M03",
+        "M04",
+        "M05",
+        "M06"
+      ],
+      "feature": "Seasonal migration/road overlays",
+      "readiness": "release_metadata_checked",
+      "rights_basis": "CC0 release-level; inspect children",
+      "next_action": "Acquire a small herd package such as Pequop, retain observation period, CRS and derived-layer semantics."
+    },
+    {
+      "id": "Q04",
+      "sources": [
+        "P01",
+        "P02",
+        "P07",
+        "P08"
+      ],
+      "feature": "Road geometry, basemap, park filters and names",
+      "readiness": "source_policy_checked",
+      "rights_basis": "ODbL/produced-work notices; per-product government-works terms",
+      "next_action": "Download bounded region extracts, pin editions, inspect boundary QA flags, preserve attribution and search scope."
+    },
+    {
+      "id": "Q05",
+      "sources": [
+        "C11"
+      ],
+      "feature": "Utah seasonal model benchmark",
+      "readiness": "acquired_schema_checked",
+      "rights_basis": "CC BY 4.0",
+      "next_action": "Inspect outcome/effort/control semantics, centroid CRS and season-year convention; plan leakage-resistant splits."
+    },
+    {
+      "id": "Q06",
+      "sources": [
+        "C01"
+      ],
+      "feature": "Fatal-animal-crash context",
+      "readiness": "acquired_schema_checked",
+      "rights_basis": "NHTSA public-information reuse policy",
+      "next_action": "Use correct codebook/event sequence, exclude ridden-animal cases, handle coordinate sentinels and human-fatality selection."
+    },
+    {
+      "id": "Q07",
+      "sources": [
+        "C02"
+      ],
+      "feature": "Multi-state temporal collision expansion",
+      "readiness": "download_available_not_acquired",
+      "rights_basis": "CC BY 4.0 catalog",
+      "next_action": "Acquire pinned RDS or budget CSV; separate county centroids from precise locations; verify state/year coverage and source overlap."
+    },
+    {
+      "id": "Q08",
+      "sources": [
+        "P04"
+      ],
+      "feature": "Traffic exposure for California",
+      "readiness": "metadata_schema_checked",
+      "rights_basis": "Catalog CC BY, version and vintage unresolved",
+      "next_action": "Bind AADT to report year and license version; preserve ahead/back route measures; confirm suitable traffic data for other pilot regions."
+    },
+    {
+      "id": "Q09",
+      "sources": [
+        "P09",
+        "P10",
+        "P11",
+        "P12",
+        "P13",
+        "P14",
+        "P15",
+        "P18"
+      ],
+      "feature": "Habitat, terrain, water and historical weather",
+      "readiness": "source_policy_or_metadata_checked",
+      "rights_basis": "See per-product reports",
+      "next_action": "Choose regional products and as-of editions; inspect no-data, units, spatial resolution and historical availability."
+    },
+    {
+      "id": "Q10",
+      "sources": [
+        "P19"
+      ],
+      "feature": "Snow-specific features",
+      "readiness": "documentation_checked",
+      "rights_basis": "Provider use constraints/citation require preservation",
+      "next_action": "Acquire repair mask and dated regional grids; mask erroneous zeros; do not confuse SWE with depth."
+    },
+    {
+      "id": "Q11",
+      "sources": [
+        "M07",
+        "M11",
+        "M17"
+      ],
+      "feature": "Additional movement/crossing studies",
+      "readiness": "mixed_downloadable_and_access_failed",
+      "rights_basis": "Study-specific CC0 / CC BY 4.0",
+      "next_action": "Normal public download only; inspect exact fixes versus selected steps or detections and define supported visualizations."
+    },
+    {
+      "id": "Q12",
+      "sources": [
+        "C08",
+        "C23"
+      ],
+      "feature": "Montana and park roadkill expansion",
+      "readiness": "acquired_rights_unresolved",
+      "rights_basis": "No broad transformed-product clearance established",
+      "next_action": "Resolve exact adaptation/publication terms and authorship; confirm CRS, quantities, overlapping sheets and date conflicts."
+    },
+    {
+      "id": "Q13",
+      "sources": [
+        "C03",
+        "C10",
+        "C13",
+        "C16",
+        "P06"
+      ],
+      "feature": "Agency permissions and access backlog",
+      "readiness": "request_or_terms_or_access_blocked",
+      "rights_basis": "Not cleared",
+      "next_action": "Prepare scoped requests only when separately authorized; no scraping around token requirements or inconsistent terms."
+    },
+    {
+      "id": "Q14",
+      "sources": [
+        "G09"
+      ],
+      "feature": "International validation/map testbed",
+      "readiness": "acquired_schema_checked",
+      "rights_basis": "OGL v3",
+      "next_action": "Use Scottish extent, source/accuracy fields and public generalization; do not imply US model transfer."
+    },
+    {
+      "id": "Q15",
+      "sources": [
+        "G11",
+        "G12"
+      ],
+      "feature": "Species image recognition",
+      "readiness": "publisher_license_checked",
+      "rights_basis": "Publisher-linked CDLA permissive variant",
+      "next_action": "Acquire limited licensed metadata/images with source notices; evaluate on held-out camera locations; not collision/movement labels."
+    },
+    {
+      "id": "Q16",
+      "sources": [
+        "G10"
+      ],
+      "feature": "British Columbia WARS",
+      "readiness": "excluded_pending_permission",
+      "rights_basis": "Custom terms forbid redistribution and derived distributed products",
+      "next_action": "Do not bundle or serve WARS-derived products without explicit additional permission."
+    }
+  ]
+}
