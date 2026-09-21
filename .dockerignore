@@ -1,0 +1,11 @@
+.git
+.worktrees
+.superpowers
+.env
+.env.*
+data
+web/node_modules
+web/.svelte-kit
+web/test-results
+web/playwright-report
+coverage
