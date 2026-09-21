@@ -1,4 +1,4 @@
-# Corridor exploration and prediction expansion
+# Corridor ranger map, movement and prediction workbench
 
 Status: proposed for user review; no implementation of this expansion yet.
 
@@ -6,9 +6,12 @@ Status: proposed for user review; no implementation of this expansion yet.
 
 The user requested a more intuitive map, more features and prediction features,
 and selected both public drivers and planners/researchers as the audience,
-starting with exploration. Success means someone can find a familiar place,
-understand the evidence around it, inspect a road or area, and distinguish
-observed collisions, statistical hotspots and model estimates.
+starting with exploration. The user then specified the central workflow: a park
+ranger uses a fully interactive map of highways covered by the data, filters and
+scrolls the map, runs predictions, and explores animal movement visually.
+Success requires a connected ranger workflow with working map interactions,
+evidence and model outputs, not a collection of disconnected dashboards.
+Public drivers retain a simpler entry view; ranger exploration drives this build.
 
 Keep Go services/inference, Svelte, source provenance, real data only, privacy,
 responsive light/dark UI and accessible controls from the original brief.
@@ -29,7 +32,9 @@ merely because corresponding tabs exist.
 ## Delivery sequence
 
 A. Ingest and normalize a suitable public pilot dataset and its map context.
-B. Deliver the interactive exploration map and evidence detail flows.
+B. Deliver the interactive highway map, evidence detail flows and time controls.
+   Ingest approved migration-corridor or movement-study data as distinct source
+   types; animate only the temporal information those sources actually contain.
 C. Add clearly labeled historical hotspot analysis under the original Phase 4
    requirements, retaining any unavailable WA comparison as an explicit gap.
 D. Add the prediction workspace and evaluated models under Phase 5. Model
@@ -38,6 +43,65 @@ D. Add the prediction workspace and evaluated models under Phase 5. Model
 Each increment ends with tests, a commit and an updated progress record. A/B is
 the first implementation plan. C/D get their own detailed designs after the
 pilot's actual data quality and temporal/spatial coverage are measured.
+
+## Ranger workflow and full expansion acceptance
+
+1. Open at the extent of supported highways, with subdued surrounding geography
+   for orientation. Covered highways are visually prominent. Coverage describes
+   its actual evidence basis, source, species and period; a snapped opportunistic
+   record does not imply an entire highway was systematically surveyed.
+2. Search a park, place or indexed highway; pan, pinch or scroll-wheel zoom; use
+   accessible zoom buttons. Hover previews and click/tap selection highlight the
+   same segment in the map, results list and details drawer.
+3. Filter highway/park area, species, date range, season and source. The map,
+   counts, time chart and evidence drawer update together. Show active filters,
+   clear-all, loading/errors and the effect of filters on available evidence.
+4. Scrub the timeline or play/pause it to see changes. Select a seasonal bin or
+   chart interval to update the map. Respect reduced motion; provide static
+   step controls and a textual summary with the same information.
+5. Select a highway segment or supported corridor and open Predictions. Choose
+   a supported species/group, season and target period, then Run prediction.
+   Display the model used, data support, job state, result, explanation and
+   validation evidence. Keep the previous result explicitly marked while new
+   inputs await a new run; never present stale results as current.
+6. Compare observation evidence and the model result with synchronized views
+   or a layer toggle. Use distinct legends and label every modeled output.
+   A result must explain its unit and target, such as relative expected report
+   intensity versus calibrated collision probability where justified.
+7. Save/share the selected segment and public filter/scenario state. Restricted
+   locations, track identifiers and personal GPS positions never enter links.
+
+The complete requested workbench is accepted only after a ranger can run a real
+validated model for at least one supported data-backed area and use a real
+movement/corridor visualization. A map shell, disabled prediction control or
+simulated tracks cannot satisfy this outcome. Until those gates pass, progress
+must clearly identify partial delivery and the remaining data/model work.
+
+## Movement visualization semantics
+
+Three distinct products use different controls and legends:
+
+- **Observed movement:** only licensed, approved, temporally ordered tracking
+  data supports animal-path playback. Retain study, animal/study pseudonym,
+  timestamps, accuracy and sampling interval internally. Break paths at missing
+  intervals, uncertain timestamps or implausible displacements. Any visual
+  interpolation is visibly distinguished from measured fixes and never implies
+  a continuously observed path. Public presentation generalizes/delays or
+  aggregates sensitive tracks; precise access requires separately implemented
+  authorization and study permission, not merely selecting a ranger view.
+- **Mapped migration corridors:** authoritative corridor/seasonal-range polygons
+  and road intersections, with study methods and time scope. A static polygon
+  is not animated as a tracked animal or assigned an invented direction/speed.
+- **Changing observation patterns:** time-binned roadkill/occurrence summaries,
+  labeled as reporting patterns. Do not connect unrelated observations into
+  tracks or call temporal changes observed migration.
+
+Interactive charts should show what the selected source supports: seasonal
+observation counts, tracking sampling/coverage, or corridor intersections.
+Brushing a time range highlights matching map evidence; selecting geography
+updates the charts. A missing movement source is an explicit coverage gap.
+Collision forecasts and animal-movement forecasts are separate model tasks.
+Predictive movement paths are not generated from collision records alone.
 
 ## First increment: ingestion and exploration
 
@@ -106,6 +170,16 @@ pilot's actual data quality and temporal/spatial coverage are measured.
 
 ### Backend contracts
 
+Movement storage separates studies, measured fixes, generalized public products
+and corridor geometries from collision events. Public tile/detail queries share
+the same versioned release policy. Prediction requests persist model version,
+input/filter snapshot, geographic support and output units. Go executes bounded
+inference jobs with queued/running/completed/failed states, cancellation, input
+validation and resource limits; arbitrary model uploads or executable user
+expressions are not accepted. Browser state differentiates training-data range,
+requested prediction period and timeline playback time.
+
+
 Extend the existing OpenAPI envelope with bounded read endpoints for map
 configuration/extent, search, filtered summaries and public feature details.
 Serve public spatial products through Go vector-tile endpoints. Tile caching
@@ -118,8 +192,8 @@ pagination. SQL remains parameterized. Avoid exposing user input in logs.
 
 ## Prediction experience and scientific gates
 
-The intended prediction workspace lets a user select a supported region and
-season, compare historical evidence with model estimates, and inspect model
+The prediction workspace lets a ranger select a supported highway/region and
+season, run an actual model, compare historical evidence with its estimates, and inspect model
 version, training period, validation results and uncertainty/support warnings.
 A separate comparison view should explain where estimates differ from observed
 hotspots. Unsupported regions remain visibly unsupported.
@@ -172,4 +246,7 @@ reporting remain later original-brief phases.
 Self-review: the first implementation plan is bounded to cleared pilot ingestion
 and interactive exploration. Hotspots and prediction are separately sequenced;
 source/model feasibility is explicitly unproven, with no invented success
-thresholds, dataset permissions or feature availability.
+thresholds, dataset permissions or feature availability. The full ranger
+workflow remains the acceptance target across increments; a partial map upgrade
+does not fulfill the complete request. Native execution remains the user's
+chosen implementation method once the design/plan review gates are met.
