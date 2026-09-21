@@ -17,3 +17,17 @@ Generated API code is excluded from authored-code size and coverage limits;
 never hand-edit it. Run make generate; make check-generated requires generated
 files to be tracked and free of staged or unstaged drift. No OpenAPI version
 conversion was needed for this concrete contract.
+
+Database image: official multi-architecture PostgreSQL 16 bookworm digest
+`sha256:efedf3595f1d6f415c08568ba171029bf54052e754cc9f030e3f2412b21f3d67`.
+PGDG packages pin PostGIS 3.6.4+dfsg-2.pgdg12+1 and h3-pg
+4.2.3-4.pgdg12+1 (includes h3_postgis). h3_postgis requires postgis_raster.
+The package route follows https://pgxn.org/dist/h3/; upstream 4.5.0 exists,
+but the selected PGDG package is 4.2.3. PostgreSQL uses the PostgreSQL license,
+PostGIS GPL-2.0-or-later, h3-pg Apache-2.0. ARM64 image build verified locally;
+AMD64 verification belongs to CI. Package repositories must retain pinned
+versions; later updates are explicit reviewable changes.
+
+Database clients: pgx/v5 5.11.0 (MIT), goose/v3 3.28.0 (MIT),
+sqlc 1.31.1 (MIT); testcontainers-go is test-only (MIT). Exact versions and
+transitive checksums are authoritative in go.mod/go.sum.

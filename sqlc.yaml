@@ -1,0 +1,13 @@
+version: '2'
+sql:
+  - engine: postgresql
+    schema: internal/db/migrations
+    queries: internal/db/queries
+    gen:
+      go:
+        package: generated
+        out: internal/db/generated
+        sql_package: pgx/v5
+        emit_empty_slices: true
+        rename:
+          url: URL
