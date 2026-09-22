@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security or wildlife-privacy vulnerability privately
+    url: https://github.com/calelamb/corridor/security/advisories/new
+    about: Do not disclose credentials or sensitive wildlife records in public issues.

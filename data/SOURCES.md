@@ -143,7 +143,7 @@ HTTP downloads. Use the official PMTiles CLI for the bounded extract:
 pmtiles extract https://build.protomaps.com/20260921.pmtiles data/raw/exploration/region.pmtiles --bbox=-118,40,-109,46 --maxzoom=10
 pmtiles verify data/raw/exploration/region.pmtiles
 docker compose build corridor
-docker compose up -d
+docker compose -f compose.yaml -f compose.maps.yaml up -d
 docker compose --profile tools run --rm ingest
 ```
 

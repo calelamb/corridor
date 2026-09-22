@@ -1,0 +1,4 @@
+# Verified false positive: an empty SECRET_KEY assignment spans the following
+# public CORRIDOR_S3_BUCKET=corridor-raw line in the original template commit.
+# Scope to that exact historical finding; no path-wide or rule-wide exclusion.
+1cd9b4c912ad5d4843d8ee32dfb874c955e7aed6:.env.example:generic-api-key:6

@@ -49,9 +49,9 @@ animal-track playback. UI follow-through includes geographic search, viewport
 filtering, broader basemap coverage and performance optimization.
 
 MinIO remains an archived, isolated development companion; production storage
-requires a maintained service decision. No remote CI run is claimed.
+requires a maintained service decision. Publication readiness and remote CI status are recorded in the repository release log.
 
-During Phase 2, verify each exact artifact's rights and schema; promote source states only on evidence. No source requests have been sent, no accounts created, no paid services purchased, and no remote repository configured. Do not silently count unavailable data toward the required WA/CA/MT/UT and national-park coverage.
+During Phase 2, verify each exact artifact's rights and schema; promote source states only on evidence. No source requests have been sent, no accounts created, no paid services purchased, and no paid data agreements accepted. Do not silently count unavailable data toward the required WA/CA/MT/UT and national-park coverage.
 
 ## Ranger expansion data sweep — 2026-09-21
 
@@ -79,3 +79,13 @@ historical spatial interpolation results, not future migration accuracy.
 Existing 2018 Pequop crossings mean inspection is the first recommendation.
 Current telemetry, field inventories and independent temporal evaluation remain
 necessary before making forecasts or treatment-specific installation decisions.
+
+## Open-source publication — 2026-09-21
+
+Prepared Apache-2.0 code for `calelamb/corridor`, with SECURITY.md, issue/PR
+instructions, weekly dependency updates and a reviewed full-history secret scan.
+Raw artifacts, generated credentials and model binaries remain untracked. Normal
+CI runs without private pilot data; populated map and performance checks retain
+separate documented requirements. The default Compose install is empty; optional
+`compose.maps.yaml` attaches the licensed basemap after acquisition. See GitHub
+Actions for the current remote CI result, not a blanket production-readiness claim.

@@ -76,9 +76,7 @@ services:
       <<: *public-env
       CORRIDOR_HTTP_ADDRESS: :8080
       CORRIDOR_ENV: production
-      CORRIDOR_BASEMAP_PATH: /maps/region.pmtiles
-    volumes:
-      - ./data/raw/exploration/region.pmtiles:/maps/region.pmtiles:ro
+      CORRIDOR_BASEMAP_PATH: ""
     ports:
       - 127.0.0.1:8080:8080
     healthcheck:

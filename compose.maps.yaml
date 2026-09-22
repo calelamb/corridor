@@ -1,0 +1,13 @@
+# Optional licensed basemap. Use only after acquiring/verifying the pinned file:
+# docker compose -f compose.yaml -f compose.maps.yaml up -d --build --wait
+services:
+  corridor:
+    environment:
+      CORRIDOR_BASEMAP_PATH: /maps/region.pmtiles
+    volumes:
+      - type: bind
+        source: ./data/raw/exploration/region.pmtiles
+        target: /maps/region.pmtiles
+        read_only: true
+        bind:
+          create_host_path: false

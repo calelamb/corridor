@@ -1,5 +1,8 @@
-name: Foundation
-on: [push, pull_request]
+name: CI
+on: [push, pull_request, workflow_dispatch]
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
@@ -8,6 +11,8 @@ jobs:
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a
+        with:
+          fetch-depth: 0
       - uses: actions/setup-go@e626ada899467caf4efc6cfd0484b965da944ce8
         with:
           go-version-file: go.mod
@@ -16,17 +21,18 @@ jobs:
           node-version: 24.21.0
           cache: npm
           cache-dependency-path: web/package-lock.json
+      - name: Scan repository history for secrets
+        run: go run github.com/zricethezav/gitleaks/v8@v8.30.1 git --redact --log-opts=--all
       - run: npm --prefix web ci
       - run: make images
       - run: make verify
       - run: npx --prefix web playwright install --with-deps
+      - run: npm --prefix web run test:e2e -- --workers=2
       - run: go run ./cmd/corridorctl init-dev
       - run: docker compose -p corridor-foundation-acceptance up --build --wait
       - run: go test -tags=acceptance ./tests/acceptance -count=1
-      - run: npm --prefix web run test:e2e
-        env:
-          PLAYWRIGHT_BASE_URL: http://127.0.0.1:8080
-      - run: npm --prefix web run performance
+      # Populated-map and performance checks require separately cleared private
+      # pilot artifacts. See CONTRIBUTING.md; no dataset is downloaded by CI.
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always()
         with:
