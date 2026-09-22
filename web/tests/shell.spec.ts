@@ -16,7 +16,7 @@ test('ranger filters, selection and share state stay connected', async ({ page }
 	await page.getByRole('button', { name: '2014: 5 reports' }).click();
 	await expect(page).toHaveURL(/start=2014&end=2014/);
 	await page.getByRole('button', { name: 'Predictions', exact: true }).click();
-	await expect(page.getByText('No validated prediction model', { exact: false })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Run movement analysis' })).toBeVisible();
 });
 test('outage is distinct from no matching reports', async ({ page }) => {
 	await page.route('**/v1/explore?*', (r) => r.fulfill({ status: 503, json: {} }));

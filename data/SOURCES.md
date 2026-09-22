@@ -169,3 +169,40 @@ endpoint (replace the final filename), are tracked as licensed UI assets:
 | `0-255.pbf` | `62c6d49b15fa836eb6aa45e259c7ca6762f44b011b09e47776efbe4a6db1b397` |
 | `256-511.pbf` | `2eca7561f9f566bcacfda5dd04fb5880baec1328ec0f5484678289a13994de8a` |
 | `8192-8447.pbf` | `8ea977a587352fe31b4159ffdbc9a40be79056f2472017c742ea1e4a931864b9` |
+
+## Movement-screening road input — 2026-09-21
+
+**OpenStreetMap contributors, ODbL 1.0.** Rights: https://www.openstreetmap.org/copyright.
+Acquired 2026-09-21T22:33:34Z from `https://overpass.private.coffee/api/interpreter`
+using GET, with this exact UTF-8 query in the URL-encoded `data` parameter:
+
+```text
+[out:json][timeout:25];way[highway=motorway][ref~"80"](40.4,-116,42.2,-114);out geom;
+```
+
+The returned `osm3s.timestamp_osm_base` is **2026-05-31T22:37:44Z**. Retrieval date
+must not be confused with snapshot freshness. Preserved original:
+`data/raw/prediction/pequop-roads-get.json`, 361,791 bytes, SHA-256
+`0dafb47436631d57703fd21ce74eca160a91d991852dfea98bb28a1f4d70e659`.
+Schema: Overpass JSON elements; 284 way features, positive IDs, motorway tags,
+I-80 references and WGS84 geometry arrays. These are mapped carriageway sections,
+not 284 independent highway corridors. The primary endpoint returned HTTP406;
+a mirror POST timed out (504); this bounded mirror GET succeeded using normal TLS.
+
+Reacquire with `curl --fail --get --data-urlencode 'data=[out:json][timeout:25];way[highway=motorway][ref~"80"](40.4,-116,42.2,-114);out geom;' https://overpass.private.coffee/api/interpreter -o data/raw/prediction/pequop-roads-get.json`
+only when preparing a **reviewed new snapshot**: the live endpoint may return new
+bytes. Reproducing this model requires the pinned original and checksum. Never
+silently update the hash to bypass review. Verify pinned bytes with
+`shasum -a 256 -c data/PREDICTION_SHA256SUMS` before the existing Compose ingest command.
+
+The Go ingestion command now requires this road artifact in addition to the
+exploration inputs. It verifies the hash, privately archives the original,
+imports roads idempotently and rebuilds a fixed H3-r6 movement feature product.
+Raw roads/routes and precise intersections are inaccessible to the public DB role.
+Both source approvals are checked for every model read. The road-derived screening
+database retains ODbL 1.0 and © OpenStreetMap contributors attribution; underlying
+USGS/NDOW migration data remains CC0. No restricted/quarantined data was used.
+
+The [model card](../docs/models/pequop-kernel-v1.md) records the evaluated product
+and limitations. The historical routes are not evidence that new structures are
+needed: [NDOT documents existing Pequop crossings and fencing](https://www.dot.nv.gov/Home/Components/News/News/4020/).

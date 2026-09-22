@@ -20,6 +20,13 @@ type AggregateObservation struct {
 	Raw         []byte
 }
 
+type AnalysisRoad struct {
+	SourceID pgtype.UUID
+	NativeID string
+	Ref      string
+	Geom     interface{}
+}
+
 type Event struct {
 	ID            pgtype.UUID
 	SourceID      pgtype.UUID
@@ -45,6 +52,17 @@ type MigrationRoute struct {
 	Geom     interface{}
 }
 
+type MovementFeature struct {
+	Cell      string
+	Block     string
+	Geom      interface{}
+	X         float64
+	Y         float64
+	Routes    int32
+	Road      bool
+	Crossings int32
+}
+
 type PublicCoverage struct {
 	IngestedEvents int64
 }
@@ -57,6 +75,17 @@ type PublicMigration struct {
 	SourceUrl pgtype.Text
 	Meaning   string
 	Period    string
+}
+
+type PublicMovementFeature struct {
+	Cell      string
+	Block     string
+	Geom      interface{}
+	X         float64
+	Y         float64
+	Routes    int32
+	Road      bool
+	Crossings int32
 }
 
 type PublicObservation struct {

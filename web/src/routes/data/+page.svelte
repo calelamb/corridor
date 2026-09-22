@@ -62,6 +62,31 @@
 			</p>
 		</section>
 	</div>
+	<section>
+		<h2>Experimental movement screening</h2>
+		<p>
+			The Predictions tab fits a small spatial model to the published Pequop mule-deer routes. It
+			compares 3, 6 and 12 km smoothing distances on development areas, then checks separate
+			geographic blocks against a training-average baseline. Results show relative historical route
+			support and rank I-80 areas for field assessment.
+		</p>
+		<p>
+			Road geometry comes from OpenStreetMap's May 31, 2026 snapshot, under ODbL 1.0. The 2011–2017
+			routes predate some existing Pequop crossings. Inspect present infrastructure and collect
+			current field evidence before deciding on new crossings, signs or gates.
+		</p>
+		<p>
+			These are route features, not unique animals. Nearby geographic blocks can remain related; an
+			empty mapped cell does not establish animal absence. Evaluation measures interpolation inside
+			the known historical study area, not future movement or performance elsewhere.
+		</p>
+		<a
+			class="text-link"
+			href="https://www.openstreetmap.org/copyright"
+			target="_blank"
+			rel="noreferrer">© OpenStreetMap contributors · ODbL 1.0 ↗</a
+		>
+	</section>
 	<section class="methods-note">
 		<h2>What the evidence cannot establish</h2>
 		<p>

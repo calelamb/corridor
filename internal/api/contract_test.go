@@ -40,3 +40,19 @@ func TestContract(t *testing.T) {
 		}
 	}
 }
+
+func TestPredictionContract(t *testing.T) {
+	doc, err := openapi3.NewLoader().LoadFromFile("../../api/prediction.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := doc.Validate(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	op := doc.Paths.Find("/v1/predictions").Get
+	for _, code := range []string{"200", "400", "422", "429", "503"} {
+		if op.Responses.Value(code) == nil {
+			t.Fatalf("missing %s", code)
+		}
+	}
+}

@@ -7,6 +7,8 @@
 	import { loadEvidence, extent, type Evidence, type EvidenceFeature } from './client';
 	import RangerMap from './RangerMap.svelte';
 	import Timeline from './Timeline.svelte';
+	import PredictionPanel from '$lib/predict/PredictionPanel.svelte';
+	import type { Prediction, PredictionFeature } from '$lib/predict/client';
 	import type { Theme } from '$lib/theme/theme';
 	let view = $state<ViewState>({ ...defaults });
 	let data = $state<Evidence>();
@@ -23,6 +25,12 @@
 	let fit = $state<[number, number, number, number] | null>(null);
 	let shared = $state('');
 	let panel = $state<'evidence' | 'prediction' | 'migration'>('evidence');
+	let prediction = $state<Prediction | null>(null);
+	let predictionCell = $state('');
+	function selectPrediction(feature: PredictionFeature) {
+		predictionCell = feature.id;
+		fit = extent([feature]);
+	}
 	let params = $derived(query(view).toString());
 	let selectionController: AbortController | undefined;
 	onMount(() => {
@@ -247,8 +255,9 @@
 	<section class="exploration" aria-label="Highway exploration">
 		<div class="toolbar">
 			<div>
-				<span class="eyebrow">U.S. REPORTS / REGIONAL BASEMAP</span><strong
-					>{view.road || 'Explore the road network'}</strong
+				<span class="eyebrow"
+					>{prediction ? 'PEQUOP / HISTORICAL MOVEMENT' : 'U.S. REPORTS / REGIONAL BASEMAP'}</span
+				><strong>{prediction ? 'I-80 · Mule deer' : view.road || 'Explore the road network'}</strong
 				>
 			</div>
 			<button onclick={share}>Share view ↗</button>
@@ -256,6 +265,12 @@
 		<div class="map-region">
 			{#if mounted}{#key navigation}<RangerMap
 						migration={view.migration}
+						{prediction}
+						{predictionCell}
+						onprediction={(cell) => {
+							const feature = prediction?.features.find((f) => f.id === cell);
+							if (feature) selectPrediction(feature);
+						}}
 						{theme}
 						{params}
 						selected={view.selected}
@@ -273,7 +288,7 @@
 		<div class="evidence-strip" aria-live="polite">
 			<div>
 				<strong>{status === 'ready' ? number(data?.summary.records) : '—'}</strong><span
-					>source records</span
+					>{prediction ? 'collision records · filtered' : 'source records'}</span
 				>
 			</div>
 			<div>
@@ -354,7 +369,11 @@
 				</div>{/if}
 		</section>
 	</section>
-	<aside class="detail" aria-label="Selected area evidence">
+	<aside
+		class="detail"
+		class:predicting={panel === 'prediction'}
+		aria-label="Selected area evidence"
+	>
 		<div class="detail-tabs">
 			<button class:active={panel === 'evidence'} onclick={() => (panel = 'evidence')}
 				>Evidence</button
@@ -362,23 +381,14 @@
 				>Predictions</button
 			>
 		</div>
-		{#if panel === 'prediction'}<span class="eyebrow">MODEL READINESS</span>
-			<h2>Evidence comes first.</h2>
-			<p>
-				No validated prediction model is available for this pilot yet. These observations can show
-				reporting patterns; they cannot establish collision probability without adequate survey and
-				traffic exposure.
-			</p>
-			<div class="detail-note">
-				<strong>Before a prediction can run</strong>
-				<p>
-					Confirm a supported species and area, evaluate spatial and temporal holdouts, then publish
-					the model’s target and validation results.
-				</p>
-			</div>
-			<button class="secondary" onclick={() => (panel = 'evidence')}
-				>Explore historical evidence</button
-			>
+		{#if panel === 'prediction'}<PredictionPanel
+				selected={predictionCell}
+				onselect={selectPrediction}
+				onresult={(result) => {
+					prediction = result;
+					if (result) fit = extent(result.features);
+				}}
+			/>
 		{:else if panel === 'migration'}<span class="eyebrow">MAPPED MIGRATION EVIDENCE</span>
 			<h2>Pequop mule deer</h2>
 			<p>USGS / Nevada Department of Wildlife · 2011–2017</p>

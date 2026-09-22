@@ -29,3 +29,29 @@ test('fitting a highway or migration area does not create a camera feedback loop
 	await expect(page).not.toHaveURL(/migration=1/);
 	expect(errors).toEqual([]);
 });
+
+test('real movement model selects overlapping map layers without losing results', async ({
+	page
+}) => {
+	const errors: string[] = [];
+	page.on('pageerror', (error) => errors.push(error.message));
+	await page.goto('/');
+	await page.waitForFunction(() => performance.getEntriesByName('corridor-map-ready').length > 0);
+	await page.getByRole('checkbox', { name: 'Show mule-deer migration areas' }).check();
+	await page.getByRole('button', { name: 'Predictions', exact: true }).click();
+	await page.getByRole('button', { name: 'Run movement analysis' }).click();
+	await expect(page.getByText('30.2% lower error')).toBeVisible();
+	await expect(
+		page.getByRole('group', { name: 'Ranked road areas' }).getByRole('button')
+	).toHaveCount(16);
+	await page.getByRole('button', { name: /#1 · I-80 area/ }).click();
+	expect(
+		await page.locator('.maplibregl-canvas').evaluate((el) => el.getBoundingClientRect().top)
+	).toBeGreaterThanOrEqual(0);
+	await page.locator('.maplibregl-canvas').click();
+	await expect(page.getByRole('button', { name: 'Run again' })).toBeVisible();
+	await expect(page.getByRole('region', { name: 'Selected model area' })).toBeVisible();
+	await page.getByRole('button', { name: 'Clear results' }).click();
+	await expect(page.getByRole('button', { name: 'Run movement analysis' })).toBeVisible();
+	expect(errors).toEqual([]);
+});

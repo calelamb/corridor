@@ -5,8 +5,10 @@ Open wildlife–vehicle collision intelligence for safer roads and connected hab
 The local pilot runs one Go application with an embedded SvelteKit explorer,
 PostgreSQL/PostGIS/H3 and private S3-compatible storage. It supports an interactive
 regional highway basemap, real roadkill evidence, filters, a reporting timeline
-and mapped mule-deer migration context. Predictions, observed-track playback,
-prioritization, field reporting and routing remain future phases.
+and mapped mule-deer migration context. An experimental Go spatial model estimates
+historical route support and ranks I-80 areas for field assessment. Future movement
+forecasts, observed-track playback, treatment-benefit prioritization, field reporting
+and routing remain future work.
 
 Raw observations and basemap archives are not bundled in Git. Follow the pinned
 [acquisition and import instructions](data/SOURCES.md#reproduce-the-local-pilot)
@@ -46,6 +48,9 @@ non-root user, and has a read-only filesystem. Node is a build dependency only.
   yearly report playback, migration geography and shareable view state.
 - Light/dark themes, keyboard controls, reduced motion and a usable evidence
   list when WebGL or basemap geography is unavailable.
+- Experimental movement analysis: map overlay, ranked road areas, baseline comparison
+  and crossing/sign/gate assessment guidance. [Model card](docs/models/pequop-kernel-v1.md)
+  and [API](api/prediction.yaml).
 - [Exploration verification and remaining limits](docs/verification/highway-exploration.md).
 
 MinIO upstream is archived. The pinned source build is an isolated development
@@ -64,8 +69,8 @@ Original code is Apache-2.0. Data and dependencies retain their own licenses.
 Raw research files remain private and ignored. Acquisition URLs stay private;
 public source attribution requires a separately reviewed `sources.public_url`
 landing page with no credentials, query or fragment. Never copy signed download
-URLs into that field. Existing sources are not automatically backfilled. No hosted demo or trained model
-is claimed.
+URLs into that field. Existing sources are not automatically backfilled. The local spatial model is experimental; no hosted demo or validated future
+forecast is claimed.
 
 ## Troubleshooting
 

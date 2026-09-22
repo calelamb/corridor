@@ -1,0 +1,20 @@
+openapi: 3.1.0
+info:
+  title: Corridor experimental movement screening
+  version: 1.0.0
+paths:
+  /v1/predictions:
+    get:
+      summary: Fit and evaluate the supported spatial movement model
+      description: Read-only bounded calculation using released H3 features. Relative mapped-route support, not future individual tracks or collision probability. Collision filters are unsupported.
+      parameters:
+        - in: query
+          name: study
+          schema: {type: string, enum: [pequop]}
+      responses:
+        '200':
+          description: Envelope containing generalized FeatureCollection, model version/input hash, kernel bandwidth, separate held-out metrics, candidate ranks and source license links.
+        '400': {description: Unsupported or malformed scenario}
+        '422': {description: Insufficient approved movement or road support}
+        '429': {description: Rate limited}
+        '503': {description: Data service or model calculation unavailable}

@@ -500,3 +500,14 @@
 .workbench .migration-note a {
 	text-decoration: underline;
 }
+
+@media (min-width: 1200px) {
+	.workbench .detail.predicting {
+		position: sticky;
+		top: 16px;
+		min-height: 0;
+		max-height: calc(100dvh - 104px);
+		overflow-y: auto;
+		overscroll-behavior-y: contain;
+	}
+}

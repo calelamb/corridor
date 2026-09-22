@@ -5,6 +5,7 @@ package cli
 import (
 	"bytes"
 	"context"
+	"corridor/internal/config"
 	"corridor/internal/db"
 	"corridor/internal/ingest"
 	"corridor/internal/storage"
@@ -83,6 +84,49 @@ func TestIngestPipelinePrivateAndIdempotent(t *testing.T) {
 	var count int
 	if err = pool.QueryRow(ctx, "SELECT count(*) FROM wildlife_observations").Scan(&count); err != nil || count != 1 {
 		t.Fatalf("duplicate import %d %v", count, err)
+	}
+
+	rawRoad := []byte(`{"elements":[{"type":"way","id":1,"tags":{"highway":"motorway","ref":"I 80"},"geometry":[{"lon":-115,"lat":41},{"lon":-114.9,"lat":41.1}]}]}`)
+	roadPath := filepath.Join(t.TempDir(), "roads.json")
+	if err = os.WriteFile(roadPath, rawRoad, 0600); err != nil {
+		t.Fatal(err)
+	}
+	ra := ingest.RoadArtifact()
+	rh := sha256.Sum256(rawRoad)
+	ra.SHA256 = hex.EncodeToString(rh[:])
+	ra.ObjectKey = "sha256/" + ra.SHA256 + "/roads.json"
+	cfg, err := config.Load(os.LookupEnv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.S3AccessKey = os.Getenv("MINIO_ROOT_USER")
+	cfg.S3SecretKey = os.Getenv("MINIO_ROOT_PASSWORD")
+	objects, err := storage.New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for range 2 {
+		if err = ingestRoadInputs(ctx, pool, objects, roadPath, ra); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err = ingestRoadInputs(ctx, pool, objects, roadPath, ingest.RoadArtifact()); err == nil {
+		t.Fatal("hash mismatch accepted")
+	}
+	bad := []byte(`{}`)
+	if err = os.WriteFile(roadPath, bad, 0600); err != nil {
+		t.Fatal(err)
+	}
+	bh := sha256.Sum256(bad)
+	ra.SHA256 = hex.EncodeToString(bh[:])
+	if err = ingestRoadInputs(ctx, pool, objects, roadPath, ra); err == nil {
+		t.Fatal("malformed road schema accepted")
+	}
+	if err = ingestRoads(ctx, pool, objects); err == nil {
+		t.Fatal("missing pinned artifact accepted")
+	}
+	if err = ingestMovementInputs(ctx, pool, objects); err == nil {
+		t.Fatal("missing migration artifact accepted")
 	}
 	t.Setenv("CORRIDOR_MIGRATION_DATABASE_URL", "")
 	if ingestInputs(ctx, io.Discard, path, a, movement) == nil {

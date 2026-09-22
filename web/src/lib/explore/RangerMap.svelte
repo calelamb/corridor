@@ -1,10 +1,14 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
 	import { createRangerMap, type RangerMap } from './map';
+	import type { Prediction } from '$lib/predict/client';
 	import type { Theme } from '$lib/theme/theme';
 	let {
 		theme,
 		migration,
+		prediction,
+		predictionCell,
+		onprediction,
 		params,
 		selected,
 		camera,
@@ -15,6 +19,9 @@
 	}: {
 		theme: Theme;
 		migration: boolean;
+		prediction: Prediction | null;
+		predictionCell: string;
+		onprediction: (cell: string) => void;
 		params: string;
 		selected: string;
 		camera: [number, number, number] | null;
@@ -40,7 +47,8 @@
 			(errors) => {
 				layerErrors = errors;
 			},
-			onmigration
+			onmigration,
+			onprediction
 		)
 			.then((map) => {
 				if (canceled) map.destroy();
@@ -56,6 +64,9 @@
 			canceled = true;
 			handle?.destroy();
 		};
+	});
+	$effect(() => {
+		handle?.prediction(prediction, predictionCell);
 	});
 	$effect(() => {
 		handle?.migration(migration);
@@ -106,6 +117,8 @@
 	>
 </div>
 <div class="map-legend">
+	{#if prediction}<span class="swatch model"></span>Modeled route support · relative 0–100<br
+		/>{/if}
 	<span class="swatch"></span>Reported roadkill areas
 	<span class="legend-note">Darker = more reports · unknown ≠ safe</span>
 	{#if migration}<span class="legend-note"
@@ -185,6 +198,9 @@
 		height: 10px;
 		background: #c16b36;
 		margin-right: 5px;
+	}
+	.swatch.model {
+		background: #9973c3;
 	}
 	.swatch.migration {
 		background: #348984;

@@ -17,7 +17,7 @@ import (
 )
 
 func ingestAll(ctx context.Context, out io.Writer) error {
-	return ingestInputs(ctx, out, "data/raw/sweep-2026-09-21/global-roadkill-v5.csv", ingest.PilotArtifact(), ingestMigration)
+	return ingestInputs(ctx, out, "data/raw/sweep-2026-09-21/global-roadkill-v5.csv", ingest.PilotArtifact(), ingestMovementInputs)
 }
 func ingestInputs(ctx context.Context, out io.Writer, path string, artifact ingest.Artifact, movement func(context.Context, *pgxpool.Pool, *storage.Client) error) error {
 	// #nosec G304 -- fixed operator path in production; dependency injection for isolated fixtures.

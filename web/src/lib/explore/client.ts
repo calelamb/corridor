@@ -49,7 +49,9 @@ export async function loadEvidence(
 		.parse(await response.json());
 	return envelope.data;
 }
-export function extent(features: EvidenceFeature[]): [number, number, number, number] | null {
+export function extent(
+	features: Pick<EvidenceFeature, 'geometry'>[]
+): [number, number, number, number] | null {
 	const points = features.flatMap((f) => f.geometry.coordinates.flat(2));
 	if (!points.length) return null;
 	return [

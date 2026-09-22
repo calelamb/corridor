@@ -12,6 +12,7 @@ const state = vi.hoisted(() => ({
 	layout: vi.fn(),
 	url: vi.fn(),
 	data: vi.fn(),
+	query: vi.fn(),
 	handlers: {} as Record<string, (...args: unknown[]) => void>
 }));
 vi.mock('maplibre-gl', () => ({
@@ -34,6 +35,7 @@ vi.mock('maplibre-gl', () => ({
 			state.handlers[`${event}:${typeof layer === 'string' ? layer : ''}`] =
 				cb ?? (layer as (...args: unknown[]) => void);
 		}
+		queryRenderedFeatures = state.query;
 		remove = state.removed;
 		setPaintProperty = state.paint;
 		setLayoutProperty = state.layout;
@@ -44,7 +46,7 @@ vi.mock('maplibre-gl', () => ({
 			return 8;
 		}
 		getSource(id: string) {
-			return id === 'migration'
+			return id === 'migration' || id === 'prediction'
 				? { type: 'geojson', setData: state.data }
 				: { type: 'vector', setTiles: state.tiles, setUrl: state.url };
 		}
@@ -99,7 +101,8 @@ test('mapped migration click opens its evidence and later errors are surfaced', 
 		error,
 		selected
 	);
-	state.handlers['click:migration-fill']();
+	state.query.mockReturnValue([{ layer: { id: 'migration-fill' } }]);
+	state.handlers['click:']({ point: [0, 0] });
 	expect(selected).toHaveBeenCalledOnce();
 	state.handlers['error:']({ sourceId: 'evidence' });
 	expect(error).toHaveBeenCalledWith(['evidence']);
@@ -109,5 +112,62 @@ test('mapped migration click opens its evidence and later errors are surfaced', 
 	expect(state.tiles).toHaveBeenLastCalledWith([expect.stringContaining('season=winter')]);
 	expect(state.url).toHaveBeenCalledWith(expect.stringContaining('/maps/region.pmtiles'));
 	expect(state.data).toHaveBeenCalledWith(expect.stringContaining('/v1/migration'));
+	map.destroy();
+});
+
+test('prediction overlay is distinct, selectable and removable', async () => {
+	const selected = vi.fn();
+	const map = await createRangerMap(
+		document.createElement('div'),
+		'light',
+		'',
+		null,
+		() => {},
+		() => {},
+		() => {},
+		() => {},
+		selected
+	);
+	map.prediction(null, '');
+	expect(state.data).toHaveBeenLastCalledWith({ type: 'FeatureCollection', features: [] });
+	state.query.mockReturnValue([
+		{ layer: { id: 'prediction-fill' }, properties: { cell: '862846a0fffffff' } }
+	]);
+	state.handlers['click:']({ point: [0, 0] });
+	expect(selected).toHaveBeenCalledWith('862846a0fffffff');
+	map.destroy();
+});
+
+test('prediction wins overlapping evidence and migration hits', async () => {
+	const evidence = vi.fn();
+	const migration = vi.fn();
+	const prediction = vi.fn();
+	const map = await createRangerMap(
+		document.createElement('div'),
+		'light',
+		'',
+		null,
+		evidence,
+		() => {},
+		() => {},
+		migration,
+		prediction
+	);
+	state.query.mockReturnValue([
+		{ layer: { id: 'evidence-fill' }, properties: { cell: 'evidence' } },
+		{ layer: { id: 'migration-fill' } },
+		{ layer: { id: 'prediction-fill' }, properties: { cell: 'model' } }
+	]);
+	state.handlers['click:']({ point: [0, 0] });
+	expect(prediction).toHaveBeenCalledWith('model');
+	expect(evidence).not.toHaveBeenCalled();
+	expect(migration).not.toHaveBeenCalled();
+	state.query.mockReturnValue([
+		{ layer: { id: 'evidence-fill' }, properties: { cell: 'evidence' } }
+	]);
+	state.handlers['click:']({ point: [0, 0] });
+	expect(evidence).toHaveBeenCalledWith('evidence');
+	state.query.mockReturnValue([]);
+	state.handlers['click:']({ point: [0, 0] });
 	map.destroy();
 });

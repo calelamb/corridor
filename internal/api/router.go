@@ -28,6 +28,7 @@ type Dependencies struct {
 	Timeout time.Duration
 	Web     http.Handler
 	Explore http.Handler
+	Predict http.Handler
 }
 type service struct{ deps Dependencies }
 
@@ -57,6 +58,9 @@ func NewRouter(deps Dependencies) http.Handler {
 		}
 		writeError(w, 404, "Not found")
 	})
+	if deps.Predict != nil {
+		r.Get("/v1/predictions", deps.Predict.ServeHTTP)
+	}
 	if deps.Explore != nil {
 		r.Get("/v1/explore", deps.Explore.ServeHTTP)
 		r.Get("/v1/explore/config", deps.Explore.ServeHTTP)
