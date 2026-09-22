@@ -40,6 +40,7 @@ test('200 percent zoom preserves reachable controls', async ({ page }) => {
 	expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
 		true
 	);
+	await page.getByRole('button', { name: 'Filters', exact: true }).click();
 	await page.getByRole('button', { name: 'Clear all', exact: true }).focus();
 	await page.keyboard.press('Enter');
 	await expect(page.getByRole('button', { name: 'Clear all', exact: true })).toBeFocused();

@@ -132,7 +132,7 @@
 		padding: 7px 11px;
 		color: var(--ink);
 		font: inherit;
-		font-size: 12px;
+		font-size: 0.875rem;
 	}
 	.bars {
 		display: flex;
@@ -165,7 +165,7 @@
 		background: var(--accent);
 	}
 	small {
-		font-size: 9px;
+		font-size: 0.75rem;
 		margin-top: 6px;
 	}
 	.playback {
@@ -178,12 +178,12 @@
 		gap: 8px;
 	}
 	.playback span {
-		font-size: 10px;
+		font-size: 0.75rem;
 		color: var(--muted);
 		margin-left: auto;
 	}
 	label {
-		font-size: 12px;
+		font-size: 0.875rem;
 	}
 	button:hover {
 		border-color: var(--accent);

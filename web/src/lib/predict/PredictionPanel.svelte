@@ -84,6 +84,7 @@
 		<div class="result-status" role="status">
 			Analysis ready · {result.features.length} areas · {result.candidate_count} road areas
 		</div>
+		<a class="back-to-map" href="#highway-map">View results on map ↑</a>
 		<label class="layer"
 			><input
 				type="checkbox"
@@ -125,19 +126,6 @@
 				migration accuracy.</small
 			>
 		</div>
-		<h3>Road areas to review</h3>
-		<p class="explanation">
-			Ranked by estimated route support. Areas are roughly 36 km², not surveyed installation sites.
-		</p>
-		<div class="candidates" role="group" aria-label="Ranked road areas">
-			{#each candidates as feature (feature.id)}<button
-					class:selected={selected === feature.id}
-					onclick={() => onselect(feature)}
-					><span>#{feature.properties.rank} · I-80 area {feature.id.slice(0, 9)}</span><strong
-						>{one(feature.properties.score)}<small>relative support</small></strong
-					><span class="meter" style={`width:${feature.properties.score}%`}></span></button
-				>{/each}
-		</div>
 		{#if chosen}<section class="assessment" aria-label="Selected model area">
 				<span class="eyebrow">AREA {chosen.id.slice(0, 9)}</span>
 				<h3>{one(chosen.properties.score)} / 100 relative support</h3>
@@ -165,6 +153,20 @@
 					is unknown here; this is not an instruction to install or open a gate.
 				</p>
 			</section>{/if}
+		<h3>Road areas to review</h3>
+		<p class="explanation">
+			Ranked by estimated route support. Areas are roughly 36 km², not surveyed installation sites.
+		</p>
+		<div class="candidates" role="group" aria-label="Ranked road areas">
+			{#each candidates as feature (feature.id)}<button
+					class:selected={selected === feature.id}
+					onclick={() => onselect(feature)}
+					><span>#{feature.properties.rank} · I-80 area {feature.id.slice(0, 9)}</span><strong
+						>{one(feature.properties.score)}<small>relative support</small></strong
+					><span class="meter" style={`width:${feature.properties.score}%`}></span></button
+				>{/each}
+		</div>
+
 		<div class="existing">
 			<strong>Existing infrastructure matters</strong>
 			<p>
@@ -214,7 +216,7 @@
 		margin: 16px 0;
 	}
 	.prediction p {
-		font-size: 12px;
+		font-size: 1rem;
 		line-height: 1.65;
 		margin: 12px 0;
 	}
@@ -223,20 +225,20 @@
 		margin: 18px 0 8px;
 	}
 	.prediction h4 {
-		font-size: 13px;
+		font-size: 0.875rem;
 		margin: 20px 0 5px;
 	}
 	.scenario {
-		border-left: 3px solid var(--accent);
+		border-left: 3px solid var(--model-ink);
 		padding: 12px;
-		background: var(--surface);
+		background: var(--model-surface);
 		margin: 20px 0;
 	}
 	.scenario strong,
 	.scenario span,
 	.scenario small {
 		display: block;
-		font-size: 12px;
+		font-size: 0.875rem;
 		margin: 6px 0;
 	}
 	.scenario small,
@@ -248,13 +250,13 @@
 		cursor: pointer;
 	}
 	.run {
-		background: var(--accent);
-		color: var(--accent-ink, #fff);
+		background: var(--model-ink);
+		color: var(--panel);
 		border: 0;
 		border-radius: 6px;
 		width: 100%;
 		padding: 13px 8px;
-		font-size: 12px;
+		font-size: 0.875rem;
 		font-weight: 600;
 		min-height: 44px;
 	}
@@ -266,13 +268,21 @@
 		display: flex;
 		align-items: center;
 		gap: 8px;
-		font-size: 12px;
+		font-size: 0.875rem;
 		margin: 16px 0;
 	}
 	.result-status {
-		font-size: 11px;
+		font-size: 0.875rem;
 		margin-top: 16px;
 		color: var(--muted);
+	}
+	.back-to-map {
+		display: flex;
+		align-items: center;
+		min-height: 44px;
+		margin-top: 12px;
+		color: var(--model-ink);
+		font-weight: 600;
 	}
 	.validation {
 		border-top: 1px solid var(--line);
@@ -281,7 +291,7 @@
 		margin: 22px 0;
 	}
 	.validation small {
-		font-size: 10px;
+		font-size: 0.75rem;
 		line-height: 1.6;
 		display: block;
 		color: var(--muted);
@@ -291,7 +301,7 @@
 		grid-template-columns: 1fr auto;
 		gap: 6px;
 		margin: 12px 0;
-		font-size: 11px;
+		font-size: 0.875rem;
 	}
 	.error-row i {
 		grid-column: 1/-1;
@@ -300,7 +310,7 @@
 		border-radius: 4px;
 	}
 	.error-row.model i {
-		background: var(--accent);
+		background: var(--model-ink);
 	}
 	.candidates {
 		display: flex;
@@ -322,7 +332,7 @@
 		border-radius: 6px;
 		background: var(--surface);
 		padding: 10px;
-		font-size: 10px;
+		font-size: 0.75rem;
 		overflow: hidden;
 		color: var(--ink);
 	}
@@ -331,7 +341,7 @@
 		text-align: right;
 	}
 	.candidates small {
-		font-size: 8px;
+		font-size: 0.75rem;
 		font-weight: 400;
 		display: block;
 	}
@@ -340,13 +350,13 @@
 		left: 0;
 		bottom: 0;
 		height: 3px;
-		background: var(--accent);
+		background: var(--model-ink);
 	}
 	.candidates .selected {
-		outline: 2px solid var(--accent);
+		outline: 2px solid var(--model-ink);
 	}
 	.assessment {
-		border-top: 3px solid var(--accent);
+		border-top: 3px solid var(--model-ink);
 		padding-top: 20px;
 		margin: 24px 0;
 	}
@@ -355,14 +365,14 @@
 		background: var(--surface);
 		border: 1px solid var(--line);
 		margin: 20px 0;
-		font-size: 12px;
+		font-size: 0.875rem;
 	}
 	a {
 		text-decoration: underline;
-		font-size: 11px;
+		font-size: 0.875rem;
 	}
 	details {
-		font-size: 12px;
+		font-size: 0.875rem;
 		margin: 20px 0;
 	}
 	summary {
@@ -372,7 +382,7 @@
 	code {
 		display: block;
 		overflow-wrap: anywhere;
-		font-size: 9px;
+		font-size: 0.75rem;
 		color: var(--muted);
 	}
 </style>

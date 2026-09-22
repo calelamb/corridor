@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import './workbench.css';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { resolve } from '$app/paths';
@@ -15,6 +15,14 @@
 	let detail = $state<EvidenceFeature>();
 	let status = $state<'loading' | 'ready' | 'error'>('loading');
 	let mounted = $state(false);
+	let filtersOpen = $state(false);
+	let analysisPanel: HTMLElement;
+	async function openAnalysis() {
+		panel = 'prediction';
+		await tick();
+		analysisPanel.focus({ preventScroll: true });
+		analysisPanel.scrollIntoView({ block: 'nearest' });
+	}
 
 	let theme = $state<Theme>('light');
 	let search = $state('');
@@ -134,10 +142,22 @@
 </script>
 
 <main id="main" class="workbench" tabindex="-1">
-	<aside class="rail" aria-label="Explore filters">
+	<div class="mobile-tools">
+		<button
+			aria-expanded={filtersOpen}
+			aria-controls="explore-filters"
+			onclick={() => (filtersOpen = !filtersOpen)}>Filters</button
+		>
+		<h1>Highway explorer</h1>
+	</div>
+	<aside
+		id="explore-filters"
+		class="rail"
+		class:expanded={filtersOpen}
+		aria-label="Explore filters"
+	>
 		<div class="eyebrow">RANGER EXPLORER <span class="pilot">PILOT</span></div>
 		<h1>Where roads meet wildlife.</h1>
-		<p>Follow the evidence across a shared landscape.</p>
 		<form
 			class="search"
 			onsubmit={(e) => {
@@ -242,15 +262,15 @@
 					rel="noreferrer">USGS / NDOW · CC0 ↗</a
 				>
 			</p>{/if}
-		<div class="source-note">
-			<span class="eyebrow">WHAT THIS MAP KNOWS</span>
+		<details class="source-note">
+			<summary>What this map knows</summary>
 			<p>
 				Historical roadkill reports, generalized to roughly 36 km² cells. Road names come from the
 				source; locations are not snapped to a highway. Road and place detail is currently available
 				for the Idaho–Nevada–Utah pilot region.
 			</p>
 			<a href={resolve('/data/')}>Data &amp; limitations ↗</a>
-		</div>
+		</details>
 	</aside>
 	<section class="exploration" aria-label="Highway exploration">
 		<div class="toolbar">
@@ -260,9 +280,12 @@
 				><strong>{prediction ? 'I-80 · Mule deer' : view.road || 'Explore the road network'}</strong
 				>
 			</div>
-			<button onclick={share}>Share view ↗</button>
+			<div class="toolbar-actions">
+				<button class="analysis-button" onclick={openAnalysis}>Movement analysis</button>
+				<button onclick={share}>Share view ↗</button>
+			</div>
 		</div>
-		<div class="map-region">
+		<div id="highway-map" class="map-region" tabindex="-1">
 			{#if mounted}{#key navigation}<RangerMap
 						migration={view.migration}
 						{prediction}
@@ -370,15 +393,22 @@
 		</section>
 	</section>
 	<aside
+		id="analysis-panel"
+		bind:this={analysisPanel}
+		tabindex="-1"
 		class="detail"
 		class:predicting={panel === 'prediction'}
 		aria-label="Selected area evidence"
 	>
 		<div class="detail-tabs">
-			<button class:active={panel === 'evidence'} onclick={() => (panel = 'evidence')}
-				>Evidence</button
-			><button class:active={panel === 'prediction'} onclick={() => (panel = 'prediction')}
-				>Predictions</button
+			<button
+				aria-pressed={panel === 'evidence'}
+				class:active={panel === 'evidence'}
+				onclick={() => (panel = 'evidence')}>Evidence</button
+			><button
+				aria-pressed={panel === 'prediction'}
+				class:active={panel === 'prediction'}
+				onclick={() => (panel = 'prediction')}>Predictions</button
 			>
 		</div>
 		{#if panel === 'prediction'}<PredictionPanel
@@ -439,12 +469,14 @@
 				Select a shaded area on the map or a row in the list to inspect its reports and source
 				context.
 			</p>
-			<div class="detail-note">
-				<strong>Two counts, different meanings</strong>
-				<p>
-					A single record may report several animals. Corridor preserves that distinction and never
-					creates invented individual events.
-				</p>
+			<div class="study-entry">
+				<span class="eyebrow">AVAILABLE MOVEMENT STUDY</span>
+				<h3>Pequop mule deer</h3>
+				<p>I-80, Nevada · 2011–2017</p>
+				<p>Explore mapped migration routes and rank road areas for field assessment.</p>
+				<button onclick={openAnalysis}
+					>Explore movement study <span aria-hidden="true">↗</span></button
+				>
 			</div>{/if}
 		<div class="sources">
 			<h3>Sources &amp; attribution</h3>

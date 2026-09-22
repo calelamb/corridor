@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import '../styles/global.css';
 	import { onMount } from 'svelte';
 	import { readTheme, saveTheme, browserStorage, type Theme } from '$lib/theme/theme';
@@ -17,7 +18,7 @@
 </script>
 
 <svelte:head
-	><meta name="theme-color" content={theme === 'dark' ? '#122b25' : '#f6f3ea'} /></svelte:head
+	><meta name="theme-color" content={theme === 'dark' ? '#102b23' : '#163d31'} /></svelte:head
 >
 <a href="#main" class="skip-link">Skip to main content</a>
 <header class="site-header">
@@ -26,7 +27,16 @@
 		></a
 	><span class="brand-description">WILDLIFE · ROADS · COEXISTENCE</span>
 	<nav aria-label="Main navigation">
-		<a href={resolve('/data/')}>Data &amp; methods</a><button
+		<a
+			class="map-nav"
+			href={resolve('/')}
+			aria-current={page.url.pathname === '/' ? 'page' : undefined}>Explore map</a
+		>
+		<a
+			href={resolve('/data/')}
+			aria-current={page.url.pathname.startsWith('/data') ? 'page' : undefined}
+			>Data &amp; methods</a
+		><button
 			class="theme-button"
 			onclick={toggle}
 			aria-label={theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'}

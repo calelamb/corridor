@@ -16,13 +16,18 @@
 	unicode-range: U+0020-007E, U+00B7, U+2000-206F;
 }
 :root {
-	--surface: #f6f3ea;
-	--panel: #fcfaf5;
+	--surface: #f2f5f3;
+	--panel: #ffffff;
 	--ink: #183c32;
 	--muted: #526258;
-	--accent: #315f50;
-	--line: #cbd3c5;
-	--canvas: #e4e9df;
+	--accent: #21644d;
+	--accent-ink: #ffffff;
+	--model-ink: #684597;
+	--model-surface: #f5f1fa;
+	--model-line: #d9cbea;
+	--header: #163d31;
+	--line: #d5dfd9;
+	--canvas: #e9f0eb;
 	--shadow: 0 8px 28px #183c3210;
 	--radius: 16px;
 	font-family: 'Public Sans Variable', system-ui, sans-serif;
@@ -35,7 +40,12 @@
 	--panel: #1d3b32;
 	--ink: #f6f3ea;
 	--muted: #bdcbbf;
-	--accent: #9ac3a5;
+	--accent: #b2dfc1;
+	--accent-ink: #15382a;
+	--model-ink: #d1b5f3;
+	--model-surface: #2c2839;
+	--model-line: #665078;
+	--header: #102b23;
 	--line: #496457;
 	--canvas: #17362e;
 	--shadow: 0 8px 28px #0002;
@@ -80,7 +90,7 @@ h2,
 	font-weight: 500;
 }
 p {
-	font-size: 14px;
+	font-size: 1rem;
 	line-height: 1.65;
 	color: var(--muted);
 }
@@ -96,15 +106,16 @@ p {
 	top: 8px;
 }
 .site-header {
-	height: 88px;
-	padding: 0 40px;
+	min-height: 72px;
+	padding: 12px 28px;
 	display: flex;
 	align-items: center;
 	gap: 32px;
 	border-bottom: 1px solid var(--line);
 	position: relative;
 	z-index: 3;
-	background: var(--surface);
+	background: var(--header);
+	color: #ffffff;
 }
 .brand {
 	display: flex;
@@ -128,9 +139,9 @@ p {
 	color: var(--accent);
 }
 .brand-description {
-	font-size: 9px;
-	letter-spacing: 2px;
-	color: var(--muted);
+	font-size: 0.75rem;
+	letter-spacing: 0.08em;
+	color: #c8dacf;
 }
 nav {
 	display: flex;
@@ -142,7 +153,7 @@ nav a {
 	display: inline-flex;
 	align-items: center;
 	min-height: 48px;
-	font-size: 13px;
+	font-size: 0.875rem;
 	font-weight: 600;
 }
 .theme-button {
@@ -217,7 +228,7 @@ nav a {
 	padding: 24px;
 }
 .eyebrow {
-	font-size: 9px;
+	font-size: 0.75rem;
 	font-weight: 700;
 	letter-spacing: 1.8px;
 	color: var(--muted);
@@ -585,4 +596,51 @@ nav a {
 }
 .map-canvas.loaded {
 	visibility: visible;
+}
+
+.site-header .brand-period {
+	color: #b2dfc1;
+}
+.site-header .brand-mark,
+.site-header .theme-button {
+	border-color: #719585;
+}
+.site-header :focus-visible {
+	outline-color: #b2dfc1;
+}
+.site-header nav a {
+	border-bottom: 2px solid transparent;
+}
+.site-header nav a[aria-current='page'] {
+	border-color: #b2dfc1;
+}
+@media (max-width: 800px) {
+	.site-header {
+		padding: 10px 16px;
+		gap: 12px;
+		height: auto;
+		flex-wrap: wrap;
+	}
+	.site-header .brand {
+		font-size: 28px;
+	}
+	.site-header .brand-mark {
+		width: 28px;
+		height: 28px;
+		margin-right: 8px;
+		font-size: 25px;
+	}
+	.site-header nav {
+		gap: 12px;
+	}
+	.site-header nav a {
+		font-size: 0.875rem;
+	}
+	.site-header .map-nav {
+		display: none;
+	}
+	.site-header .theme-button {
+		min-width: 44px;
+		min-height: 44px;
+	}
 }

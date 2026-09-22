@@ -179,7 +179,7 @@
 	.map-message span {
 		display: block;
 		margin-top: 8px;
-		font-size: 12px;
+		font-size: 0.875rem;
 	}
 	.map-legend {
 		position: absolute;
@@ -188,7 +188,7 @@
 		background: var(--panel);
 		padding: 10px 14px;
 		border: 1px solid var(--line);
-		font-size: 11px;
+		font-size: 0.875rem;
 		border-radius: 8px;
 		max-width: calc(100% - 100px);
 	}
@@ -209,14 +209,14 @@
 		display: block;
 		margin-top: 4px;
 		color: var(--muted);
-		font-size: 10px;
+		font-size: 0.75rem;
 	}
 	.attribution {
 		position: absolute;
 		bottom: 0;
 		left: 0;
 		background: var(--panel);
-		font-size: 9px;
+		font-size: 0.75rem;
 		padding: 4px 8px;
 		max-width: calc(100% - 80px);
 	}

@@ -89,3 +89,28 @@ CI runs without private pilot data; populated map and performance checks retain
 separate documented requirements. The default Compose install is empty; optional
 `compose.maps.yaml` attaches the licensed basemap after acquisition. See GitHub
 Actions for the current remote CI result, not a blanket production-readiness claim.
+
+## Sites-guided UI — 2026-09-21
+
+Applied the Sites building workflow to the existing native application: larger
+map, forest-green navigation, distinct movement-study styling, readable type,
+collapsible mobile filters, a focused analysis shortcut and a return-to-map link.
+Preserved licensed data, generalized geometry, live model semantics and source
+attribution. [UI verification and hosting boundary](verification/sites-ui.md).
+
+Validation: Svelte check reports zero errors/warnings; frontend formatting and
+ESLint pass; golangci-lint reports zero issues across all Go packages. All 25
+frontend unit tests pass with 93.33% statement coverage. Browser suite: 78 passed
+across Chromium/Firefox/WebKit; nine live-data cases skip in fixture mode. The
+three populated-map Chromium tests pass separately. Automated accessibility and
+no-overflow checks pass at 320/375/768/1024/1440/1920 widths in both themes, plus
+200% zoom and reduced-motion checks. Frontend secret scan found no leaks.
+
+The updated Docker application is running locally. Sites cloud publishing still
+requires a reachable hosted Go API; a disconnected static clone was not deployed.
+
+The first populated mobile Lighthouse run scored 91 performance / 100
+accessibility (LCP 3.09 s). The repeated-run harness stalled after that report and
+was stopped; no new median or map-ready timing is claimed. Existing map-ready
+and JavaScript-size budget gaps remain open. The prior main-branch GitHub CI run
+35683761820 completed successfully before this UI update.
