@@ -3,6 +3,8 @@
 package db
 
 import (
+	"context"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -23,7 +25,12 @@ func TestProvision(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer conn.Close(ctx)
+	defer func() {
+		if err := conn.Close(ctx); err != nil {
+			t.Errorf("cleanup failed: %v", err)
+		}
+	}()
+	testProvisionRejectsPublicRole(t, ctx, conn, dsn)
 	if _, err := conn.Exec(ctx, "SET ROLE corridor_app"); err != nil {
 		t.Fatal(err)
 	}
@@ -38,5 +45,29 @@ func TestProvision(t *testing.T) {
 	}
 	if err := Provision(ctx, "", ""); err == nil {
 		t.Fatal("missing credentials accepted")
+	}
+}
+
+func testProvisionRejectsPublicRole(t *testing.T, ctx context.Context, conn *pgx.Conn, dsn string) {
+	t.Helper()
+	// A non-administrator must not rotate another role's credentials.
+	if _, err := conn.Exec(ctx, "CREATE ROLE synthetic_viewer LOGIN PASSWORD 'synthetic-test-only'"); err != nil {
+		t.Fatal(err)
+	}
+	endpoint, err := url.Parse(dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	limited := url.URL{Scheme: endpoint.Scheme, User: url.UserPassword("synthetic_viewer", "synthetic-test-only"), Host: endpoint.Host, Path: endpoint.Path, RawQuery: endpoint.RawQuery}
+	if err := Provision(ctx, limited.String(), strings.Repeat("y", 32)); err == nil {
+		t.Fatal("unprivileged provisioning accepted")
+	}
+	app := url.URL{Scheme: endpoint.Scheme, User: url.UserPassword("corridor_app", strings.Repeat("x", 32)), Host: endpoint.Host, Path: endpoint.Path, RawQuery: endpoint.RawQuery}
+	unchanged, err := pgx.Connect(ctx, app.String())
+	if err != nil {
+		t.Fatal("failed provisioning changed application credentials")
+	}
+	if err := unchanged.Close(ctx); err != nil {
+		t.Fatal(err)
 	}
 }

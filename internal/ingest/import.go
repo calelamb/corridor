@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -41,7 +42,11 @@ func Import(ctx context.Context, pool *pgxpool.Pool, data Dataset, a Artifact) e
 	if err != nil {
 		return fmt.Errorf("begin import: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() {
+		if err := tx.Rollback(ctx); err != nil && !errors.Is(err, pgx.ErrTxClosed) {
+			slog.Warn("resource cleanup failed", "error", err)
+		}
+	}()
 	if _, err = tx.Exec(ctx, "SELECT pg_advisory_xact_lock(827365)"); err != nil {
 		return fmt.Errorf("lock import: %w", err)
 	}

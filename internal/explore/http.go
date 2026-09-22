@@ -111,19 +111,23 @@ func respond(w http.ResponseWriter, status int, value any) {
 }
 func (h Handler) basemap(w http.ResponseWriter, r *http.Request) {
 	if h.Basemap == "" {
-		http.Error(w, "Regional basemap unavailable", 503)
+		http.Error(w, "Regional basemap unavailable", http.StatusServiceUnavailable)
 		return
 	}
 	// #nosec G304 -- operator-configured path, never derived from HTTP input.
 	f, err := os.Open(h.Basemap)
 	if err != nil {
-		http.Error(w, "Regional basemap unavailable", 503)
+		http.Error(w, "Regional basemap unavailable", http.StatusServiceUnavailable)
 		return
 	}
-	defer f.Close()
+	defer func() {
+		if err := f.Close(); err != nil {
+			slog.Warn("resource cleanup failed", "error", err)
+		}
+	}()
 	stat, err := f.Stat()
 	if err != nil {
-		http.Error(w, "Regional basemap unavailable", 503)
+		http.Error(w, "Regional basemap unavailable", http.StatusServiceUnavailable)
 		return
 	}
 	w.Header().Set("Content-Type", "application/octet-stream")

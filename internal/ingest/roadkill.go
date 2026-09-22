@@ -149,9 +149,10 @@ func interval(ys, ms, ds string) (time.Time, time.Time, string, error) {
 		return fail()
 	}
 	end := start.AddDate(0, 0, 1)
-	if precision == "year" {
+	switch precision {
+	case "year":
 		end = start.AddDate(1, 0, 0)
-	} else if precision == "month" {
+	case "month":
 		end = start.AddDate(0, 1, 0)
 	}
 	return start, end, precision, nil

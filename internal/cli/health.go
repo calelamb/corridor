@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"time"
 )
@@ -19,7 +20,11 @@ func healthAt(ctx context.Context, endpoint string) error {
 	if err != nil {
 		return errors.New("service unavailable")
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			slog.Warn("resource cleanup failed", "error", err)
+		}
+	}()
 	if resp.StatusCode != 200 {
 		return errors.New("dependencies unavailable")
 	}

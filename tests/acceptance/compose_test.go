@@ -20,7 +20,9 @@ func TestCompose(t *testing.T) {
 			t.Fatal(err)
 		}
 		body, err := io.ReadAll(resp.Body)
-		resp.Body.Close()
+		if err := resp.Body.Close(); err != nil {
+			t.Errorf("cleanup failed: %v", err)
+		}
 		if err != nil || resp.StatusCode != 200 {
 			t.Fatalf("%s: %d %v", path, resp.StatusCode, err)
 		}
@@ -46,7 +48,9 @@ func TestCompose(t *testing.T) {
 			t.Fatal(err)
 		}
 		body, _ := io.ReadAll(resp.Body)
-		resp.Body.Close()
+		if err := resp.Body.Close(); err != nil {
+			t.Errorf("cleanup failed: %v", err)
+		}
 		if resp.StatusCode != 404 || strings.Contains(string(body), "<html") {
 			t.Fatalf("fallback %s", path)
 		}

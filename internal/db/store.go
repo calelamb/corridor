@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 
 	"corridor/internal/db/generated"
 
@@ -46,7 +47,11 @@ func (s Store) Sources(ctx context.Context, limit, offset int32) ([]SourceSummar
 	if err != nil {
 		return nil, 0, fmt.Errorf("begin sources snapshot: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() {
+		if err := tx.Rollback(ctx); err != nil && !errors.Is(err, pgx.ErrTxClosed) {
+			slog.Warn("resource cleanup failed", "error", err)
+		}
+	}()
 	q := generated.New(tx)
 	total, err := q.SourceCount(ctx)
 	if err != nil {

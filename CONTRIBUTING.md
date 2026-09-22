@@ -10,7 +10,12 @@ conventional commits without attribution trailers.
 
 ## Reproduce checks
 
-Use Go 1.27.1, Node 24.21.0+, npm and Docker. Versions and checksums are pinned.
+Use Go 1.27.1, Node 24.21.0+, npm, Docker and golangci-lint 2.13.2.
+Install golangci-lint from its [official release](https://github.com/golangci/golangci-lint/releases/tag/v2.13.2)
+and verify the published checksum. Its build must support Go 1.27; older Homebrew
+binaries can fail even when your installed Go is current. CI installs the pinned
+version through the official action. `make lint` prefers a project-local
+`bin/golangci-lint` when present, then falls back to `PATH`; binaries stay ignored.
 
 ```sh
 npm --prefix web ci
@@ -34,7 +39,15 @@ Acceptance tests intentionally stop and restart the database of the isolated
 or a personal project with the same name. `make integration` creates disposable
 Testcontainers. Missing Docker is a failure, not a silently skipped check.
 
-`make verify` validates generated contract/query code; checks format, Go vet,
+`make lint` builds the embedded frontend, validates `.golangci.yml`, and runs the
+standard Go linters and gofmt/goimports checks over `./...`, including integration
+and acceptance test files. It reports all findings, not just new code. Strictly
+marked generated files and third-party npm packages are excluded from diagnostics;
+authored tests are not excluded. The standard suite includes errcheck, govet,
+ineffassign, staticcheck and unused. Override the executable when needed:
+`make lint GOLANGCI_LINT=/path/to/golangci-lint`.
+
+`make verify` includes this lint gate and validates generated contract/query code; checks format, Go vet,
 frontend types/lint, race tests, per-package authored Go coverage >=80%, unit
 logic coverage >=80%, gosec, govulncheck and npm audit. Build frontend assets
 before standalone Go commands because the embed tree is generated and ignored.

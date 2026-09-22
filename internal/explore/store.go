@@ -3,7 +3,9 @@ package explore
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log/slog"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -20,7 +22,11 @@ func (s Store) Read(ctx context.Context, f Filters) (json.RawMessage, error) {
 	if err != nil {
 		return nil, fmt.Errorf("begin exploration: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() {
+		if err := tx.Rollback(ctx); err != nil && !errors.Is(err, pgx.ErrTxClosed) {
+			slog.Warn("resource cleanup failed", "error", err)
+		}
+	}()
 	args := append(f.args(), f.Limit, f.Offset)
 	query := `WITH filtered AS (SELECT * FROM public_observations` + predicate + `),
  cells AS (SELECT cell,ST_AsGeoJSON(geom)::json AS geometry,sum(records)::bigint AS records,sum(animals)::bigint AS animals,min(year) AS first_year,max(year) AS last_year,string_agg(DISTINCT road,', ' ORDER BY road) AS roads FROM filtered GROUP BY cell,geom),

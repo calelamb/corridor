@@ -10,6 +10,7 @@ import (
 
 	"github.com/minio/madmin-go/v3"
 	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 // Setup uses separate administrator credentials; HTTP startup never calls it.
@@ -32,7 +33,7 @@ func Setup(ctx context.Context, cfg config.Config, rootKey, rootSecret string) e
 		return fmt.Errorf("enforce private bucket: %w", err)
 	}
 	endpoint, _ := url.Parse(cfg.S3Endpoint)
-	admin, err := madmin.New(endpoint.Host, rootKey, rootSecret, endpoint.Scheme == "https")
+	admin, err := madmin.NewWithOptions(endpoint.Host, &madmin.Options{Creds: credentials.NewStaticV4(rootKey, rootSecret, ""), Secure: endpoint.Scheme == "https"})
 	if err != nil {
 		return fmt.Errorf("setup admin client: %w", err)
 	}

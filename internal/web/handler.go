@@ -21,7 +21,7 @@ func Handler(assets fs.FS) http.Handler {
 		secureHeaders(w, r)
 		if r.Method != "GET" && r.Method != "HEAD" {
 			w.Header().Set("Allow", "GET, HEAD")
-			http.Error(w, "Method not allowed", 405)
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 		name, ok := assetName(r.URL.Path)

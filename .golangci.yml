@@ -1,0 +1,26 @@
+version: "2"
+run:
+  timeout: 5m
+  tests: true
+  build-tags:
+    - integration
+    - acceptance
+  modules-download-mode: readonly
+linters:
+  default: standard
+  exclusions:
+    generated: strict
+    paths:
+      # Third-party Go examples shipped inside npm dependencies are not Corridor.
+      - (^|/)node_modules/
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: strict
+    paths:
+      - (^|/)node_modules/
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

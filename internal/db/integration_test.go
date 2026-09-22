@@ -52,7 +52,11 @@ func TestSpatialFoundation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer conn.Close(ctx)
+	defer func() {
+		if err := conn.Close(ctx); err != nil {
+			t.Errorf("cleanup failed: %v", err)
+		}
+	}()
 	if _, err := conn.Exec(ctx, "SET ROLE corridor_public"); err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +88,11 @@ func TestMissingH3IsAtomic(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer conn.Close(ctx)
+	defer func() {
+		if err := conn.Close(ctx); err != nil {
+			t.Errorf("cleanup failed: %v", err)
+		}
+	}()
 	var exists bool
 	if err := conn.QueryRow(ctx, "SELECT to_regclass('public.sources') IS NOT NULL").Scan(&exists); err != nil || exists {
 		t.Fatalf("partial schema: %v %v", exists, err)

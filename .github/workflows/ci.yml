@@ -24,6 +24,11 @@ jobs:
       - name: Scan repository history for secrets
         run: go run github.com/zricethezav/gitleaks/v8@v8.30.1 git --redact --log-opts=--all
       - run: npm --prefix web ci
+      - name: Install golangci-lint
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+        with:
+          version: v2.13.2
+          install-only: true
       - run: make images
       - run: make verify
       - run: npx --prefix web playwright install --with-deps

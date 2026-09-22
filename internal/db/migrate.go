@@ -6,6 +6,7 @@ import (
 	"embed"
 	"fmt"
 	"io/fs"
+	"log/slog"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
@@ -20,7 +21,11 @@ func Migrate(ctx context.Context, dsn string) error {
 	if err != nil {
 		return fmt.Errorf("open migration connection: invalid configuration")
 	}
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			slog.Warn("resource cleanup failed", "error", err)
+		}
+	}()
 	files, err := fs.Sub(migrations, "migrations")
 	if err != nil {
 		return fmt.Errorf("migration files: %w", err)

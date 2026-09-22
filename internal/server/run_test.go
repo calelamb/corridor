@@ -31,7 +31,9 @@ func TestServeFailure(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ln.Close()
+	if err := ln.Close(); err != nil {
+		t.Errorf("cleanup failed: %v", err)
+	}
 	if Run(context.Background(), ln, http.NotFoundHandler(), nil) == nil {
 		t.Fatal("closed listener accepted")
 	}

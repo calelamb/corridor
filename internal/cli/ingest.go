@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 
 	"corridor/internal/config"
@@ -25,7 +26,11 @@ func ingestInputs(ctx context.Context, out io.Writer, path string, artifact inge
 	if err != nil {
 		return errors.New("pilot artifact missing; see data/SOURCES.md acquisition instructions")
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			slog.Warn("resource cleanup failed", "error", err)
+		}
+	}()
 	if err = ingest.Verify(file, artifact.SHA256); err != nil {
 		return err
 	}
@@ -87,7 +92,11 @@ func ingestMigration(ctx context.Context, pool *pgxpool.Pool, objects *storage.C
 	if err != nil {
 		return errors.New("migration shape missing; see data/SOURCES.md")
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			slog.Warn("resource cleanup failed", "error", err)
+		}
+	}()
 	a := ingest.MigrationArtifact()
 	if err = ingest.Verify(file, a.SHA256); err != nil {
 		return err

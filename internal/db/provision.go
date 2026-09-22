@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -17,12 +18,20 @@ func Provision(ctx context.Context, adminDSN, password string) error {
 	if err != nil {
 		return errors.New("administrator connection unavailable")
 	}
-	defer conn.Close(ctx)
+	defer func() {
+		if err := conn.Close(ctx); err != nil {
+			slog.Warn("resource cleanup failed", "error", err)
+		}
+	}()
 	tx, err := conn.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin provisioning: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() {
+		if err := tx.Rollback(ctx); err != nil && !errors.Is(err, pgx.ErrTxClosed) {
+			slog.Warn("resource cleanup failed", "error", err)
+		}
+	}()
 	if _, err := tx.Exec(ctx, "SELECT pg_advisory_xact_lock(827364)"); err != nil {
 		return err
 	}

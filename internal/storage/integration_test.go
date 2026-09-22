@@ -79,7 +79,11 @@ func TestPrivateSetup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			t.Errorf("cleanup failed: %v", err)
+		}
+	}()
 	if resp.StatusCode != 403 {
 		t.Fatalf("anonymous status %d", resp.StatusCode)
 	}

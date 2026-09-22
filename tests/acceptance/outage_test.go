@@ -30,7 +30,9 @@ func TestDependencyOutage(t *testing.T) {
 			t.Fatal(err)
 		}
 		body, _ := io.ReadAll(resp.Body)
-		resp.Body.Close()
+		if err := resp.Body.Close(); err != nil {
+			t.Errorf("cleanup failed: %v", err)
+		}
 		if resp.StatusCode != 503 || strings.Contains(string(body), `"state":"empty"`) {
 			t.Fatalf("outage %s: %d %s", path, resp.StatusCode, body)
 		}
@@ -39,7 +41,9 @@ func TestDependencyOutage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	resp.Body.Close()
+	if err := resp.Body.Close(); err != nil {
+		t.Errorf("cleanup failed: %v", err)
+	}
 	if resp.StatusCode != 200 {
 		t.Fatal("process liveness depends on database")
 	}

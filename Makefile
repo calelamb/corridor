@@ -1,4 +1,6 @@
-.PHONY: generate check-generated test web-check web-build verify integration security images coverage format-check
+.PHONY: generate check-generated test web-check web-build verify integration security images coverage format-check lint
+
+GOLANGCI_LINT ?= $(if $(wildcard bin/golangci-lint),bin/golangci-lint,golangci-lint)
 
 generate:
 	go tool sqlc generate
@@ -20,6 +22,10 @@ web-check:
 
 test: web-build
 	go test -race ./...
+
+lint: web-build
+	$(GOLANGCI_LINT) config verify
+	$(GOLANGCI_LINT) run ./...
 
 format-check:
 	@test -z "$$(gofmt -l cmd internal tests)"
@@ -44,4 +50,4 @@ security:
 	go tool govulncheck ./...
 	npm --prefix web audit --audit-level=low
 
-verify: check-generated web-check web-build format-check test coverage security
+verify: check-generated web-check web-build format-check lint test coverage security

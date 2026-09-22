@@ -5,9 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"math"
 	"strconv"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jonas-p/go-shp"
@@ -49,13 +52,21 @@ func ImportMigration(ctx context.Context, pool *pgxpool.Pool, path string) (int,
 	if err != nil {
 		return 0, fmt.Errorf("open migration shapes: %w", err)
 	}
-	defer reader.Close()
+	defer func() {
+		if err := reader.Close(); err != nil {
+			slog.Warn("resource cleanup failed", "error", err)
+		}
+	}()
 	a := MigrationArtifact()
 	tx, err := pool.Begin(ctx)
 	if err != nil {
 		return 0, err
 	}
-	defer tx.Rollback(ctx)
+	defer func() {
+		if err := tx.Rollback(ctx); err != nil && !errors.Is(err, pgx.ErrTxClosed) {
+			slog.Warn("resource cleanup failed", "error", err)
+		}
+	}()
 	if _, err = tx.Exec(ctx, "SELECT pg_advisory_xact_lock(827366)"); err != nil {
 		return 0, err
 	}

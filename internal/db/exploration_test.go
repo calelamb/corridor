@@ -46,7 +46,11 @@ func TestPilotImportAndPublicRelease(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer conn.Close(ctx)
+	defer func() {
+		if err := conn.Close(ctx); err != nil {
+			t.Errorf("cleanup failed: %v", err)
+		}
+	}()
 	if _, err = conn.Exec(ctx, "SET ROLE corridor_public"); err != nil {
 		t.Fatal(err)
 	}

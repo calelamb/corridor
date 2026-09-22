@@ -6,6 +6,7 @@ import (
 	"corridor/internal/storage"
 	"errors"
 	"io"
+	"log/slog"
 	"os"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -26,7 +27,11 @@ func ingestRoadInputs(ctx context.Context, pool *pgxpool.Pool, objects *storage.
 	if err != nil {
 		return errors.New("pinned I-80 roads missing; see data/SOURCES.md")
 	}
-	defer f.Close()
+	defer func() {
+		if err := f.Close(); err != nil {
+			slog.Warn("resource cleanup failed", "error", err)
+		}
+	}()
 	if err = ingest.Verify(f, a.SHA256); err != nil {
 		return err
 	}

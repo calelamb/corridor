@@ -30,7 +30,11 @@ func TestIngestPipelinePrivateAndIdempotent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer pg.Terminate(context.Background())
+	defer func() {
+		if err := pg.Terminate(context.Background()); err != nil {
+			t.Errorf("cleanup failed: %v", err)
+		}
+	}()
 	dsn, err := pg.ConnectionString(ctx, "sslmode=disable")
 	if err != nil {
 		t.Fatal(err)
@@ -39,7 +43,11 @@ func TestIngestPipelinePrivateAndIdempotent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer mini.Terminate(context.Background())
+	defer func() {
+		if err := mini.Terminate(context.Background()); err != nil {
+			t.Errorf("cleanup failed: %v", err)
+		}
+	}()
 	host, err := mini.Host(ctx)
 	if err != nil {
 		t.Fatal(err)
