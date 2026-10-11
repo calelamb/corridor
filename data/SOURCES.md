@@ -206,3 +206,27 @@ USGS/NDOW migration data remains CC0. No restricted/quarantined data was used.
 The [model card](../docs/models/pequop-kernel-v1.md) records the evaluated product
 and limitations. The historical routes are not evidence that new structures are
 needed: [NDOT documents existing Pequop crossings and fencing](https://www.dot.nv.gov/Home/Components/News/News/4020/).
+
+## National Park highway corridors (Yellowstone & Grand Teton pilot) — 2026-10-11
+
+**OpenStreetMap contributors, ODbL 1.0.** Rights: https://www.openstreetmap.org/copyright.
+Source ID: `f1e948c2-3e4b-4b19-9f4a-8d62688f4b10`.
+Acquired from `https://overpass.private.coffee/api/interpreter` targeting the primary US-191 and US-89 corridors through Yellowstone and Grand Teton National Parks across Wyoming and Montana with this query:
+
+```text
+[out:json][timeout:30];
+(
+  way[highway~"primary|trunk|secondary"][ref~"191"](43.4,-111.3,45.2,-110.0);
+  way[highway~"primary|trunk|secondary"][ref~"89"](43.4,-111.3,45.2,-110.0);
+  node[highway=milestone](43.4,-111.3,45.2,-110.0);
+);
+out body geom;
+```
+
+Preserved artifact: `data/raw/prediction/yellowstone-teton-highways.json`.
+Schema: Overpass JSON elements comprising carriageway way features with WGS84 node geometry arrays and milestone reference nodes tagged with highway milestones and distances.
+
+The Go ingestion adapter (`IngestNPSCorridors`) verifies artifact SHA-256 integrity, registers provenance in `sources` and `source_artifacts`, parses US-191 and US-89 ways within the park bounds, computes continuous milepost intervals from reference milestone nodes, slices ways into 0.1-mile (~160.9 m) segments using PostGIS `discretize_highway`, and indexes each segment with H3 resolution 8 cells (`h3_r8`). Individual LineStrings are decomposed using `ST_Dump` to guard against multi-part geometries.
+
+Segments are stored in `road_segments` with state codes (`WY`, `MT`), highway references (`US-191`, `US-89`), milepost intervals (`milepost_start`, `milepost_end`), and origin OSM way IDs (`osm_way_ids`). Unprivileged roles are denied access to raw linear geometries.
+

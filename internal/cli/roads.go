@@ -54,3 +54,15 @@ func ingestRoadInputs(ctx context.Context, pool *pgxpool.Pool, objects *storage.
 	}
 	return ingest.ImportRoads(ctx, pool, roads, a)
 }
+
+// DefaultNPSRoadsPath is the canonical raw artifact path for Yellowstone & Grand Teton highways.
+const DefaultNPSRoadsPath = "data/raw/prediction/yellowstone-teton-highways.json"
+
+// IngestNPSRoads executes the National Park highway corridor ingestion adapter
+// for US-191 and US-89 (Yellowstone and Grand Teton national parks).
+func IngestNPSRoads(ctx context.Context, pool *pgxpool.Pool, objects *storage.Client, path string) (ingest.IngestStats, error) {
+	if path == "" {
+		path = DefaultNPSRoadsPath
+	}
+	return ingest.IngestNPSCorridors(ctx, pool, objects, path)
+}

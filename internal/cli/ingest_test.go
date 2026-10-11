@@ -55,3 +55,10 @@ func TestMigrationArtifactFailures(t *testing.T) {
 		t.Fatal("changed migration accepted")
 	}
 }
+
+func TestIngestNPSRoadsMissingFile(t *testing.T) {
+	t.Chdir(t.TempDir())
+	if _, err := IngestNPSRoads(context.Background(), nil, nil, "nonexistent.json"); err == nil {
+		t.Fatal("missing nps roads accepted")
+	}
+}
