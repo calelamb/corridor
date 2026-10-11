@@ -114,11 +114,17 @@ type PublicSource struct {
 }
 
 type RoadSegment struct {
-	ID       pgtype.UUID
-	SourceID pgtype.UUID
-	NativeID string
-	Geom     interface{}
-	LengthM  float64
+	ID            pgtype.UUID
+	SourceID      pgtype.UUID
+	NativeID      pgtype.Text
+	Geom          interface{}
+	LengthM       float64
+	State         pgtype.Text
+	HighwayRef    pgtype.Text
+	MilepostStart pgtype.Numeric
+	MilepostEnd   pgtype.Numeric
+	H3R8          interface{}
+	OsmWayIds     []int64
 }
 
 type Source struct {
