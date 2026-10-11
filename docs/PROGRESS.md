@@ -10,7 +10,7 @@ The Phase 1 foundation now runs locally as a Go application with embedded Svelte
 | --- | --- | --- |
 | 0 Research | Research inventory and literature review written; source-level verification complete for 16 public/conditional source families | [RESEARCH.md](RESEARCH.md), [SOURCES.md](../data/SOURCES.md). Thirty ledger entries including restricted/unresolved candidates. Three cleared analytical products are now imported; other candidates still require artifact-specific clearance. This is not 16 production-ready datasets. |
 | 1 Foundation | Complete for the approved Phase 1 scope; review fixes and local verification passed | [Verification evidence](verification/phase-1.md), [foundation design](superpowers/specs/2026-09-20-foundation-design.md), [implementation plan](superpowers/plans/2026-09-21-foundation.md). |
-| 2 Ingestion | Pilot implemented; broader phase incomplete | 5,211 US Global Roadkill v5 records, 8,854 animals, 218 Pequop routes and 284 OSM I-80 ways. Pinned Go adapters, private originals, idempotency and H3-only public release tested. Other states/parks and precise road matching remain open. |
+| 2 Ingestion | Pilot & National Parks implemented | 5,211 US Global Roadkill v5 records, 8,854 animals, 218 Pequop routes, 284 OSM I-80 ways, and Yellowstone/Grand Teton US-191/US-89 corridor. 0.1-mile road segmentation schema, H3-r8 indexing, PostGIS spatial snapping engine, and carcass deduplication verified. Multi-state bulk requests (WA/UT) remain open. |
 | 3 Exploration | Interactive pilot implemented; broader phase incomplete | Basemap, filters, connected selection/list, reporting timeline, migration context and share state. [Verification](verification/highway-exploration.md). Populated performance budgets and remaining design features still open. |
 | 4 Hotspots | Not started | Define/test all four methods and obtain a suitable WA comparison product with cleared terms. |
 | 5 Features and ML | Experimental spatial increment implemented; broader phase incomplete | Pequop kernel model, development-only tuning and held-out historical interpolation comparison. [Model card](models/pequop-kernel-v1.md). No longitudinal/multi-state forecast validation. |
@@ -52,6 +52,14 @@ MinIO remains an archived, isolated development companion; production storage
 requires a maintained service decision. Publication readiness and remote CI status are recorded in the repository release log.
 
 During Phase 2, verify each exact artifact's rights and schema; promote source states only on evidence. No source requests have been sent, no accounts created, no paid services purchased, and no paid data agreements accepted. Do not silently count unavailable data toward the required WA/CA/MT/UT and national-park coverage.
+
+## Road segmentation, spatial snapping and NPS corridors — 2026-10-11
+
+Implemented Phase 1 of the Ranger UI & ML plan in native Go and PostGIS:
+- Added `road_segments` PostGIS schema with H3 resolution-8 spatial indexing and `discretize_highway` function slicing highways into 0.1-mile (~160.9m) segments.
+- Built spatial snapping engine in `internal/geo/` (`SnapToSegment`, `DeduplicateEvents`), projecting collision points within 50 meters and deduplicating carcass records within 200m / 72 hours.
+- Built Yellowstone / Grand Teton NPS corridor adapter for US-191 and US-89 in `internal/ingest/nps_roads.go`, with continuous milepost interval calculation and source provenance registration.
+- Verified test suite passes: 14 ingest tests, 10 geo unit/integration tests with 90.2% coverage, 8 DB segmentation tests, and clean linter/gosec runs.
 
 ## Ranger expansion data sweep — 2026-09-21
 
