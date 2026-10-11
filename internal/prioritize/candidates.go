@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -394,7 +395,12 @@ func buildCandidateSite(cluster []SegmentRecord, state, highwayRef string, cfg P
 	bcrRes := CalculateBCR(totalRisk, totalP10, totalP90, totalLengthM, structure, avgSpeciesCost)
 
 	// Deterministic UUID based on segment IDs
-	hashInput := fmt.Sprintf("%s:%s:%.2f:%.2f:%d", state, highwayRef, mpStart, mpEnd, len(segIDs))
+	var segIDStrs []string
+	for _, id := range segIDs {
+		segIDStrs = append(segIDStrs, id.String())
+	}
+	sort.Strings(segIDStrs)
+	hashInput := fmt.Sprintf("%s:%s:%.2f:%.2f:%s", state, highwayRef, mpStart, mpEnd, strings.Join(segIDStrs, ","))
 	siteID := uuid.NewSHA1(uuid.NameSpaceOID, []byte(hashInput))
 
 	rationale := fmt.Sprintf("Recommended %s for %s (MP %.1f–%.1f, %.0fm). High-risk corridor with %.2f expected annual collisions (BCR %.2f [P10: %.2f, P90: %.2f]). Avoids an estimated %.1f collisions over %d-year structure lifespan. Sourced from %s.",
@@ -486,7 +492,7 @@ func recommendStructureType(cluster []SegmentRecord, totalRisk, totalLengthM flo
 }
 
 func knapsackGreedy(candidates []CandidateSite, budget float64) []CandidateSite {
-	var selected []CandidateSite
+	selected := make([]CandidateSite, 0, len(candidates))
 	remBudget := budget
 
 	for _, c := range candidates {

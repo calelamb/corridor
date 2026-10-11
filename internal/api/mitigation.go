@@ -35,8 +35,8 @@ func (s service) Mitigation(ctx context.Context, req MitigationRequestObject) (M
 
 	var state *string
 	if req.Params.State != nil {
-		st := strings.TrimSpace(*req.Params.State)
-		if len(st) > 2 {
+		st := strings.ToUpper(strings.TrimSpace(*req.Params.State))
+		if len(st) != 2 && len(st) != 0 {
 			return Mitigation400JSONResponse{BadRequestJSONResponse(ErrorEnvelope{
 				Status: Error,
 				Error:  "state must be a 2-letter state code",

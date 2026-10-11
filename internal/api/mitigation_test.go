@@ -109,6 +109,17 @@ func TestMitigationEndpoint_Success(t *testing.T) {
 	if provider.lastState == nil || *provider.lastState != "WY" {
 		t.Fatalf("expected state WY, got %v", provider.lastState)
 	}
+
+	// Test lowercase state normalization
+	reqLower := httptest.NewRequest("GET", "/v1/mitigation?state=wy", nil)
+	wLower := httptest.NewRecorder()
+	h.ServeHTTP(wLower, reqLower)
+	if wLower.Code != http.StatusOK {
+		t.Fatalf("expected status 200 for state=wy, got %d", wLower.Code)
+	}
+	if provider.lastState == nil || *provider.lastState != "WY" {
+		t.Fatalf("expected state normalized to WY, got %v", provider.lastState)
+	}
 }
 
 func TestMitigationEndpoint_Validation(t *testing.T) {
@@ -139,6 +150,12 @@ func TestMitigationEndpoint_Validation(t *testing.T) {
 		{
 			name:       "State too long",
 			path:       "/v1/mitigation?state=WYOMING",
+			wantCode:   http.StatusBadRequest,
+			errSnippet: "state",
+		},
+		{
+			name:       "State too short",
+			path:       "/v1/mitigation?state=W",
 			wantCode:   http.StatusBadRequest,
 			errSnippet: "state",
 		},
