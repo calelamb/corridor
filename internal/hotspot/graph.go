@@ -72,6 +72,12 @@ func (g *RoadGraph) AddEdge(fromID, toID string, distanceM float64) error {
 		return fmt.Errorf("segment %q does not exist in graph", toID)
 	}
 
+	for _, e := range g.adj[fromID] {
+		if e.To == toID {
+			return nil
+		}
+	}
+
 	g.adj[fromID] = append(g.adj[fromID], Edge{To: toID, Weight: distanceM})
 	g.adj[toID] = append(g.adj[toID], Edge{To: fromID, Weight: distanceM})
 	return nil
@@ -187,7 +193,7 @@ func (g *RoadGraph) ShortestDistance(fromID, toID string) (float64, error) {
 		if _, ok := g.segments[fromID]; ok {
 			return 0.0, nil
 		}
-		return 0.0, fmt.Errorf("segment %q not found", fromID)
+		return math.Inf(1), fmt.Errorf("segment %q not found", fromID)
 	}
 	distances, err := g.ShortestDistances(fromID, 0)
 	if err != nil {
