@@ -31,7 +31,7 @@ type Event struct {
 	ID            pgtype.UUID
 	SourceID      pgtype.UUID
 	ArtifactID    pgtype.UUID
-	NativeID      string
+	NativeID      pgtype.Text
 	SpeciesID     pgtype.UUID
 	Geom          interface{}
 	ObservedAt    pgtype.Timestamptz
@@ -39,6 +39,9 @@ type Event struct {
 	UncertaintyM  float64
 	Publishable   bool
 	Raw           []byte
+	DedupGroupID  pgtype.UUID
+	SegmentID     pgtype.UUID
+	SnapDistanceM pgtype.Float8
 }
 
 type MigrationCell struct {

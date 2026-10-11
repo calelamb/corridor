@@ -13,6 +13,15 @@ CREATE INDEX IF NOT EXISTS road_segments_geom ON road_segments USING gist(geom);
 CREATE INDEX IF NOT EXISTS road_segments_h3_r8 ON road_segments USING btree(h3_r8);
 CREATE INDEX IF NOT EXISTS road_segments_highway_ref ON road_segments(highway_ref);
 
+ALTER TABLE events
+  ALTER COLUMN source_id DROP NOT NULL,
+  ALTER COLUMN native_id DROP NOT NULL,
+  ADD COLUMN IF NOT EXISTS dedup_group_id UUID,
+  ADD COLUMN IF NOT EXISTS segment_id UUID REFERENCES road_segments(id),
+  ADD COLUMN IF NOT EXISTS snap_distance_m DOUBLE PRECISION;
+
+CREATE INDEX IF NOT EXISTS events_dedup_group ON events(dedup_group_id);
+
 -- +goose StatementBegin
 CREATE OR REPLACE FUNCTION road_segments_set_h3()
 RETURNS trigger LANGUAGE plpgsql AS $$
