@@ -2,15 +2,55 @@ package db
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
 
 	"corridor/internal/db/generated"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+var ErrNotFound = errors.New("not found")
+
+type SegmentFilter struct {
+	BBox    *[4]float64
+	MinRisk *float64
+}
+
+type ShapDriver struct {
+	Feature string  `json:"feature"`
+	Impact  string  `json:"impact"`
+	Weight  float64 `json:"weight"`
+}
+
+type SegmentSummary struct {
+	ID             uuid.UUID
+	Coordinates    [][]float64
+	RiskScore      float64
+	PercentileRank float64
+	P10            float64
+	P90            float64
+	HighwayRef     *string
+	State          *string
+}
+
+type SegmentDetail struct {
+	ID               uuid.UUID
+	Coordinates      [][]float64
+	RiskScore        float64
+	PercentileRank   float64
+	P10              float64
+	P90              float64
+	HighwayRef       *string
+	State            *string
+	MonthlyProfile   map[string]float64
+	SpeciesBreakdown map[string]float64
+	ShapDrivers      []ShapDriver
+}
 
 type SourceSummary = generated.PublicSource
 
@@ -78,3 +118,169 @@ func (s Store) Check(ctx context.Context) error {
 	_, err = s.EventCount(ctx)
 	return err
 }
+
+func (s Store) Segments(ctx context.Context, filter SegmentFilter) ([]SegmentSummary, error) {
+	if s.Pool == nil {
+		return nil, errors.New("database pool unavailable")
+	}
+
+	query := `
+		SELECT 
+			r.id,
+			ST_AsGeoJSON(r.geom)::text,
+			s.risk_score,
+			s.percentile_rank,
+			s.p10,
+			s.p90,
+			r.highway_ref,
+			r.state
+		FROM road_segments r
+		JOIN segment_risk_scores s ON r.id = s.segment_id
+		WHERE ($1::double precision IS NULL OR s.risk_score >= $1)
+		  AND (
+			$2::double precision IS NULL OR
+			r.geom && ST_MakeEnvelope($2, $3, $4, $5, 4326)
+		  )
+		ORDER BY s.risk_score DESC
+	`
+
+	var minRisk any
+	if filter.MinRisk != nil {
+		minRisk = *filter.MinRisk
+	}
+
+	var minLon, minLat, maxLon, maxLat any
+	if filter.BBox != nil {
+		minLon = filter.BBox[0]
+		minLat = filter.BBox[1]
+		maxLon = filter.BBox[2]
+		maxLat = filter.BBox[3]
+	}
+
+	rows, err := s.Pool.Query(ctx, query, minRisk, minLon, minLat, maxLon, maxLat)
+	if err != nil {
+		return nil, fmt.Errorf("query segments: %w", err)
+	}
+	defer rows.Close()
+
+	var result []SegmentSummary
+	for rows.Next() {
+		var (
+			seg       SegmentSummary
+			geomJSON  string
+			hwRef     *string
+			stateCode *string
+		)
+		if err := rows.Scan(
+			&seg.ID,
+			&geomJSON,
+			&seg.RiskScore,
+			&seg.PercentileRank,
+			&seg.P10,
+			&seg.P90,
+			&hwRef,
+			&stateCode,
+		); err != nil {
+			return nil, fmt.Errorf("scan segment: %w", err)
+		}
+		seg.HighwayRef = hwRef
+		seg.State = stateCode
+
+		var geojson struct {
+			Coordinates [][]float64 `json:"coordinates"`
+		}
+		if err := json.Unmarshal([]byte(geomJSON), &geojson); err != nil {
+			return nil, fmt.Errorf("unmarshal geometry: %w", err)
+		}
+		seg.Coordinates = geojson.Coordinates
+		result = append(result, seg)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate segments: %w", err)
+	}
+	return result, nil
+}
+
+func (s Store) Segment(ctx context.Context, id uuid.UUID) (*SegmentDetail, error) {
+	if s.Pool == nil {
+		return nil, errors.New("database pool unavailable")
+	}
+
+	query := `
+		SELECT 
+			r.id,
+			ST_AsGeoJSON(r.geom)::text,
+			s.risk_score,
+			s.percentile_rank,
+			s.p10,
+			s.p90,
+			r.highway_ref,
+			r.state,
+			s.monthly_profile,
+			s.species_breakdown,
+			s.shap_drivers
+		FROM road_segments r
+		JOIN segment_risk_scores s ON r.id = s.segment_id
+		WHERE r.id = $1
+	`
+
+	var (
+		seg              SegmentDetail
+		geomJSON         string
+		hwRef            *string
+		stateCode        *string
+		monthlyProfile   []byte
+		speciesBreakdown []byte
+		shapDrivers      []byte
+	)
+
+	err := s.Pool.QueryRow(ctx, query, id).Scan(
+		&seg.ID,
+		&geomJSON,
+		&seg.RiskScore,
+		&seg.PercentileRank,
+		&seg.P10,
+		&seg.P90,
+		&hwRef,
+		&stateCode,
+		&monthlyProfile,
+		&speciesBreakdown,
+		&shapDrivers,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("query segment detail: %w", err)
+	}
+
+	seg.HighwayRef = hwRef
+	seg.State = stateCode
+
+	var geojson struct {
+		Coordinates [][]float64 `json:"coordinates"`
+	}
+	if err := json.Unmarshal([]byte(geomJSON), &geojson); err != nil {
+		return nil, fmt.Errorf("unmarshal geometry: %w", err)
+	}
+	seg.Coordinates = geojson.Coordinates
+
+	if len(monthlyProfile) > 0 {
+		if err := json.Unmarshal(monthlyProfile, &seg.MonthlyProfile); err != nil {
+			return nil, fmt.Errorf("unmarshal monthly profile: %w", err)
+		}
+	}
+	if len(speciesBreakdown) > 0 {
+		if err := json.Unmarshal(speciesBreakdown, &seg.SpeciesBreakdown); err != nil {
+			return nil, fmt.Errorf("unmarshal species breakdown: %w", err)
+		}
+	}
+	if len(shapDrivers) > 0 {
+		if err := json.Unmarshal(shapDrivers, &seg.ShapDrivers); err != nil {
+			return nil, fmt.Errorf("unmarshal shap drivers: %w", err)
+		}
+	}
+
+	return &seg, nil
+}
+

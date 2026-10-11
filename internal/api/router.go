@@ -13,6 +13,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/google/uuid"
 	"golang.org/x/time/rate"
 )
 
@@ -20,17 +21,34 @@ type Store interface {
 	EventCount(context.Context) (int64, error)
 	Sources(context.Context, int32, int32) ([]db.SourceSummary, int64, error)
 }
+
+type SegmentStore interface {
+	Segments(ctx context.Context, filter db.SegmentFilter) ([]db.SegmentSummary, error)
+	Segment(ctx context.Context, id uuid.UUID) (*db.SegmentDetail, error)
+}
+
 type Dependencies struct {
-	Store   Store
-	Ready   func(context.Context) error
-	Logger  *slog.Logger
-	Limiter *rate.Limiter
-	Timeout time.Duration
-	Web     http.Handler
-	Explore http.Handler
-	Predict http.Handler
+	Store        Store
+	SegmentStore SegmentStore
+	Ready        func(context.Context) error
+	Logger       *slog.Logger
+	Limiter      *rate.Limiter
+	Timeout      time.Duration
+	Web          http.Handler
+	Explore      http.Handler
+	Predict      http.Handler
 }
 type service struct{ deps Dependencies }
+
+func (s service) segmentStore() SegmentStore {
+	if s.deps.SegmentStore != nil {
+		return s.deps.SegmentStore
+	}
+	if ss, ok := s.deps.Store.(SegmentStore); ok {
+		return ss
+	}
+	return nil
+}
 
 func NewRouter(deps Dependencies) http.Handler {
 	logger := deps.Logger

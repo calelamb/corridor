@@ -19,6 +19,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
 	"github.com/oapi-codegen/runtime"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 // Defines values for CoverageDataModelAvailable.
@@ -99,6 +100,51 @@ func (e HealthEnvelopeStatus) Valid() bool {
 	}
 }
 
+// Defines values for LineStringGeometryType.
+const (
+	LineString LineStringGeometryType = "LineString"
+)
+
+// Valid indicates whether the value is a known member of the LineStringGeometryType enum.
+func (e LineStringGeometryType) Valid() bool {
+	switch e {
+	case LineString:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SegmentDetailEnvelopeStatus.
+const (
+	SegmentDetailEnvelopeStatusSuccess SegmentDetailEnvelopeStatus = "success"
+)
+
+// Valid indicates whether the value is a known member of the SegmentDetailEnvelopeStatus enum.
+func (e SegmentDetailEnvelopeStatus) Valid() bool {
+	switch e {
+	case SegmentDetailEnvelopeStatusSuccess:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SegmentsEnvelopeStatus.
+const (
+	SegmentsEnvelopeStatusSuccess SegmentsEnvelopeStatus = "success"
+)
+
+// Valid indicates whether the value is a known member of the SegmentsEnvelopeStatus enum.
+func (e SegmentsEnvelopeStatus) Valid() bool {
+	switch e {
+	case SegmentsEnvelopeStatusSuccess:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SourcesEnvelopeStatus.
 const (
 	SourcesEnvelopeStatusSuccess SourcesEnvelopeStatus = "success"
@@ -165,11 +211,76 @@ type HealthEnvelope struct {
 // HealthEnvelopeStatus defines model for HealthEnvelope.Status.
 type HealthEnvelopeStatus string
 
+// LineStringGeometry defines model for LineStringGeometry.
+type LineStringGeometry struct {
+	Coordinates [][]float64            `json:"coordinates"`
+	Type        LineStringGeometryType `json:"type"`
+}
+
+// LineStringGeometryType defines model for LineStringGeometry.Type.
+type LineStringGeometryType string
+
 // Page defines model for Page.
 type Page struct {
 	Limit  int   `json:"limit"`
 	Offset int   `json:"offset"`
 	Total  int64 `json:"total"`
+}
+
+// SegmentDetail defines model for SegmentDetail.
+type SegmentDetail struct {
+	Geometry         LineStringGeometry `json:"geometry"`
+	HighwayRef       *string            `json:"highway_ref,omitempty"`
+	Id               openapi_types.UUID `json:"id"`
+	MonthlyProfile   map[string]float64 `json:"monthly_profile"`
+	P10              float64            `json:"p10"`
+	P90              float64            `json:"p90"`
+	PercentileRank   float64            `json:"percentile_rank"`
+	RiskScore        float64            `json:"risk_score"`
+	ShapDrivers      []ShapDriver       `json:"shap_drivers"`
+	SpeciesBreakdown map[string]float64 `json:"species_breakdown"`
+	State            *string            `json:"state,omitempty"`
+}
+
+// SegmentDetailEnvelope defines model for SegmentDetailEnvelope.
+type SegmentDetailEnvelope struct {
+	Data   SegmentDetail               `json:"data"`
+	Error  any                         `json:"error"`
+	Meta   any                         `json:"meta"`
+	Status SegmentDetailEnvelopeStatus `json:"status"`
+}
+
+// SegmentDetailEnvelopeStatus defines model for SegmentDetailEnvelope.Status.
+type SegmentDetailEnvelopeStatus string
+
+// SegmentSummary defines model for SegmentSummary.
+type SegmentSummary struct {
+	Geometry       LineStringGeometry `json:"geometry"`
+	HighwayRef     *string            `json:"highway_ref,omitempty"`
+	Id             openapi_types.UUID `json:"id"`
+	P10            float64            `json:"p10"`
+	P90            float64            `json:"p90"`
+	PercentileRank float64            `json:"percentile_rank"`
+	RiskScore      float64            `json:"risk_score"`
+	State          *string            `json:"state,omitempty"`
+}
+
+// SegmentsEnvelope defines model for SegmentsEnvelope.
+type SegmentsEnvelope struct {
+	Data   []SegmentSummary       `json:"data"`
+	Error  any                    `json:"error"`
+	Meta   any                    `json:"meta"`
+	Status SegmentsEnvelopeStatus `json:"status"`
+}
+
+// SegmentsEnvelopeStatus defines model for SegmentsEnvelope.Status.
+type SegmentsEnvelopeStatus string
+
+// ShapDriver defines model for ShapDriver.
+type ShapDriver struct {
+	Feature string  `json:"feature"`
+	Impact  string  `json:"impact"`
+	Weight  float64 `json:"weight"`
 }
 
 // SourceSummary defines model for SourceSummary.
@@ -195,11 +306,23 @@ type SourcesEnvelopeStatus string
 // BadRequest defines model for BadRequest.
 type BadRequest = ErrorEnvelope
 
+// NotFound defines model for NotFound.
+type NotFound = ErrorEnvelope
+
 // RateLimited defines model for RateLimited.
 type RateLimited = ErrorEnvelope
 
 // Unavailable defines model for Unavailable.
 type Unavailable = ErrorEnvelope
+
+// SegmentsParams defines parameters for Segments.
+type SegmentsParams struct {
+	// Bbox Bounding box filter as west,south,east,north (minLon,minLat,maxLon,maxLat)
+	Bbox *string `form:"bbox,omitempty" json:"bbox,omitempty"`
+
+	// MinRisk Minimum risk score threshold
+	MinRisk *float64 `form:"min_risk,omitempty" json:"min_risk,omitempty"`
+}
 
 // SourcesParams defines parameters for Sources.
 type SourcesParams struct {
@@ -218,6 +341,12 @@ type ServerInterface interface {
 
 	// (GET /v1/coverage)
 	Coverage(w http.ResponseWriter, r *http.Request)
+	// Segments Road segments with predicted risk and percentiles
+	// (GET /v1/segments)
+	Segments(w http.ResponseWriter, r *http.Request, params SegmentsParams)
+	// SegmentDetail Road segment risk detail, monthly profile, and SHAP drivers
+	// (GET /v1/segments/{id})
+	SegmentDetail(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
 
 	// (GET /v1/sources)
 	Sources(w http.ResponseWriter, r *http.Request, params SourcesParams)
@@ -239,6 +368,18 @@ func (_ Unimplemented) Ready(w http.ResponseWriter, r *http.Request) {
 
 // (GET /v1/coverage)
 func (_ Unimplemented) Coverage(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Segments Road segments with predicted risk and percentiles
+// (GET /v1/segments)
+func (_ Unimplemented) Segments(w http.ResponseWriter, r *http.Request, params SegmentsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SegmentDetail Road segment risk detail, monthly profile, and SHAP drivers
+// (GET /v1/segments/{id})
+func (_ Unimplemented) SegmentDetail(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -289,6 +430,78 @@ func (siw *ServerInterfaceWrapper) Coverage(w http.ResponseWriter, r *http.Reque
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.Coverage(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// Segments operation middleware
+func (siw *ServerInterfaceWrapper) Segments(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params SegmentsParams
+
+	// ------------- Optional query parameter "bbox" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "bbox", r.URL.Query(), &params.Bbox, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "bbox"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "bbox", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "min_risk" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "min_risk", r.URL.Query(), &params.MinRisk, runtime.BindQueryParameterOptions{Type: "number", Format: "double"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "min_risk"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "min_risk", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.Segments(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SegmentDetail operation middleware
+func (siw *ServerInterfaceWrapper) SegmentDetail(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SegmentDetail(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -469,11 +682,19 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/sources", wrapper.Sources)
 	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/segments", wrapper.Segments)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/segments/{id}", wrapper.SegmentDetail)
+	})
 
 	return r
 }
 
 type BadRequestJSONResponse ErrorEnvelope
+
+type NotFoundJSONResponse ErrorEnvelope
 
 type RateLimitedResponseHeaders struct {
 	RetryAfter *int
@@ -642,6 +863,168 @@ func (response Coverage503JSONResponse) VisitCoverageResponse(w http.ResponseWri
 	return err
 }
 
+type SegmentsRequestObject struct {
+	Params SegmentsParams
+}
+
+type SegmentsResponseObject interface {
+	VisitSegmentsResponse(w http.ResponseWriter) error
+}
+
+type Segments200JSONResponse SegmentsEnvelope
+
+func (response Segments200JSONResponse) VisitSegmentsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type Segments400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response Segments400JSONResponse) VisitSegmentsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type Segments404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response Segments404JSONResponse) VisitSegmentsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type Segments429JSONResponse struct{ RateLimitedJSONResponse }
+
+func (response Segments429JSONResponse) VisitSegmentsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.RetryAfter != nil {
+		w.Header().Set("Retry-After", fmt.Sprint(*response.Headers.RetryAfter))
+	}
+	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type Segments503JSONResponse struct{ UnavailableJSONResponse }
+
+func (response Segments503JSONResponse) VisitSegmentsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(503)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SegmentDetailRequestObject struct {
+	Id openapi_types.UUID `json:"id"`
+}
+
+type SegmentDetailResponseObject interface {
+	VisitSegmentDetailResponse(w http.ResponseWriter) error
+}
+
+type SegmentDetail200JSONResponse SegmentDetailEnvelope
+
+func (response SegmentDetail200JSONResponse) VisitSegmentDetailResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SegmentDetail400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response SegmentDetail400JSONResponse) VisitSegmentDetailResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SegmentDetail404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response SegmentDetail404JSONResponse) VisitSegmentDetailResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SegmentDetail429JSONResponse struct{ RateLimitedJSONResponse }
+
+func (response SegmentDetail429JSONResponse) VisitSegmentDetailResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.RetryAfter != nil {
+		w.Header().Set("Retry-After", fmt.Sprint(*response.Headers.RetryAfter))
+	}
+	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SegmentDetail503JSONResponse struct{ UnavailableJSONResponse }
+
+func (response SegmentDetail503JSONResponse) VisitSegmentDetailResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(503)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type SourcesRequestObject struct {
 	Params SourcesParams
 }
@@ -720,6 +1103,12 @@ type StrictServerInterface interface {
 
 	// (GET /v1/coverage)
 	Coverage(ctx context.Context, request CoverageRequestObject) (CoverageResponseObject, error)
+	// Segments Road segments with predicted risk and percentiles
+	// (GET /v1/segments)
+	Segments(ctx context.Context, request SegmentsRequestObject) (SegmentsResponseObject, error)
+	// SegmentDetail Road segment risk detail, monthly profile, and SHAP drivers
+	// (GET /v1/segments/{id})
+	SegmentDetail(ctx context.Context, request SegmentDetailRequestObject) (SegmentDetailResponseObject, error)
 
 	// (GET /v1/sources)
 	Sources(ctx context.Context, request SourcesRequestObject) (SourcesResponseObject, error)
@@ -836,6 +1225,58 @@ func (sh *strictHandler) Coverage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Segments operation middleware
+func (sh *strictHandler) Segments(w http.ResponseWriter, r *http.Request, params SegmentsParams) {
+	var request SegmentsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.Segments(ctx, request.(SegmentsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "Segments")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SegmentsResponseObject); ok {
+		if err := validResponse.VisitSegmentsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SegmentDetail operation middleware
+func (sh *strictHandler) SegmentDetail(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
+	var request SegmentDetailRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SegmentDetail(ctx, request.(SegmentDetailRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SegmentDetail")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SegmentDetailResponseObject); ok {
+		if err := validResponse.VisitSegmentDetailResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // Sources operation middleware
 func (sh *strictHandler) Sources(w http.ResponseWriter, r *http.Request, params SourcesParams) {
 	var request SourcesRequestObject
@@ -867,22 +1308,33 @@ func (sh *strictHandler) Sources(w http.ResponseWriter, r *http.Request, params 
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

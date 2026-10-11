@@ -58,6 +58,57 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '429': { $ref: '#/components/responses/RateLimited' }
         '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/segments:
+    get:
+      operationId: Segments
+      summary: Road segments with predicted risk and percentiles
+      description: Returns 0.1-mile road segment linestrings with risk scores and percentile rankings.
+      parameters:
+        - name: bbox
+          in: query
+          description: Bounding box filter as west,south,east,north (minLon,minLat,maxLon,maxLat)
+          schema:
+            type: string
+        - name: min_risk
+          in: query
+          description: Minimum risk score threshold
+          schema:
+            type: number
+            format: double
+            minimum: 0
+      responses:
+        '200':
+          description: Road segment linestrings with risk scores and percentile rankings
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SegmentsEnvelope' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/segments/{id}:
+    get:
+      operationId: SegmentDetail
+      summary: Road segment risk detail, monthly profile, and SHAP drivers
+      description: Returns monthly risk profile, species probability breakdown, and plain-language TreeSHAP drivers for a 0.1-mile segment.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Road segment identifier
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Road segment risk detail with SHAP attribution
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SegmentDetailEnvelope' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
 components:
   responses:
     BadRequest:
@@ -75,6 +126,11 @@ components:
       headers:
         Retry-After:
           schema: { type: integer, minimum: 1 }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    NotFound:
+      description: Resource not found
       content:
         application/json:
           schema: { $ref: '#/components/schemas/ErrorEnvelope' }
@@ -149,3 +205,87 @@ components:
         data: { type: 'null' }
         error: { type: string }
         meta: { type: 'null' }
+    LineStringGeometry:
+      type: object
+      additionalProperties: false
+      required: [type, coordinates]
+      properties:
+        type:
+          type: string
+          enum: [LineString]
+        coordinates:
+          type: array
+          items:
+            type: array
+            items:
+              type: number
+              format: double
+            minItems: 2
+    ShapDriver:
+      type: object
+      additionalProperties: false
+      required: [feature, impact, weight]
+      properties:
+        feature: { type: string }
+        impact: { type: string }
+        weight: { type: number, format: double }
+    SegmentSummary:
+      type: object
+      additionalProperties: false
+      required: [id, geometry, risk_score, percentile_rank, p10, p90]
+      properties:
+        id: { type: string, format: uuid }
+        geometry: { $ref: '#/components/schemas/LineStringGeometry' }
+        risk_score: { type: number, format: double }
+        percentile_rank: { type: number, format: double }
+        p10: { type: number, format: double }
+        p90: { type: number, format: double }
+        highway_ref: { type: string }
+        state: { type: string }
+    SegmentDetail:
+      type: object
+      additionalProperties: false
+      required: [id, geometry, risk_score, percentile_rank, p10, p90, monthly_profile, species_breakdown, shap_drivers]
+      properties:
+        id: { type: string, format: uuid }
+        geometry: { $ref: '#/components/schemas/LineStringGeometry' }
+        risk_score: { type: number, format: double }
+        percentile_rank: { type: number, format: double }
+        p10: { type: number, format: double }
+        p90: { type: number, format: double }
+        highway_ref: { type: string }
+        state: { type: string }
+        monthly_profile:
+          type: object
+          additionalProperties:
+            type: number
+            format: double
+        species_breakdown:
+          type: object
+          additionalProperties:
+            type: number
+            format: double
+        shap_drivers:
+          type: array
+          items: { $ref: '#/components/schemas/ShapDriver' }
+    SegmentsEnvelope:
+      type: object
+      additionalProperties: false
+      required: [status, data, error, meta]
+      properties:
+        status: { type: string, enum: [success] }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/SegmentSummary' }
+        error: { type: 'null' }
+        meta: { type: 'null' }
+    SegmentDetailEnvelope:
+      type: object
+      additionalProperties: false
+      required: [status, data, error, meta]
+      properties:
+        status: { type: string, enum: [success] }
+        data: { $ref: '#/components/schemas/SegmentDetail' }
+        error: { type: 'null' }
+        meta: { type: 'null' }
+
