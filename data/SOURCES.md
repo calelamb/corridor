@@ -223,7 +223,7 @@ Acquired from `https://overpass.private.coffee/api/interpreter` targeting the pr
 out body geom;
 ```
 
-Preserved artifact: `data/raw/prediction/yellowstone-teton-highways.json`.
+Preserved artifact: `data/raw/prediction/yellowstone-teton-highways.json`. The pinned Overpass JSON SHA-256 and byte count are pending acquisition; development and verification currently operate on reviewed synthetic pilot fixtures.
 Schema: Overpass JSON elements comprising carriageway way features with WGS84 node geometry arrays and milestone reference nodes tagged with highway milestones and distances.
 
 The Go ingestion adapter (`IngestNPSCorridors`) verifies artifact SHA-256 integrity, registers provenance in `sources` and `source_artifacts`, parses US-191 and US-89 ways within the park bounds, computes continuous milepost intervals from reference milestone nodes, slices ways into 0.1-mile (~160.9 m) segments using PostGIS `discretize_highway`, and indexes each segment with H3 resolution 8 cells (`h3_r8`). Individual LineStrings are decomposed using `ST_Dump` to guard against multi-part geometries.

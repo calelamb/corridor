@@ -454,3 +454,105 @@ func TestNPSRoadsConsecutiveCorridorChaining(t *testing.T) {
 		t.Errorf("expected chained corridor to reach milepost ~2.0, got %.2f", maxEnd)
 	}
 }
+
+// TestNPSRoadsRefTagDoesNotOverrideMilepost verifies that route reference tag (ref="191" or ref="89")
+// is never misinterpreted as starting milepost 191.0 or 89.0.
+func TestNPSRoadsRefTagDoesNotOverrideMilepost(t *testing.T) {
+	ctx, pool := setupTestDB(t)
+
+	refJSON := `{
+  "elements": [
+    {
+      "type": "way",
+      "id": 9901,
+      "tags": {
+        "highway": "primary",
+        "ref": "191",
+        "name": "Yellowstone Highway"
+      },
+      "geometry": [
+        {"lat": 44.700000, "lon": -111.100000},
+        {"lat": 44.714470, "lon": -111.100000}
+      ]
+    }
+  ]
+}`
+	tmpDir := t.TempDir()
+	path := filepath.Join(tmpDir, "ref-test.json")
+	if err := os.WriteFile(path, []byte(refJSON), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	stats, err := ingest.IngestNPSCorridors(ctx, pool, nil, path)
+	if err != nil {
+		t.Fatalf("IngestNPSCorridors failed: %v", err)
+	}
+	if stats.WaysParsed != 1 || stats.SegmentsCreated != 10 {
+		t.Fatalf("expected 1 way, 10 segments; got %d ways, %d segments", stats.WaysParsed, stats.SegmentsCreated)
+	}
+
+	var minStart, maxEnd float64
+	err = pool.QueryRow(ctx, "SELECT min(milepost_start), max(milepost_end) FROM road_segments WHERE osm_way_ids @> ARRAY[9901::bigint]").Scan(&minStart, &maxEnd)
+	if err != nil {
+		t.Fatalf("query mileposts failed: %v", err)
+	}
+
+	// Must NOT be 191.0; should start at 0.0 (or corridor chain start) and end at ~1.0
+	if minStart >= 190.0 {
+		t.Fatalf("CRITICAL REGRESSION: way ref='191' was misinterpreted as starting milepost %.2f", minStart)
+	}
+	if math.Abs(minStart-0.0) > 0.05 {
+		t.Errorf("expected starting milepost near 0.0, got %.2f", minStart)
+	}
+	if math.Abs(maxEnd-1.0) > 0.05 {
+		t.Errorf("expected ending milepost near 1.0, got %.2f", maxEnd)
+	}
+}
+
+// TestNPSRoadsPermissiveSubstringPrevention verifies that local streets like "1910 Pioneer Trail"
+// or "89th Street" are not falsely matched as US-191 or US-89.
+func TestNPSRoadsPermissiveSubstringPrevention(t *testing.T) {
+	ctx, pool := setupTestDB(t)
+
+	falsePositiveJSON := `{
+  "elements": [
+    {
+      "type": "way",
+      "id": 9902,
+      "tags": {
+        "highway": "residential",
+        "name": "1910 Pioneer Trail"
+      },
+      "geometry": [
+        {"lat": 44.500000, "lon": -110.800000},
+        {"lat": 44.505000, "lon": -110.800000}
+      ]
+    },
+    {
+      "type": "way",
+      "id": 9903,
+      "tags": {
+        "highway": "residential",
+        "name": "89th Street"
+      },
+      "geometry": [
+        {"lat": 44.500000, "lon": -110.800000},
+        {"lat": 44.505000, "lon": -110.800000}
+      ]
+    }
+  ]
+}`
+	tmpDir := t.TempDir()
+	path := filepath.Join(tmpDir, "false-positives.json")
+	if err := os.WriteFile(path, []byte(falsePositiveJSON), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	stats, err := ingest.IngestNPSCorridors(ctx, pool, nil, path)
+	if err != nil {
+		t.Fatalf("IngestNPSCorridors failed: %v", err)
+	}
+	if stats.WaysParsed != 0 || stats.SegmentsCreated != 0 {
+		t.Errorf("permissive substring bug: matched %d non-highway ways (%d segments)", stats.WaysParsed, stats.SegmentsCreated)
+	}
+}

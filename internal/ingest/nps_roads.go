@@ -11,6 +11,7 @@ import (
 	"log/slog"
 	"math"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -48,6 +49,13 @@ type osmDocument struct {
 	Remark   string       `json:"remark"`
 	Elements []osmElement `json:"elements"`
 }
+
+var (
+	re191Ref  = regexp.MustCompile(`(?i)\b(US[- ]?191|U\.S\.[- ]?191|^191$|;191|191;)\b`)
+	re89Ref   = regexp.MustCompile(`(?i)\b(US[- ]?89|U\.S\.[- ]?89|^89$|;89|89;)\b`)
+	re191Name = regexp.MustCompile(`(?i)\b(US[- ]?191|U\.S\.[- ]?191|Highway 191|Hwy 191)\b`)
+	re89Name  = regexp.MustCompile(`(?i)\b(US[- ]?89|U\.S\.[- ]?89|Highway 89|Hwy 89)\b`)
+)
 
 // NPSRoadArtifact returns the provenance artifact metadata for Yellowstone & Grand Teton highways.
 func NPSRoadArtifact() Artifact {
@@ -135,7 +143,7 @@ func IngestNPSCorridors(ctx context.Context, pool *pgxpool.Pool, objects *storag
 		if err := validateWGS84(*el.Lon, *el.Lat); err != nil {
 			return IngestStats{}, err
 		}
-		if mp, ok := extractMilepost(el.Tags); ok {
+		if mp, ok := extractNodeMilepost(el.Tags); ok {
 			refNodes[el.ID] = mp
 			refNodeCoords[el.ID] = [2]float64{*el.Lon, *el.Lat}
 		}
@@ -187,16 +195,13 @@ func IngestNPSCorridors(ctx context.Context, pool *pgxpool.Pool, objects *storag
 			continue
 		}
 
-		// Compute start milepost from reference nodes or tags
-		startMP, hasMP := extractMilepost(el.Tags)
-		if !hasMP {
-			// Check if first or any node matches a reference milestone node
-			for _, nID := range el.Nodes {
-				if mp, ok := refNodes[nID]; ok {
-					startMP = mp
-					hasMP = true
-					break
-				}
+		// Compute start milepost from explicit way tags or milestone at start node
+		startMP, hasMP := extractWayMilepost(el.Tags)
+		if !hasMP && len(el.Nodes) > 0 {
+			// Match startMP from milestone nodes against the starting node (el.Nodes[0])
+			if mp, ok := refNodes[el.Nodes[0]]; ok {
+				startMP = mp
+				hasMP = true
 			}
 		}
 		if !hasMP && len(points) > 0 {
@@ -326,8 +331,9 @@ func IngestNPSCorridors(ctx context.Context, pool *pgxpool.Pool, objects *storag
 		currentMP := startMP
 		for segIdx, seg := range segments {
 			segStartMP := math.Round(currentMP*100) / 100
-			segEndMP := math.Round((currentMP+0.1)*100) / 100
-			currentMP += 0.1
+			deltaMiles := seg.lengthM / 1609.344
+			currentMP += deltaMiles
+			segEndMP := math.Round(currentMP*100) / 100
 
 			nativeID := fmt.Sprintf("nps-%s-%d-%04d", hw.highwayRef, hw.way.ID, segIdx)
 			osmWayIDs := []int64{hw.way.ID}
@@ -406,19 +412,18 @@ func inYellowstoneCorridorBbox(lon, lat float64) bool {
 	return lat >= 43.0 && lat <= 46.0 && lon >= -112.5 && lon <= -109.5
 }
 
-// matchHighwayRef identifies US-191 and US-89 corridors from tags.
+// matchHighwayRef identifies US-191 and US-89 corridors using exact tokens and regex boundaries.
 func matchHighwayRef(tags map[string]string) (string, bool) {
 	hw := tags["highway"]
-	if hw == "" || hw == "footway" || hw == "path" || hw == "cycleway" || hw == "service" {
+	if hw == "" || hw == "footway" || hw == "path" || hw == "cycleway" || hw == "service" || hw == "track" || hw == "steps" {
 		return "", false
 	}
 
-	ref := tags["ref"]
-	name := tags["name"]
-	text := strings.ToUpper(ref + " " + name)
+	ref := strings.TrimSpace(tags["ref"])
+	name := strings.TrimSpace(tags["name"])
 
-	has191 := strings.Contains(text, "191")
-	has89 := strings.Contains(text, "89")
+	has191 := isMatch191(ref, name)
+	has89 := isMatch89(ref, name)
 
 	if has191 && has89 {
 		return "US-191; US-89", true
@@ -432,19 +437,81 @@ func matchHighwayRef(tags map[string]string) (string, bool) {
 	return "", false
 }
 
-func extractMilepost(tags map[string]string) (float64, bool) {
-	for _, key := range []string{"milepost_start", "start_mp", "milepost", "distance", "pk", "ref"} {
-		val, exists := tags[key]
-		if !exists {
-			continue
+func isMatch191(ref, name string) bool {
+	if ref != "" {
+		for _, part := range strings.Split(ref, ";") {
+			p := strings.TrimSpace(strings.ToUpper(part))
+			if p == "191" || p == "US 191" || p == "US-191" || p == "U.S. 191" || p == "U.S.-191" {
+				return true
+			}
 		}
-		val = strings.TrimPrefix(val, "MP")
-		val = strings.TrimPrefix(val, "mp")
-		val = strings.TrimSpace(val)
-		mp, err := strconv.ParseFloat(val, 64)
-		if err == nil && mp >= 0 && !math.IsNaN(mp) && !math.IsInf(mp, 0) {
-			return mp, true
+		if re191Ref.MatchString(ref) {
+			return true
 		}
+	}
+	if name != "" && re191Name.MatchString(name) {
+		return true
+	}
+	return false
+}
+
+func isMatch89(ref, name string) bool {
+	if ref != "" {
+		for _, part := range strings.Split(ref, ";") {
+			p := strings.TrimSpace(strings.ToUpper(part))
+			if p == "89" || p == "US 89" || p == "US-89" || p == "U.S. 89" || p == "U.S.-89" {
+				return true
+			}
+		}
+		if re89Ref.MatchString(ref) {
+			return true
+		}
+	}
+	if name != "" && re89Name.MatchString(name) {
+		return true
+	}
+	return false
+}
+
+// extractNodeMilepost extracts milestone values from node tags (including ref for milestone markers).
+func extractNodeMilepost(tags map[string]string) (float64, bool) {
+	for _, key := range []string{"milepost", "distance", "pk"} {
+		if val, exists := tags[key]; exists {
+			if mp, ok := parseMilepostNum(val); ok {
+				return mp, true
+			}
+		}
+	}
+	if tags["highway"] == "milestone" {
+		if val, exists := tags["ref"]; exists {
+			if mp, ok := parseMilepostNum(val); ok {
+				return mp, true
+			}
+		}
+	}
+	return 0, false
+}
+
+// extractWayMilepost extracts explicit starting milepost tags from highway ways.
+// Crucially, it does NOT treat route 'ref' (e.g. ref="191" or ref="89") as a milepost.
+func extractWayMilepost(tags map[string]string) (float64, bool) {
+	for _, key := range []string{"milepost_start", "start_mp", "milepost"} {
+		if val, exists := tags[key]; exists {
+			if mp, ok := parseMilepostNum(val); ok {
+				return mp, true
+			}
+		}
+	}
+	return 0, false
+}
+
+func parseMilepostNum(val string) (float64, bool) {
+	val = strings.TrimPrefix(val, "MP")
+	val = strings.TrimPrefix(val, "mp")
+	val = strings.TrimSpace(val)
+	mp, err := strconv.ParseFloat(val, 64)
+	if err == nil && mp >= 0 && !math.IsNaN(mp) && !math.IsInf(mp, 0) {
+		return mp, true
 	}
 	return 0, false
 }
