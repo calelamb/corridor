@@ -1,0 +1,87 @@
+{
+  "model_type": "hurdle_negative_binomial",
+  "version": "1.0",
+  "feature_names": [
+    "aadt",
+    "speed_limit",
+    "canopy_pct_250m",
+    "canopy_pct_1km",
+    "slope_deg",
+    "ruggedness_tri",
+    "dist_to_stream_m",
+    "dist_to_migration_corridor_m",
+    "winter_range_overlap",
+    "patrol_effort_score"
+  ],
+  "scaler": {
+    "means": {
+      "aadt": 2247.668524339043,
+      "speed_limit": 59.0,
+      "canopy_pct_250m": 42.11520799337155,
+      "canopy_pct_1km": 42.4288116581264,
+      "slope_deg": 5.495899921615996,
+      "ruggedness_tri": 18.441794925298947,
+      "dist_to_stream_m": 423.3688911092932,
+      "dist_to_migration_corridor_m": 1684.0821827065893,
+      "winter_range_overlap": 0.36,
+      "patrol_effort_score": 0.2787913751458247
+    },
+    "stds": {
+      "aadt": 1919.865460559416,
+      "speed_limit": 9.763879010584539,
+      "canopy_pct_250m": 24.80994871395438,
+      "canopy_pct_1km": 25.652551734868297,
+      "slope_deg": 5.324870434058238,
+      "ruggedness_tri": 13.450579262986427,
+      "dist_to_stream_m": 414.0057306260195,
+      "dist_to_migration_corridor_m": 1639.0167578350838,
+      "winter_range_overlap": 0.48000000000000004,
+      "patrol_effort_score": 0.15711420937944798
+    }
+  },
+  "hurdle_stage": {
+    "distribution": "logistic",
+    "intercept": 0.28098739715013316,
+    "coefficients": {
+      "aadt": 0.2871012997166218,
+      "speed_limit": -0.32530665486407373,
+      "canopy_pct_250m": -0.4172999092127048,
+      "canopy_pct_1km": 0.40685695166426095,
+      "slope_deg": 0.7493868851907152,
+      "ruggedness_tri": -0.6854227506543555,
+      "dist_to_stream_m": 0.1675038227463144,
+      "dist_to_migration_corridor_m": -0.1633481450534071,
+      "winter_range_overlap": 0.45204288186277003,
+      "patrol_effort_score": -0.24536682406166196
+    }
+  },
+  "count_stage": {
+    "distribution": "truncated_negative_binomial",
+    "intercept": -0.39673380204625325,
+    "dispersion": 0.08798443655534992,
+    "coefficients": {
+      "aadt": 0.09321908314751533,
+      "speed_limit": 0.21836944744927503,
+      "canopy_pct_250m": 0.9203879498725664,
+      "canopy_pct_1km": -0.8297516927200614,
+      "slope_deg": 0.31880552437175624,
+      "ruggedness_tri": -0.27716446795157823,
+      "dist_to_stream_m": -0.060795242206765805,
+      "dist_to_migration_corridor_m": 0.08233056088398852,
+      "winter_range_overlap": 0.25471249997121626,
+      "patrol_effort_score": 0.18203096472649488
+    }
+  },
+  "exposure": {
+    "column": "segment_length_m",
+    "default_length_m": 160.9344,
+    "reference_length_m": 160.9344,
+    "log_offset": true
+  },
+  "cv_summary": {
+    "n_splits": 5,
+    "mean_hurdle_log_loss": 0.6965476723533108,
+    "mean_count_mae": 0.8358370714773274,
+    "mean_count_rmse": 1.0977667549057148
+  }
+}
