@@ -10,6 +10,7 @@ import (
 	"github.com/andybalholm/brotli"
 
 	"corridor/internal/db"
+	"corridor/internal/prioritize"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -27,16 +28,21 @@ type SegmentStore interface {
 	Segment(ctx context.Context, id uuid.UUID) (*db.SegmentDetail, error)
 }
 
+type MitigationProvider interface {
+	GenerateCandidates(ctx context.Context, budget float64, minBCR *float64, state *string) ([]prioritize.CandidateSite, error)
+}
+
 type Dependencies struct {
-	Store        Store
-	SegmentStore SegmentStore
-	Ready        func(context.Context) error
-	Logger       *slog.Logger
-	Limiter      *rate.Limiter
-	Timeout      time.Duration
-	Web          http.Handler
-	Explore      http.Handler
-	Predict      http.Handler
+	Store              Store
+	SegmentStore       SegmentStore
+	MitigationProvider MitigationProvider
+	Ready              func(context.Context) error
+	Logger             *slog.Logger
+	Limiter            *rate.Limiter
+	Timeout            time.Duration
+	Web                http.Handler
+	Explore            http.Handler
+	Predict            http.Handler
 }
 type service struct{ deps Dependencies }
 
@@ -46,6 +52,16 @@ func (s service) segmentStore() SegmentStore {
 	}
 	if ss, ok := s.deps.Store.(SegmentStore); ok {
 		return ss
+	}
+	return nil
+}
+
+func (s service) mitigationProvider() MitigationProvider {
+	if s.deps.MitigationProvider != nil {
+		return s.deps.MitigationProvider
+	}
+	if dbs, ok := s.deps.Store.(db.Store); ok && dbs.Pool != nil {
+		return prioritize.NewEngine(dbs.Pool, prioritize.DefaultConfig())
 	}
 	return nil
 }

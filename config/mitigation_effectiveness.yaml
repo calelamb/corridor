@@ -1,0 +1,40 @@
+# Wildlife Collision Mitigation Effectiveness and Cost Parameters
+# Peer-reviewed effectiveness rates, construction costs, and structure lifespans
+# Sourced from transportation ecology meta-analyses and FHWA design guidelines.
+
+structures:
+  overpass_with_fencing:
+    name: "Wildlife Overpass with Continuous Fencing"
+    effectiveness: 0.86
+    base_cost_usd: 3500000.0
+    fencing_cost_per_meter: 120.0
+    annual_maintenance_pct: 0.015
+    lifespan_years: 25
+    citation: "Rytwinski, T., et al. (2016). How Effective Are Wildlife Mitigation Measures in Reducing Wildlife-Vehicle Collisions? A Systematic Review and Meta-Analysis. PLoS ONE 11(11): e0165034."
+
+  underpass_with_fencing:
+    name: "Wildlife Underpass with Continuous Fencing"
+    effectiveness: 0.83
+    base_cost_usd: 1800000.0
+    fencing_cost_per_meter: 120.0
+    annual_maintenance_pct: 0.015
+    lifespan_years: 20
+    citation: "Clevenger, A.P., & Huijser, M.P. (2011). Wildlife Crossing Structure Handbook: Design and Evaluation in North America. FHWA-CFL/TD-11-003."
+
+  fencing_with_jumpouts:
+    name: "Wildlife Exclusion Fencing with Escape Jumpouts"
+    effectiveness: 0.78
+    base_cost_usd: 150000.0
+    fencing_cost_per_meter: 120.0
+    annual_maintenance_pct: 0.02
+    lifespan_years: 20
+    citation: "Huijser, M.P., et al. (2009). Cost-Benefit Analyses of Mitigation Measures Aimed at Reducing Collisions with Large Ungulates in the United States and Canada. Transportation Research Record 2140: 18-26."
+
+  variable_speed_signs:
+    name: "Dynamic / Variable Wildlife Warning Signs"
+    effectiveness: 0.35
+    base_cost_usd: 60000.0
+    fencing_cost_per_meter: 0.0
+    annual_maintenance_pct: 0.05
+    lifespan_years: 10
+    citation: "Huijser, M.P., et al. (2009). Cost-Benefit Analyses of Mitigation Measures Aimed at Reducing Large Ungulate Collisions."

@@ -1,0 +1,13 @@
+# Comprehensive Wildlife Collision Costs by Species (USD)
+# Valuations include property damage, medical treatment, lost hunting/aesthetic value, and carcass removal.
+# Sourced from USDOT Benefit-Cost Analysis Guidance and Huijser et al. (2009).
+
+costs:
+  deer: 14000.0
+  elk: 45000.0
+  moose: 83000.0
+  pronghorn: 16000.0
+
+default: 15000.0
+
+citation: "Huijser, M.P., et al. (2009). Cost-Benefit Analyses of Mitigation Measures Aimed at Reducing Collisions with Large Ungulates in the United States and Canada. Transportation Research Record 2140: 18-26; USDOT Benefit-Cost Analysis Guidance."
