@@ -142,6 +142,7 @@ func (s Store) Segments(ctx context.Context, filter SegmentFilter) ([]SegmentSum
 			r.geom && ST_MakeEnvelope($2, $3, $4, $5, 4326)
 		  )
 		ORDER BY s.risk_score DESC
+		LIMIT 2000
 	`
 
 	var minRisk any

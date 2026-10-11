@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"errors"
+	"math"
 	"strconv"
 	"strings"
 
@@ -21,7 +22,7 @@ func parseBBox(raw string) (*[4]float64, error) {
 	var vals [4]float64
 	for i, p := range parts {
 		v, err := strconv.ParseFloat(strings.TrimSpace(p), 64)
-		if err != nil {
+		if err != nil || math.IsNaN(v) || math.IsInf(v, 0) {
 			return nil, errors.New("invalid float in bounding box")
 		}
 		vals[i] = v
@@ -54,8 +55,8 @@ func (s service) Segments(ctx context.Context, req SegmentsRequestObject) (Segme
 	}
 
 	if req.Params.MinRisk != nil {
-		if *req.Params.MinRisk < 0 {
-			return Segments400JSONResponse{BadRequestJSONResponse(ErrorEnvelope{Status: Error, Error: "min_risk must be non-negative"})}, nil
+		if math.IsNaN(*req.Params.MinRisk) || math.IsInf(*req.Params.MinRisk, 0) || *req.Params.MinRisk < 0 {
+			return Segments400JSONResponse{BadRequestJSONResponse(ErrorEnvelope{Status: Error, Error: "min_risk must be a non-negative finite number"})}, nil
 		}
 		filter.MinRisk = req.Params.MinRisk
 	}

@@ -108,7 +108,7 @@ func TestSegmentsEndpoint(t *testing.T) {
 	})
 
 	t.Run("GET /v1/segments with invalid bbox returns 400", func(t *testing.T) {
-		for _, invalidBbox := range []string{"invalid", "1,2,3", "10,20,5,40", "181,0,182,0"} {
+		for _, invalidBbox := range []string{"invalid", "1,2,3", "10,20,5,40", "181,0,182,0", "NaN,0,10,10", "0,0,Inf,10"} {
 			r := request(h, "GET", "/v1/segments?bbox="+invalidBbox)
 			if r.Code != http.StatusBadRequest {
 				t.Fatalf("expected 400 for bbox %q, got %d", invalidBbox, r.Code)
@@ -117,7 +117,7 @@ func TestSegmentsEndpoint(t *testing.T) {
 	})
 
 	t.Run("GET /v1/segments with invalid min_risk returns 400", func(t *testing.T) {
-		for _, invalidRisk := range []string{"not-a-number", "-0.1"} {
+		for _, invalidRisk := range []string{"not-a-number", "-0.1", "NaN", "+Inf"} {
 			r := request(h, "GET", "/v1/segments?min_risk="+invalidRisk)
 			if r.Code != http.StatusBadRequest {
 				t.Fatalf("expected 400 for min_risk %q, got %d", invalidRisk, r.Code)
