@@ -53,6 +53,15 @@ requires a maintained service decision. Publication readiness and remote CI stat
 
 During Phase 2, verify each exact artifact's rights and schema; promote source states only on evidence. No source requests have been sent, no accounts created, no paid services purchased, and no paid data agreements accepted. Do not silently count unavailable data toward the required WA/CA/MT/UT and national-park coverage.
 
+## Pure Go Inference Engine & Segment Risk Database Store — 2026-10-11
+
+Implemented Phase 3 of the Ranger UI & ML plan in pure Go and PostGIS:
+- Built zero-CGo (`CGO_ENABLED=0`) model inference engine in `internal/model/` with `Predictor` interface. Wrapped `leaves` with LightGBM 4 header normalization, verifying sub-$10^{-14}$ prediction parity against Python reference models.
+- Built pure Go Hurdle GLM inference runtime evaluating two-stage logistic hurdle probability and truncated negative binomial count expectation.
+- Added database migration `00009_risk_scores_and_shap.sql` storing segment predicted risk, percentile rankings, p10/p90 uncertainty intervals, monthly risk profile, species breakdown, and TreeSHAP risk driver JSON arrays.
+- Added OpenAPI 3.1 endpoints `GET /v1/segments?bbox=&min_risk=` and `GET /v1/segments/{id}` in `internal/api/segments.go` adhering to strict response envelope format (`status`, `data`, `error`, `meta`) with spatial PostGIS filtering, NaN/Inf input validation, and result set safeguards.
+- Verified test suite passes: all `internal/model`, `internal/api`, and `internal/db` tests pass cleanly, with 0 CGo dependencies.
+
 ## Production ML pipeline & TreeSHAP explanations — 2026-10-11
 
 Implemented Phase 2 of the Ranger UI & ML plan in `ml/` (Python managed with `uv`):
