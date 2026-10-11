@@ -109,6 +109,41 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '429': { $ref: '#/components/responses/RateLimited' }
         '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/hotspots:
+    get:
+      operationId: Hotspots
+      summary: Statistical wildlife collision hotspots along road network
+      description: Returns hotspot scores and statistical significance per road segment using network-constrained algorithms.
+      parameters:
+        - name: method
+          in: query
+          description: Hotspot method (nkde, getis_ord, density)
+          schema:
+            type: string
+            enum: [nkde, getis_ord, density]
+            default: nkde
+        - name: bandwidth
+          in: query
+          description: Search bandwidth in meters along road network (for NKDE)
+          schema:
+            type: number
+            format: double
+            minimum: 10
+            default: 500
+        - name: bbox
+          in: query
+          description: Bounding box filter as west,south,east,north
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Hotspot segment scores and significance
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HotspotsEnvelope' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
 components:
   responses:
     BadRequest:
@@ -288,4 +323,28 @@ components:
         data: { $ref: '#/components/schemas/SegmentDetail' }
         error: { type: 'null' }
         meta: { type: 'null' }
+    HotspotItem:
+      type: object
+      additionalProperties: false
+      required: [segment_id, score]
+      properties:
+        segment_id: { type: string }
+        score: { type: number, format: double }
+        raw_count: { type: integer }
+        z_score: { type: number, format: double }
+        p_value: { type: number, format: double }
+        fdr_p_value: { type: number, format: double }
+        significance: { type: string }
+    HotspotsEnvelope:
+      type: object
+      additionalProperties: false
+      required: [status, data, error, meta]
+      properties:
+        status: { type: string, enum: [success] }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/HotspotItem' }
+        error: { type: 'null' }
+        meta: { type: 'null' }
+
 

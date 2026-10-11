@@ -30,7 +30,7 @@ func TestPublicAPI(t *testing.T) {
 	for _, tt := range []struct {
 		path, method, contains string
 		status                 int
-	}{{"/healthz", "GET", "success", 200}, {"/readyz", "GET", "success", 200}, {"/v1/coverage", "GET", "empty", 200}, {"/v1/sources", "GET", `"total":0`, 200}, {"/v1/sources?limit=0", "GET", "error", 400}, {"/v1/sources?limit=101", "GET", "error", 400}, {"/v1/sources?offset=-1", "GET", "error", 400}, {"/v1/sources?limit=no", "GET", "error", 400}, {"/v1/sources?offset=100001", "GET", "error", 400}, {"/v1/missing", "GET", "error", 404}, {"/healthz", "POST", "error", 405}} {
+	}{{"/healthz", "GET", "success", 200}, {"/readyz", "GET", "success", 200}, {"/v1/coverage", "GET", "empty", 200}, {"/v1/sources", "GET", `"total":0`, 200}, {"/v1/sources?limit=0", "GET", "error", 400}, {"/v1/sources?limit=101", "GET", "error", 400}, {"/v1/sources?offset=-1", "GET", "error", 400}, {"/v1/sources?limit=no", "GET", "error", 400}, {"/v1/sources?offset=100001", "GET", "error", 400}, {"/v1/hotspots", "GET", "success", 200}, {"/v1/hotspots?method=nkde", "GET", "success", 200}, {"/v1/hotspots?method=invalid", "GET", "error", 400}, {"/v1/hotspots?bandwidth=-10", "GET", "error", 400}, {"/v1/missing", "GET", "error", 404}, {"/healthz", "POST", "error", 405}} {
 		t.Run(tt.path+tt.method, func(t *testing.T) {
 			h := NewRouter(Dependencies{Store: testStore{}, Ready: func(context.Context) error { return nil }})
 			r := request(h, tt.method, tt.path)

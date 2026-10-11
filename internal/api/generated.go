@@ -100,6 +100,21 @@ func (e HealthEnvelopeStatus) Valid() bool {
 	}
 }
 
+// Defines values for HotspotsEnvelopeStatus.
+const (
+	HotspotsEnvelopeStatusSuccess HotspotsEnvelopeStatus = "success"
+)
+
+// Valid indicates whether the value is a known member of the HotspotsEnvelopeStatus enum.
+func (e HotspotsEnvelopeStatus) Valid() bool {
+	switch e {
+	case HotspotsEnvelopeStatusSuccess:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for LineStringGeometryType.
 const (
 	LineString LineStringGeometryType = "LineString"
@@ -160,6 +175,27 @@ func (e SourcesEnvelopeStatus) Valid() bool {
 	}
 }
 
+// Defines values for HotspotsParamsMethod.
+const (
+	Density  HotspotsParamsMethod = "density"
+	GetisOrd HotspotsParamsMethod = "getis_ord"
+	Nkde     HotspotsParamsMethod = "nkde"
+)
+
+// Valid indicates whether the value is a known member of the HotspotsParamsMethod enum.
+func (e HotspotsParamsMethod) Valid() bool {
+	switch e {
+	case Density:
+		return true
+	case GetisOrd:
+		return true
+	case Nkde:
+		return true
+	default:
+		return false
+	}
+}
+
 // CoverageData defines model for CoverageData.
 type CoverageData struct {
 	IngestedEvents int64                      `json:"ingested_events"`
@@ -210,6 +246,28 @@ type HealthEnvelope struct {
 
 // HealthEnvelopeStatus defines model for HealthEnvelope.Status.
 type HealthEnvelopeStatus string
+
+// HotspotItem defines model for HotspotItem.
+type HotspotItem struct {
+	FdrPValue    *float64 `json:"fdr_p_value,omitempty"`
+	PValue       *float64 `json:"p_value,omitempty"`
+	RawCount     *int     `json:"raw_count,omitempty"`
+	Score        float64  `json:"score"`
+	SegmentId    string   `json:"segment_id"`
+	Significance *string  `json:"significance,omitempty"`
+	ZScore       *float64 `json:"z_score,omitempty"`
+}
+
+// HotspotsEnvelope defines model for HotspotsEnvelope.
+type HotspotsEnvelope struct {
+	Data   []HotspotItem          `json:"data"`
+	Error  any                    `json:"error"`
+	Meta   any                    `json:"meta"`
+	Status HotspotsEnvelopeStatus `json:"status"`
+}
+
+// HotspotsEnvelopeStatus defines model for HotspotsEnvelope.Status.
+type HotspotsEnvelopeStatus string
 
 // LineStringGeometry defines model for LineStringGeometry.
 type LineStringGeometry struct {
@@ -315,6 +373,21 @@ type RateLimited = ErrorEnvelope
 // Unavailable defines model for Unavailable.
 type Unavailable = ErrorEnvelope
 
+// HotspotsParams defines parameters for Hotspots.
+type HotspotsParams struct {
+	// Method Hotspot method (nkde, getis_ord, density)
+	Method *HotspotsParamsMethod `form:"method,omitempty" json:"method,omitempty"`
+
+	// Bandwidth Search bandwidth in meters along road network (for NKDE)
+	Bandwidth *float64 `form:"bandwidth,omitempty" json:"bandwidth,omitempty"`
+
+	// Bbox Bounding box filter as west,south,east,north
+	Bbox *string `form:"bbox,omitempty" json:"bbox,omitempty"`
+}
+
+// HotspotsParamsMethod defines parameters for Hotspots.
+type HotspotsParamsMethod string
+
 // SegmentsParams defines parameters for Segments.
 type SegmentsParams struct {
 	// Bbox Bounding box filter as west,south,east,north (minLon,minLat,maxLon,maxLat)
@@ -341,6 +414,9 @@ type ServerInterface interface {
 
 	// (GET /v1/coverage)
 	Coverage(w http.ResponseWriter, r *http.Request)
+	// Hotspots Statistical wildlife collision hotspots along road network
+	// (GET /v1/hotspots)
+	Hotspots(w http.ResponseWriter, r *http.Request, params HotspotsParams)
 	// Segments Road segments with predicted risk and percentiles
 	// (GET /v1/segments)
 	Segments(w http.ResponseWriter, r *http.Request, params SegmentsParams)
@@ -368,6 +444,12 @@ func (_ Unimplemented) Ready(w http.ResponseWriter, r *http.Request) {
 
 // (GET /v1/coverage)
 func (_ Unimplemented) Coverage(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Hotspots Statistical wildlife collision hotspots along road network
+// (GET /v1/hotspots)
+func (_ Unimplemented) Hotspots(w http.ResponseWriter, r *http.Request, params HotspotsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -430,6 +512,65 @@ func (siw *ServerInterfaceWrapper) Coverage(w http.ResponseWriter, r *http.Reque
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.Coverage(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// Hotspots operation middleware
+func (siw *ServerInterfaceWrapper) Hotspots(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params HotspotsParams
+
+	// ------------- Optional query parameter "method" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "method", r.URL.Query(), &params.Method, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "method"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "method", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "bandwidth" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "bandwidth", r.URL.Query(), &params.Bandwidth, runtime.BindQueryParameterOptions{Type: "number", Format: "double"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "bandwidth"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "bandwidth", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "bbox" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "bbox", r.URL.Query(), &params.Bbox, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "bbox"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "bbox", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.Hotspots(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -688,6 +829,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/segments/{id}", wrapper.SegmentDetail)
 	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/hotspots", wrapper.Hotspots)
+	})
 
 	return r
 }
@@ -852,6 +996,73 @@ func (response Coverage429JSONResponse) VisitCoverageResponse(w http.ResponseWri
 type Coverage503JSONResponse struct{ UnavailableJSONResponse }
 
 func (response Coverage503JSONResponse) VisitCoverageResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(503)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type HotspotsRequestObject struct {
+	Params HotspotsParams
+}
+
+type HotspotsResponseObject interface {
+	VisitHotspotsResponse(w http.ResponseWriter) error
+}
+
+type Hotspots200JSONResponse HotspotsEnvelope
+
+func (response Hotspots200JSONResponse) VisitHotspotsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type Hotspots400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response Hotspots400JSONResponse) VisitHotspotsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type Hotspots429JSONResponse struct{ RateLimitedJSONResponse }
+
+func (response Hotspots429JSONResponse) VisitHotspotsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.RetryAfter != nil {
+		w.Header().Set("Retry-After", fmt.Sprint(*response.Headers.RetryAfter))
+	}
+	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type Hotspots503JSONResponse struct{ UnavailableJSONResponse }
+
+func (response Hotspots503JSONResponse) VisitHotspotsResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -1103,6 +1314,9 @@ type StrictServerInterface interface {
 
 	// (GET /v1/coverage)
 	Coverage(ctx context.Context, request CoverageRequestObject) (CoverageResponseObject, error)
+	// Hotspots Statistical wildlife collision hotspots along road network
+	// (GET /v1/hotspots)
+	Hotspots(ctx context.Context, request HotspotsRequestObject) (HotspotsResponseObject, error)
 	// Segments Road segments with predicted risk and percentiles
 	// (GET /v1/segments)
 	Segments(ctx context.Context, request SegmentsRequestObject) (SegmentsResponseObject, error)
@@ -1225,6 +1439,32 @@ func (sh *strictHandler) Coverage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Hotspots operation middleware
+func (sh *strictHandler) Hotspots(w http.ResponseWriter, r *http.Request, params HotspotsParams) {
+	var request HotspotsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.Hotspots(ctx, request.(HotspotsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "Hotspots")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(HotspotsResponseObject); ok {
+		if err := validResponse.VisitHotspotsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // Segments operation middleware
 func (sh *strictHandler) Segments(w http.ResponseWriter, r *http.Request, params SegmentsParams) {
 	var request SegmentsRequestObject
@@ -1308,33 +1548,38 @@ func (sh *strictHandler) Sources(w http.ResponseWriter, r *http.Request, params 
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
+	"Kr3PdUoKhEW7rFkTe2R8xNef1/8fAA==",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

@@ -19,7 +19,7 @@ func TestContract(t *testing.T) {
 	if doc.OpenAPI != "3.1.0" {
 		t.Fatalf("version: %s", doc.OpenAPI)
 	}
-	for _, path := range []string{"/healthz", "/readyz", "/v1/coverage", "/v1/sources", "/v1/segments", "/v1/segments/{id}"} {
+	for _, path := range []string{"/healthz", "/readyz", "/v1/coverage", "/v1/sources", "/v1/segments", "/v1/segments/{id}", "/v1/hotspots"} {
 		item := doc.Paths.Find(path)
 		if item == nil || item.Get == nil {
 			t.Fatalf("missing GET %s", path)
@@ -30,7 +30,7 @@ func TestContract(t *testing.T) {
 			}
 		}
 	}
-	for _, name := range []string{"HealthEnvelope", "CoverageEnvelope", "SourcesEnvelope", "ErrorEnvelope", "SegmentsEnvelope", "SegmentDetailEnvelope"} {
+	for _, name := range []string{"HealthEnvelope", "CoverageEnvelope", "SourcesEnvelope", "ErrorEnvelope", "SegmentsEnvelope", "SegmentDetailEnvelope", "HotspotsEnvelope"} {
 		schema := doc.Components.Schemas[name].Value
 		if !slices.Contains(schema.Required, "status") {
 			t.Fatalf("%s does not require status", name)
