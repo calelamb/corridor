@@ -13,7 +13,7 @@ The Phase 1 foundation now runs locally as a Go application with embedded Svelte
 | 2 Ingestion | Pilot & National Parks implemented | 5,211 US Global Roadkill v5 records, 8,854 animals, 218 Pequop routes, 284 OSM I-80 ways, and Yellowstone/Grand Teton US-191/US-89 corridor. 0.1-mile road segmentation schema, H3-r8 indexing, PostGIS spatial snapping engine, and carcass deduplication verified. Multi-state bulk requests (WA/UT) remain open. |
 | 3 Exploration | Interactive pilot implemented; broader phase incomplete | Basemap, filters, connected selection/list, reporting timeline, migration context and share state. [Verification](verification/highway-exploration.md). Populated performance budgets and remaining design features still open. |
 | 4 Hotspots | Not started | Define/test all four methods and obtain a suitable WA comparison product with cleared terms. |
-| 5 Features and ML | Experimental spatial increment implemented; broader phase incomplete | Pequop kernel model, development-only tuning and held-out historical interpolation comparison. [Model card](models/pequop-kernel-v1.md). No longitudinal/multi-state forecast validation. |
+| 5 Features and ML | Production ML pipeline implemented in ml/ | Feature extractor across 10 environmental/road covariates, two-stage Hurdle model solving reporting bias with spatial block CV and JSON export, and LightGBM Poisson/Tweedie GBDT with TreeSHAP explanation export and pure Go `leaves` text model export. 33 tests passing. |
 | 6 Prioritization | Road-area screening increment implemented; broader phase incomplete | 16 I-80 candidate areas with evidence and inspection criteria. Economic inputs, treatment effectiveness and engineering validation still required. |
 | 7 Field PWA | Not started | Offline reporting, auth, upload privacy and classifier selection/evaluation still required. |
 | 8 Route risk/polish | Not started | Routing, public sharing, measured accessibility/performance and deployment still required. |
@@ -52,6 +52,15 @@ MinIO remains an archived, isolated development companion; production storage
 requires a maintained service decision. Publication readiness and remote CI status are recorded in the repository release log.
 
 During Phase 2, verify each exact artifact's rights and schema; promote source states only on evidence. No source requests have been sent, no accounts created, no paid services purchased, and no paid data agreements accepted. Do not silently count unavailable data toward the required WA/CA/MT/UT and national-park coverage.
+
+## Production ML pipeline & TreeSHAP explanations — 2026-10-11
+
+Implemented Phase 2 of the Ranger UI & ML plan in `ml/` (Python managed with `uv`):
+- Built `FeatureExtractor` extracting 10 spatial/environmental covariates (AADT traffic, speed limits, NLCD tree canopy buffers, 3DEP slope, TRI terrain ruggedness, NHDPlus stream distance, USGS corridor distance, winter range overlap, patrol effort score).
+- Built `HurdleCollisionModel` decoupling observer reporting probability from collision count incidence, evaluated under leak-free spatial block cross-validation (H3-r5 blocks) and exported to JSON for pure Go inference.
+- Built `LightGBMTrainer` with Poisson GBDT training, Top-10% Capture evaluation metric, and export in pure Go `leaves` text model format.
+- Built TreeSHAP per-segment attribution engine in `shap_explainer.py` generating human-readable positive risk drivers and directions (`closer`, `further`, `higher`, `steeper`, etc.).
+- Verified 33 tests passing with 0 warnings, and full Go suite clean.
 
 ## Road segmentation, spatial snapping and NPS corridors — 2026-10-11
 
