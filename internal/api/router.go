@@ -9,6 +9,7 @@ import (
 
 	"github.com/andybalholm/brotli"
 
+	"corridor/internal/auth"
 	"corridor/internal/db"
 	"corridor/internal/geo"
 	"corridor/internal/prioritize"
@@ -63,6 +64,7 @@ type Dependencies struct {
 	SpeciesClassifier  SpeciesClassifier
 	Snapper            Snapper
 	Deduplicator       Deduplicator
+	Authenticator      auth.Authenticator
 	Ready              func(context.Context) error
 	Logger             *slog.Logger
 	Limiter            *rate.Limiter
@@ -159,6 +161,7 @@ func NewRouter(deps Dependencies) http.Handler {
 	}
 	r := chi.NewRouter()
 	r.Use(protect(logger, limiter, timeout))
+	r.Use(Authenticate(deps.Authenticator))
 	compressor := middleware.NewCompressor(6)
 	compressor.SetEncoder("br", func(w io.Writer, _ int) io.Writer { return brotli.NewWriterLevel(w, 6) })
 	r.Use(negotiatedCompression)
