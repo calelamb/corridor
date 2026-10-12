@@ -15,8 +15,9 @@ The Phase 1 foundation now runs locally as a Go application with embedded Svelte
 | 4 Hotspots | Statistical hotspot engine implemented in pure Go | Network Kernel Density Estimation (NKDE along road graphs) and Getis-Ord Gi* with Monte Carlo permutations and Benjamini-Hochberg FDR correction in internal/hotspot/. OpenAPI /v1/hotspots endpoint registered. 12 unit tests passing. |
 | 5 Features and ML | Production ML pipeline implemented in ml/ | Feature extractor across 10 environmental/road covariates, two-stage Hurdle model solving reporting bias with spatial block CV and JSON export, and LightGBM Poisson/Tweedie GBDT with TreeSHAP explanation export and pure Go `leaves` text model export. 33 tests passing. |
 | 6 Prioritization | Mitigation prioritization engine & FHWA PDF brief generator implemented | Benefit-cost ratio (BCR) ranking engine, peer-reviewed treatment effectiveness (fencing + crossing structures: 86% reduction, Rytwinski et al. 2016), USDOT crash valuations ($14k deer, $45k elk, $83k moose), knapsack budget optimization, OpenAPI /v1/mitigation and /v1/mitigation/{id}/brief.pdf endpoints, publication-grade 2-page FHWA WCPP PDF export in pure Go (fpdf). Full test suite passing. |
-| 7 Field PWA | Complete | BioCLIP INT8 ONNX species vision classifier in Python ml/, Go reporting API with pure Go EXIF GPS stripping and 200m/72h carcass dedup, and Svelte 5 offline-first PWA with glove-friendly UI (>=48px touch targets), IndexedDB queue, and driver safety warning. All 93 Playwright E2E and 38 Vitest tests passing. |
-| 8 Route risk/polish | In progress | Ranger analytical workspaces, authentication, live SSE stream, and academic methodology. |
+| 7 Analytical Workspaces & Performance | Complete | 0.1-mile segment risk map layer, TreeSHAP plain-language explanation drawer, Hotspot Lab (NKDE, Getis-Ord Gi*, Planar Density), Mitigation Prioritization Workspace (greedy knapsack, BCR uncertainty, FHWA 2-page PDF export), and dynamic code-splitting achieving 98 mobile performance and 100 accessibility. |
+| 8 Authentication, Live Dispatch & Models | In progress | Ranger OIDC authentication, role-based privacy gating, SSE live incident stream, and production model cards. |
+| 9 Academic Methodology Library | Pending | Peer-reviewed literature synthesis and evidence-based methodology UI workspace. |
 
 ## Research verification
 
@@ -171,3 +172,11 @@ accessibility (LCP 3.09 s). The repeated-run harness stalled after that report a
 was stopped; no new median or map-ready timing is claimed. Existing map-ready
 and JavaScript-size budget gaps remain open. The prior main-branch GitHub CI run
 35683761820 completed successfully before this UI update.
+
+## Park Ranger Analytical Workspaces & Performance Optimization — 2026-10-12
+
+Implemented Phase 7 of the Ranger UI & ML plan across `web/`:
+- **0.1-Mile Segment Risk Map Layer & TreeSHAP Explanation Drawer:** Added `web/src/lib/map/segmentLayer.ts` rendering 0.1-mile road segments with colorblind-safe sand-to-ember gradient based on model percentile rank. Built accessible `SegmentDetailDrawer.svelte` showing P10/P90 uncertainty bounds, 12-month temporal profile, species mix, and plain-language TreeSHAP reason chips with bidirectional URL state synchronization (`?segment={id}`).
+- **Hotspot Analysis Lab:** Built `web/src/lib/hotspot/HotspotLab.svelte` enabling interactive methodology comparison between Network Kernel Density Estimation (NKDE), Getis-Ord Gi* local spatial autocorrelation with Benjamini-Hochberg FDR correction, and Planar Density, including network bandwidth adjustments and significance tier filters.
+- **Mitigation Prioritization Workspace:** Built `web/src/lib/mitigate/MitigationWorkspace.svelte`, `BudgetSlider.svelte`, and `CandidateCard.svelte` featuring glove-friendly controls (>=48px touch targets), real-time greedy knapsack allocation across funding limits ($100k to $25M), portfolio KPIs, and direct export trigger for FHWA WCPP 2-page PDF briefs.
+- **Performance Budget Recovery:** Code-split secondary workspaces (`HotspotLab`, `MitigationWorkspace`, `PredictionPanel`, `SegmentDetailDrawer`) and MapLibre core initialization via dynamic imports. Reduced initial app shell JS to ~29 kB (10.8 kB gzip). Verified with Lighthouse mobile audit: **98 Performance**, **100 Accessibility**, and **1,459 ms Map-Ready Time** (all budgets strictly met). All 21 Playwright E2E and 45 Vitest unit tests pass.
