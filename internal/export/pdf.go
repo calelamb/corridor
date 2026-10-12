@@ -92,7 +92,7 @@ func drawSiteMetadataBox(pdf *fpdf.Fpdf, site prioritize.CandidateSite, y float6
 
 	// Row 1
 	drawLabelValue(pdf, 18, y+3, "HIGHWAY & STATE:", fmt.Sprintf("%s (%s)", site.HighwayRef, site.State))
-	drawLabelValue(pdf, 65, y+3, "MILEPOST RANGE:", fmt.Sprintf("MP %.2f – %.2f", site.MilepostStart, site.MilepostEnd))
+	drawLabelValue(pdf, 65, y+3, "MILEPOST RANGE:", fmt.Sprintf("MP %.2f - %.2f", site.MilepostStart, site.MilepostEnd))
 	drawLabelValue(pdf, 115, y+3, "PROJECT LENGTH:", fmt.Sprintf("%.1f m (%.2f mi)", site.LengthM, site.LengthM/1609.34))
 	drawLabelValue(pdf, 160, y+3, "STATUS:", "Priority Candidate")
 
@@ -139,8 +139,10 @@ func drawProjectDescription(pdf *fpdf.Fpdf, site prioritize.CandidateSite, y flo
 
 	rationale := site.Rationale
 	if strings.TrimSpace(rationale) == "" {
-		rationale = fmt.Sprintf("Recommended %s for %s (MP %.1f–%.1f). High-risk corridor identified through statistical clustering.",
+		rationale = fmt.Sprintf("Recommended %s for %s (MP %.1f - %.1f). High-risk corridor identified through statistical clustering.",
 			formatStructureName(site.RecommendedType), site.HighwayRef, site.MilepostStart, site.MilepostEnd)
+	} else if len(rationale) > 350 {
+		rationale = rationale[:347] + "..."
 	}
 
 	pdf.MultiCell(185.9, 4.2, rationale, "", "L", false)
@@ -194,7 +196,7 @@ func drawMapSnapshot(pdf *fpdf.Fpdf, site prioritize.CandidateSite, pngBytes []b
 		pdf.SetTextColor(100, 116, 139)
 		pdf.SetFont("Helvetica", "B", 11)
 		pdf.SetXY(15, mapBoxY+40)
-		pdf.CellFormat(185.9, 6, fmt.Sprintf("[ CORRIDOR MAP SNAPSHOT: %s MP %.1f – %.1f ]", site.HighwayRef, site.MilepostStart, site.MilepostEnd), "", 0, "C", false, 0, "")
+		pdf.CellFormat(185.9, 6, fmt.Sprintf("[ CORRIDOR MAP SNAPSHOT: %s MP %.1f - %.1f ]", site.HighwayRef, site.MilepostStart, site.MilepostEnd), "", 0, "C", false, 0, "")
 
 		pdf.SetFont("Helvetica", "", 8.5)
 		pdf.SetTextColor(148, 163, 184)
@@ -342,7 +344,7 @@ func drawEconomicTable(pdf *fpdf.Fpdf, site prioritize.CandidateSite, y float64)
 		},
 		{
 			metric: "Benefit-Cost Ratio (BCR)",
-			value:  fmt.Sprintf("%.2f [P10: %.2f – P90: %.2f]", site.BCR, site.P10BCR, site.P90BCR),
+			value:  fmt.Sprintf("%.2f [P10: %.2f - P90: %.2f]", site.BCR, site.P10BCR, site.P90BCR),
 			basis:  "USDOT Benefit-Cost Analysis Guidance (>1.0 indicates net positive return)",
 		},
 	}
@@ -387,7 +389,7 @@ func drawCitations(pdf *fpdf.Fpdf, y float64) {
 	citations := []string{
 		"1. Rytwinski et al. 2016. How Effective Are Road Mitigation Measures in Reducing Wildlife-Vehicle Collisions and Improving Permeability for Animals? A Systematic Review. Environmental Evidence, 5(1):21. Meta-analysis establishing 86% collision reduction efficacy for crossing structures integrated with continuous fencing.",
 		"2. USDOT Benefit-Cost Analysis Guidance for Discretionary Grant Programs (2024). U.S. Department of Transportation, Washington, D.C. Standardized economic values for avoided vehicular crashes, injury prevention, and property damage valuation.",
-		"3. Huijser, M.P., et al. (2009). Cost-Benefit Analyses of Mitigation Measures Aimed at Reducing Collisions with Large Ungulates in the United States and Canada. Transportation Research Record, 2123(1), 161–172.",
+		"3. Huijser, M.P., et al. (2009). Cost-Benefit Analyses of Mitigation Measures Aimed at Reducing Collisions with Large Ungulates in the United States and Canada. Transportation Research Record, 2123(1), 161-172.",
 	}
 
 	for _, cit := range citations {
@@ -426,7 +428,7 @@ func drawAgencySubmissionBlock(pdf *fpdf.Fpdf, site prioritize.CandidateSite, y 
 	}{
 		{"Sponsoring Agency:", fmt.Sprintf("%s Department of Transportation", site.State)},
 		{"Funding Program:", "FHWA Wildlife Crossings Pilot Program (WCPP)"},
-		{"Corridor Route:", fmt.Sprintf("%s (MP %.1f – %.1f)", site.HighwayRef, site.MilepostStart, site.MilepostEnd)},
+		{"Corridor Route:", fmt.Sprintf("%s (MP %.1f - %.1f)", site.HighwayRef, site.MilepostStart, site.MilepostEnd)},
 		{"Candidate Site ID:", site.ID.String()[:18] + "..."},
 		{"Priority Status:", "Tier 1 High-Risk Infrastructure Grant Candidate"},
 	}
