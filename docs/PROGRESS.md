@@ -197,5 +197,30 @@ Implemented Phase 9 of the Ranger UI & ML plan:
   3. *Migration Ecology & Corridors:* Sawyer et al. (2013) [mule deer stopover ecology], Kauffman et al. (2021) [USGS Ungulate Migration corridor mapping], Aikens et al. (2017) [green wave surfing hypothesis].
   4. *Collision Economics & Valuation:* Huijser et al. (2009) [wildlife crash costs: $14k deer, $45k elk, $83k moose], USDOT (2021) [Value of Statistical Life $11.6M], FHWA (2023) [Wildlife Crossings Pilot Program funding guidance].
 - **Interactive Methodology Library Workspace:** Built `web/src/lib/evidence/catalog.ts`, `EvidenceCard.svelte`, `EvidenceLibrary.svelte`, and `/methodology` route (`web/src/routes/methodology/+page.svelte`). Added search, category filters, responsive grid, direct DOI hyperlinks, and distinct "Applied in Corridor" badges showing rangers and transportation engineers exactly how each empirical study directly justifies the platform's algorithms, parameters, and design decisions.
-- **Verification & Accessibility:** All interactive elements feature >= 48px touch targets for field readiness. Automated Axe accessibility audit passes in both light and dark modes with 0 violations (WCAG 2.2 AA compliant). Full Playwright e2e test suite passing across Chromium, Firefox, and WebKit (`web/tests/methodology.spec.ts`).
+## Platform Hardening, Fuzz Testing, CLI Subcommands & Route Risk Advisor — 2026-10-12
+
+Completed platform-wide testing, hardening, CLI operational expansion, and end-to-end verification:
+- **Architecture Decision Records (ADRs 0005–0008):** Authored formal ADRs in `docs/decisions/` following Michael Nygard's structure:
+  - `0005-pure-go-inference-runtime.md`: Zero-CGo LightGBM (`leaves`) and GLM hurdle runtime.
+  - `0006-network-kde-and-spatial-clustering.md`: Network KDE and Getis-Ord Gi* hotspot detection.
+  - `0007-fhwa-benefit-cost-and-prioritization.md`: FHWA WCPP benefit-cost prioritization and pure Go PDF export.
+  - `0008-sensitive-species-dual-resolution-privacy.md`: Dual-resolution privacy architecture (H3-r6 + 30-day delay for public vs unredacted for rangers).
+- **Native Go Fuzz Testing Suites:** Implemented `testing.F` fuzz targets satisfying Section 11 reliability criteria:
+  - `internal/geo/fuzz_test.go` (`FuzzSnapToSegment`): Tested boundary coordinates, poles, equator, NaN/Inf tolerances; hardened `SnapToSegment` against non-finite values.
+  - `internal/ingest/fuzz_test.go` (`FuzzParseRoadkillRow`): Exercised malformed CSV inputs, unexpected quotes, unicode, and corrupt numbers with structured error handling.
+  - `internal/model/fuzz_test.go` (`FuzzLoadLeavesModel`, `FuzzLoadHurdleModel`): Exercised corrupt binary/JSON inputs with panic-recovery guards in `leaves.go` and `glm.go`.
+- **Operational CLI Subcommands in `corridorctl`:**
+  - `corridorctl prioritize`: Computes candidate site selection and BCR ranking with `--budget`, `--min-bcr`, `--state`, and `--json` flags.
+  - `corridorctl hotspot`: Computes NKDE density or Getis-Ord Gi* spatial statistics with `--method`, `--bandwidth`, and `--json` flags.
+  - `corridorctl evidence`: Queries peer-reviewed literature base with `--category` and `--json` flags.
+  - Added 22 unit tests in `internal/cli/cli_test.go` and verified static compilation with `CGO_ENABLED=0`.
+- **Public Route Risk Assessment Engine & RouteRiskAdvisor Component:**
+  - Built `internal/route/risk.go`: Evaluates journey risk profiles, applies peer-reviewed diurnal ungulate activity multipliers (2.1x dawn, 2.8x dusk, 1.5x night, 1.0x day), identifies high-risk hazard zones, and constructs plain-language driver advisories.
+  - Built `web/src/lib/route/RouteRiskAdvisor.svelte`: Glove-friendly UI ($\ge 48\text{px} \times 48\text{px}$ touch targets), high-contrast WCAG 2.2 AA risk level badges (Low, Moderate, High, Severe), diurnal alert banners, and tactile "View on Map" actions.
+- **Repository-Wide Multi-Stack Verification:**
+  - Backend: 17 pure Go packages pass all unit and integration tests (`go test ./...`) with `CGO_ENABLED=0`.
+  - Python ML: 48/48 tests pass (`uv run pytest`) across feature extraction, hurdle modeling, LightGBM inference, and BioCLIP vision classification.
+  - Frontend: `svelte-check` reports 0 errors and 0 warnings; ESLint and Prettier report 0 errors; 51/51 Vitest unit tests pass; static production build succeeds.
+  - Playwright E2E: 132 passing tests (0 failures, 12 skipped live-data) across Chromium, Firefox, and WebKit, including full Axe accessibility audits with 0 violations.
+  - Clean repository state merged and pushed to `main`.
 
