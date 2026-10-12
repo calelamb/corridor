@@ -217,10 +217,29 @@ Completed platform-wide testing, hardening, CLI operational expansion, and end-t
 - **Public Route Risk Assessment Engine & RouteRiskAdvisor Component:**
   - Built `internal/route/risk.go`: Evaluates journey risk profiles, applies peer-reviewed diurnal ungulate activity multipliers (2.1x dawn, 2.8x dusk, 1.5x night, 1.0x day), identifies high-risk hazard zones, and constructs plain-language driver advisories.
   - Built `web/src/lib/route/RouteRiskAdvisor.svelte`: Glove-friendly UI ($\ge 48\text{px} \times 48\text{px}$ touch targets), high-contrast WCAG 2.2 AA risk level badges (Low, Moderate, High, Severe), diurnal alert banners, and tactile "View on Map" actions.
-- **Repository-Wide Multi-Stack Verification:**
+- Repository-Wide Multi-Stack Verification:
   - Backend: 17 pure Go packages pass all unit and integration tests (`go test ./...`) with `CGO_ENABLED=0`.
   - Python ML: 48/48 tests pass (`uv run pytest`) across feature extraction, hurdle modeling, LightGBM inference, and BioCLIP vision classification.
   - Frontend: `svelte-check` reports 0 errors and 0 warnings; ESLint and Prettier report 0 errors; 51/51 Vitest unit tests pass; static production build succeeds.
   - Playwright E2E: 132 passing tests (0 failures, 12 skipped live-data) across Chromium, Firefox, and WebKit, including full Axe accessibility audits with 0 violations.
   - Clean repository state merged and pushed to `main`.
+
+## Remote Dev Box Execution, Map & Scroll Fixes, Database Seeding & E2E Validation — 2026-10-12
+
+Addressed runtime and integration issues discovered during live testing:
+- **Remote Linux Dev Box Execution (`scripts/corridorrun`):** Enforced zero Docker on macOS constraint. Rewrote `corridorrun` to synchronize the repository to the remote dev box (`ssh ubuntu`), manage Docker Compose on Linux, establish a secure SSH reverse tunnel (`8080:localhost:8080`), and verify readiness via `/readyz`.
+- **Map & Scroll Locking Elimination:**
+  - Configured `cooperativeGestures: true` in MapLibre GL JS to prevent the map canvas from intercepting mousewheel/trackpad page scrolls.
+  - Updated `workbench.css` with `overflow-y: auto` across workspace containers and loosened `overscroll-behavior-y` from `contain` to `auto`.
+  - Added 301 Moved Permanently redirects in `internal/web/handler.go` for clean URLs (`/methodology`, `/report`, `/data`) to resolve static asset relative paths properly.
+- **Benchmark Road Segments & Database Permissions:**
+  - Implemented `corridorctl seed-segments` subcommand (`internal/cli/seed.go`) populating 0.1-mile highway segments for US-191, I-80, US-89, and I-84 with TreeSHAP risk scores and canonical benchmark UUID `00000000-0000-0000-0000-000000000001`.
+  - Applied migration `00011_grant_application_permissions.sql` granting required operational SELECT permissions to `corridor_public` and `corridor_app`.
+  - Ingested pinned I-80 road data into `analysis_roads` and rebuilt `public_movement_features` (264 cells), enabling live movement prediction analysis (`GET /v1/predictions?study=pequop` returning 30.2% error improvement).
+- **Playwright E2E Test Suite Hardening:**
+  - Synchronized `corridor-map-ready` performance mark lifecycle with actual component readiness in `RangerMap.svelte`.
+  - Preserved initial URL search parameters on client render in `Workbench.svelte`.
+  - Hardened checkbox selection in `tests/live-map.spec.ts` against Firefox auto-scroll quirks.
+  - Verified 100% test pass rate across all browsers: **144 passing tests (0 failed, 0 skipped)** across Chromium, Firefox, and WebKit against the live backend service.
+  - All changes committed and pushed to `main` without AI attribution.
 
