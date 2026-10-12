@@ -32,6 +32,18 @@ func (m *mockMitigationProvider) GenerateCandidates(ctx context.Context, budget 
 	return m.candidates, nil
 }
 
+func (m *mockMitigationProvider) CandidateSite(ctx context.Context, id uuid.UUID) (*prioritize.CandidateSite, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	for _, c := range m.candidates {
+		if c.ID == id {
+			return &c, nil
+		}
+	}
+	return nil, nil
+}
+
 func TestMitigationEndpoint_Success(t *testing.T) {
 	siteID := uuid.New()
 	segID1 := uuid.New()

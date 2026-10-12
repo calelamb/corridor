@@ -30,6 +30,7 @@ type SegmentStore interface {
 
 type MitigationProvider interface {
 	GenerateCandidates(ctx context.Context, budget float64, minBCR *float64, state *string) ([]prioritize.CandidateSite, error)
+	CandidateSite(ctx context.Context, id uuid.UUID) (*prioritize.CandidateSite, error)
 }
 
 type Dependencies struct {

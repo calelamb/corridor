@@ -527,3 +527,18 @@ func (e *Engine) GenerateCandidates(ctx context.Context, budget float64, minBCR 
 	return GenerateCandidatesWithOptions(ctx, e.Pool, opts, e.Config)
 }
 
+// CandidateSite looks up a candidate site by ID.
+func (e *Engine) CandidateSite(ctx context.Context, id uuid.UUID) (*CandidateSite, error) {
+	candidates, err := e.GenerateCandidates(ctx, -1, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	for _, c := range candidates {
+		if c.ID == id {
+			return &c, nil
+		}
+	}
+	return nil, nil
+}
+
+

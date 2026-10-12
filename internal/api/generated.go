@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -477,6 +478,9 @@ type ServerInterface interface {
 	// Mitigation Wildlife mitigation candidate project sites ranked by benefit-cost ratio
 	// (GET /v1/mitigation)
 	Mitigation(w http.ResponseWriter, r *http.Request, params MitigationParams)
+	// MitigationBriefPDF FHWA WCPP funding-ready PDF brief for a mitigation candidate site
+	// (GET /v1/mitigation/{id}/brief.pdf)
+	MitigationBriefPDF(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
 	// Segments Road segments with predicted risk and percentiles
 	// (GET /v1/segments)
 	Segments(w http.ResponseWriter, r *http.Request, params SegmentsParams)
@@ -516,6 +520,12 @@ func (_ Unimplemented) Hotspots(w http.ResponseWriter, r *http.Request, params H
 // Mitigation Wildlife mitigation candidate project sites ranked by benefit-cost ratio
 // (GET /v1/mitigation)
 func (_ Unimplemented) Mitigation(w http.ResponseWriter, r *http.Request, params MitigationParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// MitigationBriefPDF FHWA WCPP funding-ready PDF brief for a mitigation candidate site
+// (GET /v1/mitigation/{id}/brief.pdf)
+func (_ Unimplemented) MitigationBriefPDF(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -696,6 +706,32 @@ func (siw *ServerInterfaceWrapper) Mitigation(w http.ResponseWriter, r *http.Req
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.Mitigation(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// MitigationBriefPDF operation middleware
+func (siw *ServerInterfaceWrapper) MitigationBriefPDF(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.MitigationBriefPDF(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -959,6 +995,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/mitigation", wrapper.Mitigation)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/mitigation/{id}/brief.pdf", wrapper.MitigationBriefPDF)
 	})
 
 	return r
@@ -1269,6 +1308,93 @@ func (response Mitigation503JSONResponse) VisitMitigationResponse(w http.Respons
 	return err
 }
 
+type MitigationBriefPDFRequestObject struct {
+	Id openapi_types.UUID `json:"id"`
+}
+
+type MitigationBriefPDFResponseObject interface {
+	VisitMitigationBriefPDFResponse(w http.ResponseWriter) error
+}
+
+type MitigationBriefPDF200ApplicationpdfResponse struct {
+	Body          io.Reader
+	ContentLength int64
+}
+
+func (response MitigationBriefPDF200ApplicationpdfResponse) VisitMitigationBriefPDFResponse(w http.ResponseWriter) error {
+
+	w.Header().Set("Content-Type", "application/pdf")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
+}
+
+type MitigationBriefPDF400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response MitigationBriefPDF400JSONResponse) VisitMitigationBriefPDFResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MitigationBriefPDF404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response MitigationBriefPDF404JSONResponse) VisitMitigationBriefPDFResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MitigationBriefPDF429JSONResponse struct{ RateLimitedJSONResponse }
+
+func (response MitigationBriefPDF429JSONResponse) VisitMitigationBriefPDFResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.RetryAfter != nil {
+		w.Header().Set("Retry-After", fmt.Sprint(*response.Headers.RetryAfter))
+	}
+	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type MitigationBriefPDF503JSONResponse struct{ UnavailableJSONResponse }
+
+func (response MitigationBriefPDF503JSONResponse) VisitMitigationBriefPDFResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(503)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type SegmentsRequestObject struct {
 	Params SegmentsParams
 }
@@ -1515,6 +1641,9 @@ type StrictServerInterface interface {
 	// Mitigation Wildlife mitigation candidate project sites ranked by benefit-cost ratio
 	// (GET /v1/mitigation)
 	Mitigation(ctx context.Context, request MitigationRequestObject) (MitigationResponseObject, error)
+	// MitigationBriefPDF FHWA WCPP funding-ready PDF brief for a mitigation candidate site
+	// (GET /v1/mitigation/{id}/brief.pdf)
+	MitigationBriefPDF(ctx context.Context, request MitigationBriefPDFRequestObject) (MitigationBriefPDFResponseObject, error)
 	// Segments Road segments with predicted risk and percentiles
 	// (GET /v1/segments)
 	Segments(ctx context.Context, request SegmentsRequestObject) (SegmentsResponseObject, error)
@@ -1689,6 +1818,32 @@ func (sh *strictHandler) Mitigation(w http.ResponseWriter, r *http.Request, para
 	}
 }
 
+// MitigationBriefPDF operation middleware
+func (sh *strictHandler) MitigationBriefPDF(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
+	var request MitigationBriefPDFRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.MitigationBriefPDF(ctx, request.(MitigationBriefPDFRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "MitigationBriefPDF")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(MitigationBriefPDFResponseObject); ok {
+		if err := validResponse.VisitMitigationBriefPDFResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // Segments operation middleware
 func (sh *strictHandler) Segments(w http.ResponseWriter, r *http.Request, params SegmentsParams) {
 	var request SegmentsRequestObject
@@ -1772,45 +1927,47 @@ func (sh *strictHandler) Sources(w http.ResponseWriter, r *http.Request, params 
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
-	"4X2qkowLWNCLKmp8QZ6O6PrL+r8DAA==",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,
