@@ -46,7 +46,7 @@ vi.mock('maplibre-gl', () => ({
 			return 8;
 		}
 		getSource(id: string) {
-			return id === 'migration' || id === 'prediction'
+			return id === 'migration' || id === 'prediction' || id === 'segments'
 				? { type: 'geojson', setData: state.data }
 				: { type: 'vector', setTiles: state.tiles, setUrl: state.url };
 		}
@@ -169,5 +169,58 @@ test('prediction wins overlapping evidence and migration hits', async () => {
 	expect(evidence).toHaveBeenCalledWith('evidence');
 	state.query.mockReturnValue([]);
 	state.handlers['click:']({ point: [0, 0] });
+	map.destroy();
+});
+
+test('segments layer updates data, filter and handles click selection', async () => {
+	const onSegment = vi.fn();
+	const map = await createRangerMap(
+		document.createElement('div'),
+		'light',
+		'',
+		null,
+		() => {},
+		() => {},
+		() => {},
+		() => {},
+		() => {},
+		onSegment
+	);
+
+	map.segments([
+		{
+			id: 'seg-1',
+			geometry: {
+				type: 'LineString',
+				coordinates: [
+					[-110, 43],
+					[-110.1, 43.1]
+				]
+			},
+			risk_score: 14.2,
+			percentile_rank: 0.94,
+			p10: 10.1,
+			p90: 18.5,
+			highway_ref: 'US-191',
+			state: 'WY'
+		}
+	]);
+	expect(state.data).toHaveBeenCalledWith(
+		expect.objectContaining({
+			type: 'FeatureCollection',
+			features: [expect.objectContaining({ id: 'seg-1' })]
+		})
+	);
+
+	map.selectSegment('seg-1');
+	expect(state.filter).toHaveBeenCalledWith('segments-selected', ['==', ['get', 'id'], 'seg-1']);
+
+	state.query.mockReturnValue([
+		{ layer: { id: 'segments-line' }, properties: { id: 'seg-1' } },
+		{ layer: { id: 'evidence-fill' }, properties: { cell: 'cell-1' } }
+	]);
+	state.handlers['click:']({ point: [0, 0] });
+	expect(onSegment).toHaveBeenCalledWith('seg-1');
+
 	map.destroy();
 });

@@ -7,12 +7,22 @@
 	import { loadEvidence, extent, type Evidence, type EvidenceFeature } from './client';
 	import RangerMap from './RangerMap.svelte';
 	import Timeline from './Timeline.svelte';
+	import SegmentDetailDrawer from './SegmentDetailDrawer.svelte';
 	import PredictionPanel from '$lib/predict/PredictionPanel.svelte';
 	import type { Prediction, PredictionFeature } from '$lib/predict/client';
 	import type { Theme } from '$lib/theme/theme';
+	import {
+		loadSegments,
+		loadSegmentDetail,
+		type SegmentSummary,
+		type SegmentDetail
+	} from '$lib/map/segmentLayer';
 	let view = $state<ViewState>({ ...defaults });
 	let data = $state<Evidence>();
 	let detail = $state<EvidenceFeature>();
+	let segments = $state<SegmentSummary[]>([]);
+	let segmentDetail = $state<SegmentDetail | null>(null);
+	let segmentStatus = $state<'loading' | 'ready' | 'error'>('ready');
 	let status = $state<'loading' | 'ready' | 'error'>('loading');
 	let mounted = $state(false);
 	let filtersOpen = $state(false);
@@ -41,6 +51,7 @@
 	}
 	let params = $derived(query(view).toString());
 	let selectionController: AbortController | undefined;
+	let segmentController: AbortController | undefined;
 	onMount(() => {
 		view = decode(new URLSearchParams(location.search));
 		search = view.q;
@@ -65,8 +76,44 @@
 		return () => {
 			observer.disconnect();
 			selectionController?.abort();
+			segmentController?.abort();
 			window.removeEventListener('popstate', pop);
 		};
+	});
+	$effect(() => {
+		if (!mounted) return;
+		const controller = new AbortController();
+		loadSegments({}, controller.signal)
+			.then((res) => {
+				segments = res;
+			})
+			.catch(() => {
+				// Segments optional or offline
+			});
+		return () => controller.abort();
+	});
+	$effect(() => {
+		if (!mounted) return;
+		const segmentId = view.segment;
+		segmentController?.abort();
+		if (!segmentId) {
+			segmentDetail = null;
+			segmentStatus = 'ready';
+			return;
+		}
+		const controller = new AbortController();
+		segmentController = controller;
+		segmentStatus = 'loading';
+		segmentDetail = null;
+		loadSegmentDetail(segmentId, controller.signal)
+			.then((res) => {
+				segmentDetail = res;
+				segmentStatus = 'ready';
+			})
+			.catch(() => {
+				if (!controller.signal.aborted) segmentStatus = 'error';
+			});
+		return () => controller.abort();
 	});
 	$effect(() => {
 		if (!mounted) return;
@@ -120,6 +167,12 @@
 		offset = 0;
 		view = { ...view, ...patch, selected: '' };
 		shared = '';
+	}
+	function selectSegment(id: string) {
+		view = { ...view, segment: id };
+	}
+	function closeSegment() {
+		view = { ...view, segment: '' };
 	}
 	function select(cell: string) {
 		view = { ...view, selected: cell };
@@ -294,6 +347,9 @@
 							const feature = prediction?.features.find((f) => f.id === cell);
 							if (feature) selectPrediction(feature);
 						}}
+						segmentsData={segments}
+						selectedSegment={view.segment}
+						onsegment={selectSegment}
 						{theme}
 						{params}
 						selected={view.selected}
@@ -489,4 +545,12 @@
 			</p>
 		</div>
 	</aside>
+	{#if view.segment}
+		<SegmentDetailDrawer
+			segmentId={view.segment}
+			detail={segmentDetail}
+			status={segmentStatus}
+			onclose={closeSegment}
+		/>
+	{/if}
 </main>

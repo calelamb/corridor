@@ -25,3 +25,11 @@ test('camera is rounded and bounded; reversed years reset', () => {
 		-115.23457, 43, 8
 	]);
 });
+test('segment parameter round trips and rejects invalid characters', () => {
+	const state = {
+		...defaults,
+		segment: '00000000-0000-0000-0000-000000000001'
+	};
+	expect(decode(encode(state))).toEqual(state);
+	expect(decode(new URLSearchParams('segment=<script>bad</script>')).segment).toBe('');
+});

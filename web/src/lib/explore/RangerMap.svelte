@@ -3,6 +3,7 @@
 	import { createRangerMap, type RangerMap } from './map';
 	import type { Prediction } from '$lib/predict/client';
 	import type { Theme } from '$lib/theme/theme';
+	import type { SegmentSummary } from '$lib/map/segmentLayer';
 	let {
 		theme,
 		migration,
@@ -11,6 +12,9 @@
 		onprediction,
 		params,
 		selected,
+		segmentsData = null,
+		selectedSegment = '',
+		onsegment = () => {},
 		camera,
 		fit,
 		onselect,
@@ -24,6 +28,9 @@
 		onprediction: (cell: string) => void;
 		params: string;
 		selected: string;
+		segmentsData?: SegmentSummary[] | null;
+		selectedSegment?: string;
+		onsegment?: (id: string) => void;
 		camera: [number, number, number] | null;
 		fit: [number, number, number, number] | null;
 		onmigration: () => void;
@@ -48,7 +55,8 @@
 				layerErrors = errors;
 			},
 			onmigration,
-			onprediction
+			onprediction,
+			onsegment
 		)
 			.then((map) => {
 				if (canceled) map.destroy();
@@ -67,6 +75,12 @@
 	});
 	$effect(() => {
 		handle?.prediction(prediction, predictionCell);
+	});
+	$effect(() => {
+		handle?.segments(segmentsData);
+	});
+	$effect(() => {
+		handle?.selectSegment(selectedSegment);
 	});
 	$effect(() => {
 		handle?.migration(migration);

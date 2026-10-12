@@ -8,6 +8,7 @@ export interface ViewState {
 	start: number;
 	end: number;
 	selected: string;
+	segment: string;
 	camera: [number, number, number] | null;
 }
 export const defaults: ViewState = {
@@ -20,6 +21,7 @@ export const defaults: ViewState = {
 	start: 1983,
 	end: 2023,
 	selected: '',
+	segment: '',
 	camera: null
 };
 const bounded = (value: string | null, low: number, high: number, fallback: number): number => {
@@ -38,6 +40,7 @@ export function decode(p: URLSearchParams): ViewState {
 	const lon = bounded(p.get('lon'), -180, 180, NaN),
 		lat = bounded(p.get('lat'), -85, 85, NaN),
 		zoom = bounded(p.get('zoom'), 2, 14, NaN);
+	const segmentRaw = text('segment');
 	return {
 		migration: p.get('migration') === '1',
 		species: text('species'),
@@ -48,6 +51,7 @@ export function decode(p: URLSearchParams): ViewState {
 		start: start <= end ? start : defaults.start,
 		end: start <= end ? end : defaults.end,
 		selected: /^[0-9a-f]{15}$/.test(text('selected')) ? text('selected') : '',
+		segment: /^[0-9a-zA-Z_-]{1,64}$/.test(segmentRaw) ? segmentRaw : '',
 		camera: [lon, lat, zoom].every(Number.isFinite)
 			? [+lon.toFixed(5), +lat.toFixed(5), +zoom.toFixed(2)]
 			: null
@@ -65,6 +69,7 @@ export function encode(state: ViewState): URLSearchParams {
 	const p = query(state);
 	if (state.migration) p.set('migration', '1');
 	if (state.selected) p.set('selected', state.selected);
+	if (state.segment) p.set('segment', state.segment);
 	if (state.camera) {
 		p.set('lon', String(state.camera[0]));
 		p.set('lat', String(state.camera[1]));

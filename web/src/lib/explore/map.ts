@@ -3,6 +3,13 @@ import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import { Protocol } from 'pmtiles';
 import type { Prediction } from '$lib/predict/client';
 import type { Theme } from '$lib/theme/theme';
+import {
+	getSegmentLayers,
+	segmentsToGeoJSON,
+	SEGMENTS_LINE_LAYER_ID,
+	SEGMENTS_SELECTED_LAYER_ID,
+	type SegmentSummary
+} from '$lib/map/segmentLayer';
 import type {
 	Map as MapLibreMap,
 	LayerSpecification,
@@ -20,6 +27,8 @@ export interface RangerMap {
 	migration(visible: boolean): void;
 	retry(): void;
 	prediction(result: Prediction | null, cell: string): void;
+	segments(data: SegmentSummary[] | null): void;
+	selectSegment(id: string | null): void;
 }
 const palette = (theme: Theme) =>
 	theme === 'dark'
@@ -134,6 +143,7 @@ function layers(theme: Theme): LayerSpecification[] {
 			filter: ['==', ['get', 'cell'], ''],
 			paint: { 'line-color': '#fff2c6', 'line-width': 4 }
 		},
+		...getSegmentLayers(theme),
 		{
 			id: 'road-labels',
 			type: 'symbol',
@@ -172,7 +182,8 @@ export async function createRangerMap(
 	onCamera: (camera: [number, number, number]) => void,
 	onError: (sources: string[]) => void = () => {},
 	onMigration: () => void = () => {},
-	onPrediction: (cell: string) => void = () => {}
+	onPrediction: (cell: string) => void = () => {},
+	onSegment: (id: string) => void = () => {}
 ): Promise<RangerMap> {
 	const lib = await import('maplibre-gl');
 	lib.setWorkerUrl(workerUrl);
@@ -190,6 +201,7 @@ export async function createRangerMap(
 			version: 8,
 			glyphs: `${location.origin}/maps/fonts/{fontstack}/{range}.pbf`,
 			sources: {
+				segments: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
 				prediction: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
 				migration: { type: 'geojson', data: `${location.origin}/v1/migration` },
 				base: { type: 'vector', url: `pmtiles://${location.origin}/maps/region.pmtiles` },
@@ -218,8 +230,13 @@ export async function createRangerMap(
 	});
 	map.on('click', (event) => {
 		const hits = map.queryRenderedFeatures(event.point, {
-			layers: ['prediction-fill', 'evidence-fill', 'migration-fill']
+			layers: [SEGMENTS_LINE_LAYER_ID, 'prediction-fill', 'evidence-fill', 'migration-fill']
 		});
+		const segment = hits.find((f) => f.layer.id === SEGMENTS_LINE_LAYER_ID);
+		if (typeof segment?.properties?.id === 'string') {
+			onSegment(segment.properties.id);
+			return;
+		}
 		const predicted = hits.find((f) => f.layer.id === 'prediction-fill');
 		if (typeof predicted?.properties?.cell === 'string') {
 			onPrediction(predicted.properties.cell);
@@ -228,6 +245,12 @@ export async function createRangerMap(
 		const evidence = hits.find((f) => f.layer.id === 'evidence-fill');
 		if (typeof evidence?.properties?.cell === 'string') onSelect(evidence.properties.cell);
 		else if (hits.some((f) => f.layer.id === 'migration-fill')) onMigration();
+	});
+	map.on('mousemove', SEGMENTS_LINE_LAYER_ID, () => {
+		map.getCanvas().style.cursor = 'pointer';
+	});
+	map.on('mouseleave', SEGMENTS_LINE_LAYER_ID, () => {
+		map.getCanvas().style.cursor = '';
 	});
 	map.on('mousemove', 'evidence-fill', () => {
 		map.getCanvas().style.cursor = 'pointer';
@@ -246,6 +269,21 @@ export async function createRangerMap(
 			const source = map.getSource('prediction') as GeoJSONSource;
 			source.setData(result ?? { type: 'FeatureCollection', features: [] });
 			map.setFilter('prediction-selected', ['==', ['get', 'cell'], cell]);
+		},
+		segments: (data) => {
+			const source = map.getSource('segments') as GeoJSONSource | undefined;
+			if (source && 'setData' in source) {
+				source.setData(
+					data ? segmentsToGeoJSON(data) : { type: 'FeatureCollection', features: [] }
+				);
+			}
+		},
+		selectSegment: (id) => {
+			try {
+				map.setFilter(SEGMENTS_SELECTED_LAYER_ID, ['==', ['get', 'id'], id ?? '']);
+			} catch {
+				// Layer may not be loaded if mock/error
+			}
 		},
 		retry: () => {
 			failures = [];
