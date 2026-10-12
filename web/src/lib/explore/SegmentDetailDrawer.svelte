@@ -59,10 +59,22 @@
 		return entries.map((e) => ({ ...e, pct: Math.round((e.value / max) * 100) }));
 	});
 
+	function formatSpeciesName(raw: string): string {
+		const formatted = raw.replace(/_/g, ' ');
+		return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+	}
+
 	let speciesEntries = $derived.by(() => {
 		if (!detail?.species_breakdown) return [];
 		return Object.entries(detail.species_breakdown)
-			.map(([species, pct]) => ({ species, pct: Number(pct) }))
+			.map(([species, val]) => {
+				const num = Number(val);
+				const pct = num <= 1 && num > 0 ? Math.round(num * 1000) / 10 : num;
+				return {
+					species: formatSpeciesName(species),
+					pct
+				};
+			})
 			.sort((a, b) => b.pct - a.pct);
 	});
 </script>
@@ -122,7 +134,7 @@
 					<span
 						class="percentile-badge"
 						style:background-color={riskColor}
-						style:color={normalizedRank >= 0.75 ? '#ffffff' : '#1c1917'}
+						style:color={normalizedRank >= 0.9 ? '#ffffff' : '#1c1917'}
 					>
 						{percentileText}
 					</span>
@@ -219,7 +231,7 @@
 		flex-direction: column;
 		overflow-y: auto;
 		outline: none;
-		color: var(--text);
+		color: var(--ink);
 		animation: slideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 	}
 
@@ -282,7 +294,7 @@
 		padding: 0;
 		border: 1px solid var(--line);
 		background: var(--panel);
-		color: var(--text);
+		color: var(--ink);
 		font-size: 1.25rem;
 		font-weight: bold;
 		border-radius: 8px;
@@ -322,7 +334,7 @@
 
 	.drawer-status.error {
 		border-color: #ef4444;
-		color: var(--text);
+		color: var(--ink);
 	}
 
 	.drawer-status h3 {
@@ -341,7 +353,7 @@
 		border-radius: 6px;
 		border: 1px solid var(--line);
 		background: var(--panel);
-		color: var(--text);
+		color: var(--ink);
 		cursor: pointer;
 	}
 
@@ -367,7 +379,7 @@
 		font-size: 2.25rem;
 		font-weight: 800;
 		line-height: 1;
-		color: var(--text);
+		color: var(--ink);
 	}
 
 	.score-value .unit {
@@ -560,5 +572,25 @@
 	.chip-impact {
 		font-size: 0.8125rem;
 		color: var(--muted);
+	}
+
+	:global([data-theme='dark']) .bar-track {
+		background: rgba(255, 255, 255, 0.08);
+	}
+
+	:global([data-theme='dark']) .chip-weight {
+		background: rgba(255, 255, 255, 0.08);
+	}
+
+	:global([data-theme='dark']) .chip-weight.positive {
+		color: #f87171;
+	}
+
+	:global([data-theme='dark']) .chip-weight.negative {
+		color: #60a5fa;
+	}
+
+	:global([data-theme='dark']) .drawer-status.error h3 {
+		color: #f87171;
 	}
 </style>
