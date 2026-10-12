@@ -33,3 +33,12 @@ test('segment parameter round trips and rejects invalid characters', () => {
 	expect(decode(encode(state))).toEqual(state);
 	expect(decode(new URLSearchParams('segment=<script>bad</script>')).segment).toBe('');
 });
+test('workspace parameter round trips and supports tab alias', () => {
+	const state = {
+		...defaults,
+		workspace: 'mitigation' as const
+	};
+	expect(decode(encode(state))).toEqual(state);
+	expect(decode(new URLSearchParams('tab=hotspots')).workspace).toBe('hotspots');
+	expect(decode(new URLSearchParams('workspace=unknown')).workspace).toBe('explore');
+});

@@ -1,3 +1,62 @@
+.workbench-layout {
+	display: flex;
+	flex-direction: column;
+	min-height: calc(100svh - 72px);
+	width: 100%;
+}
+.workspace-bar {
+	background: var(--header);
+	border-bottom: 1px solid var(--line);
+	padding: 0 24px;
+	width: 100%;
+	box-sizing: border-box;
+}
+.workspace-tabs {
+	display: flex;
+	gap: 8px;
+	max-width: 100%;
+	overflow-x: auto;
+	scrollbar-width: none;
+}
+.workspace-tab {
+	min-height: 48px;
+	min-width: 48px;
+	padding: 12px 20px;
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: #c8dacf;
+	background: transparent;
+	border: 0;
+	border-bottom: 3px solid transparent;
+	border-radius: 0;
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	white-space: nowrap;
+	transition:
+		color 0.15s ease,
+		border-color 0.15s ease;
+}
+.workspace-tab:hover {
+	color: #ffffff;
+	background: transparent;
+}
+.workspace-tab.active {
+	color: #ffffff;
+	border-bottom-color: var(--accent);
+	font-weight: 700;
+}
+.workspace-tab:focus-visible {
+	outline: 2px solid #b2dfc1;
+	outline-offset: -2px;
+}
+.workspace-panel-content {
+	flex: 1;
+	width: 100%;
+	background: var(--surface);
+	min-height: calc(100svh - 120px);
+}
 .workbench {
 	display: grid;
 	grid-template-columns: 264px minmax(0, 1fr) 336px;

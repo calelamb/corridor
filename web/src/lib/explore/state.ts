@@ -1,4 +1,7 @@
+export type WorkspaceTab = 'explore' | 'hotspots' | 'mitigation';
+
 export interface ViewState {
+	workspace: WorkspaceTab;
 	migration: boolean;
 	species: string;
 	source: string;
@@ -12,6 +15,7 @@ export interface ViewState {
 	camera: [number, number, number] | null;
 }
 export const defaults: ViewState = {
+	workspace: 'explore',
 	migration: false,
 	species: '',
 	source: '',
@@ -41,7 +45,12 @@ export function decode(p: URLSearchParams): ViewState {
 		lat = bounded(p.get('lat'), -85, 85, NaN),
 		zoom = bounded(p.get('zoom'), 2, 14, NaN);
 	const segmentRaw = text('segment');
+	const ws = text('workspace') || text('tab');
+	const workspace: WorkspaceTab = ['explore', 'hotspots', 'mitigation'].includes(ws)
+		? (ws as WorkspaceTab)
+		: 'explore';
 	return {
+		workspace,
 		migration: p.get('migration') === '1',
 		species: text('species'),
 		source: text('source'),
@@ -67,6 +76,7 @@ export function query(state: ViewState): URLSearchParams {
 }
 export function encode(state: ViewState): URLSearchParams {
 	const p = query(state);
+	if (state.workspace && state.workspace !== 'explore') p.set('workspace', state.workspace);
 	if (state.migration) p.set('migration', '1');
 	if (state.selected) p.set('selected', state.selected);
 	if (state.segment) p.set('segment', state.segment);
