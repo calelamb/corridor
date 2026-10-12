@@ -14,7 +14,7 @@ The Phase 1 foundation now runs locally as a Go application with embedded Svelte
 | 3 Exploration | Interactive pilot implemented; broader phase incomplete | Basemap, filters, connected selection/list, reporting timeline, migration context and share state. [Verification](verification/highway-exploration.md). Populated performance budgets and remaining design features still open. |
 | 4 Hotspots | Statistical hotspot engine implemented in pure Go | Network Kernel Density Estimation (NKDE along road graphs) and Getis-Ord Gi* with Monte Carlo permutations and Benjamini-Hochberg FDR correction in internal/hotspot/. OpenAPI /v1/hotspots endpoint registered. 12 unit tests passing. |
 | 5 Features and ML | Production ML pipeline implemented in ml/ | Feature extractor across 10 environmental/road covariates, two-stage Hurdle model solving reporting bias with spatial block CV and JSON export, and LightGBM Poisson/Tweedie GBDT with TreeSHAP explanation export and pure Go `leaves` text model export. 33 tests passing. |
-| 6 Prioritization | Road-area screening increment implemented; broader phase incomplete | 16 I-80 candidate areas with evidence and inspection criteria. Economic inputs, treatment effectiveness and engineering validation still required. |
+| 6 Prioritization | Mitigation prioritization engine & FHWA PDF brief generator implemented | Benefit-cost ratio (BCR) ranking engine, peer-reviewed treatment effectiveness (fencing + crossing structures: 86% reduction, Rytwinski et al. 2016), USDOT crash valuations ($14k deer, $45k elk, $83k moose), knapsack budget optimization, OpenAPI /v1/mitigation and /v1/mitigation/{id}/brief.pdf endpoints, publication-grade 2-page FHWA WCPP PDF export in pure Go (fpdf). Full test suite passing. |
 | 7 Field PWA | Not started | Offline reporting, auth, upload privacy and classifier selection/evaluation still required. |
 | 8 Route risk/polish | Not started | Routing, public sharing, measured accessibility/performance and deployment still required. |
 
@@ -52,6 +52,15 @@ MinIO remains an archived, isolated development companion; production storage
 requires a maintained service decision. Publication readiness and remote CI status are recorded in the repository release log.
 
 During Phase 2, verify each exact artifact's rights and schema; promote source states only on evidence. No source requests have been sent, no accounts created, no paid services purchased, and no paid data agreements accepted. Do not silently count unavailable data toward the required WA/CA/MT/UT and national-park coverage.
+
+## Mitigation Prioritization & FHWA Grant-Ready PDF Briefs — 2026-10-11
+
+Implemented Phase 5 of the Ranger UI & ML plan in pure Go (`internal/prioritize/` and `internal/export/`):
+- Configured peer-reviewed mitigation structure effectiveness (`config/mitigation_effectiveness.yaml`: overpasses 86% collision reduction [Rytwinski et al. 2016], underpasses 83% [Clevenger & Huijser 2011], exclusion fencing 78% [Huijser et al. 2009]) and USDOT comprehensive crash valuations (`config/species_costs.yaml`: $14k deer, $45k elk, $83k moose).
+- Built Benefit-Cost Ratio (BCR) math in `internal/prioritize/bcr.go` computing capital and 25-year lifecycle maintenance costs, expected avoided collisions, expected lifecycle dollar savings, and P10/P90 BCR uncertainty intervals.
+- Built spatial candidate clustering and budget knapsack optimization in `internal/prioritize/candidates.go` aggregating contiguous high-risk segments (>90th percentile) into continuous candidate projects.
+- Built publication-grade 2-page FHWA Wildlife Crossings Pilot Program (WCPP) PDF brief exporter in `internal/export/pdf.go` using pure Go `fpdf`, embedding map snapshot PNGs, KPI metric cards, economic breakdown tables, citations, and agency submission certification blocks.
+- Added OpenAPI 3.1 endpoints `GET /v1/mitigation` and `GET /v1/mitigation/{id}/brief.pdf` with parameter filtering, UUID validation, and error shielding. Full test suite passing with 0 CGo dependencies.
 
 ## Pure Go Statistical Hotspot Engine (NKDE & Getis-Ord Gi*) — 2026-10-11
 
