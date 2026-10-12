@@ -8,17 +8,45 @@ import (
 )
 
 func TestStaticRouting(t *testing.T) {
-	files := fstest.MapFS{"index.html": {Data: []byte(`<html><meta http-equiv="content-security-policy" content="script-src 'self' 'sha256-test'"></html>`)}, "data/index.html": {Data: []byte("<html>Data</html>")}, "_app/immutable/test.js": {Data: []byte("export default 1")}, "robots.txt": {Data: []byte("User-agent: *")}}
+	files := fstest.MapFS{
+		"index.html":             {Data: []byte(`<html><meta http-equiv="content-security-policy" content="script-src 'self' 'sha256-test'"></html>`)},
+		"data/index.html":        {Data: []byte("<html>Data</html>")},
+		"methodology/index.html": {Data: []byte("<html>Methodology</html>")},
+		"_app/immutable/test.js": {Data: []byte("export default 1")},
+		"robots.txt":             {Data: []byte("User-agent: *")},
+	}
 	h := Handler(files)
 	for _, tt := range []struct {
 		path, method string
 		code         int
-	}{{"/", "GET", 200}, {"/index.html", "GET", 200}, {"/data/", "GET", 200}, {"/_app/immutable/test.js", "GET", 200}, {"/_app/missing.js", "GET", 404}, {"/", "HEAD", 200}, {"/", "POST", 405}, {"/../index.html", "GET", 404}, {"/%2e%2e/index.html", "GET", 404}, {"/_app/", "GET", 404}, {"/v1/missing", "GET", 404}, {"/tiles/events/0/0/0.mvt", "GET", 404}, {"/robots.txt", "GET", 200}} {
+		location     string
+	}{
+		{"/", "GET", 200, ""},
+		{"/index.html", "GET", 200, ""},
+		{"/data/", "GET", 200, ""},
+		{"/data", "GET", 301, "/data/"},
+		{"/methodology", "GET", 301, "/methodology/"},
+		{"/data?tab=summary", "GET", 301, "/data/?tab=summary"},
+		{"/nonexistent", "GET", 404, ""},
+		{"/_app/immutable/test.js", "GET", 200, ""},
+		{"/_app/missing.js", "GET", 404, ""},
+		{"/", "HEAD", 200, ""},
+		{"/", "POST", 405, ""},
+		{"/../index.html", "GET", 404, ""},
+		{"/%2e%2e/index.html", "GET", 404, ""},
+		{"/_app/", "GET", 404, ""},
+		{"/v1/missing", "GET", 404, ""},
+		{"/tiles/events/0/0/0.mvt", "GET", 404, ""},
+		{"/robots.txt", "GET", 200, ""},
+	} {
 		t.Run(tt.method+tt.path, func(t *testing.T) {
 			w := httptest.NewRecorder()
 			h.ServeHTTP(w, httptest.NewRequest(tt.method, tt.path, nil))
 			if w.Code != tt.code {
 				t.Fatalf("got %d", w.Code)
+			}
+			if tt.location != "" && w.Header().Get("Location") != tt.location {
+				t.Fatalf("expected Location %q, got %q", tt.location, w.Header().Get("Location"))
 			}
 			if tt.code != 200 && strings.Contains(w.Body.String(), "<html") {
 				t.Fatal("HTML fallback")
@@ -47,6 +75,14 @@ func TestEmbeddedAssets(t *testing.T) {
 	Handler(assets).ServeHTTP(r, httptest.NewRequest("GET", "/", nil))
 	if r.Code != 200 || !strings.Contains(r.Body.String(), "corridor") {
 		t.Fatal("missing embedded application")
+	}
+
+	for _, p := range []string{"/methodology", "/report", "/data"} {
+		rec := httptest.NewRecorder()
+		Handler(assets).ServeHTTP(rec, httptest.NewRequest("GET", p, nil))
+		if rec.Code != 301 || rec.Header().Get("Location") != p+"/" {
+			t.Fatalf("path %s: expected 301 redirect to %s/, got %d with Location %q", p, p, rec.Code, rec.Header().Get("Location"))
+		}
 	}
 }
 
