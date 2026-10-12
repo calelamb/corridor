@@ -183,6 +183,7 @@ func NewRouter(deps Dependencies) http.Handler {
 		r.Get("/v1/migration", deps.Explore.ServeHTTP)
 		r.Get("/tiles/evidence/{z}/{x}/{y}", deps.Explore.ServeHTTP)
 		r.Get("/maps/region.pmtiles", deps.Explore.ServeHTTP)
+		r.Head("/maps/region.pmtiles", deps.Explore.ServeHTTP)
 	}
 	r.MethodNotAllowed(func(w http.ResponseWriter, _ *http.Request) { writeError(w, 405, "Method not allowed") })
 	bad := func(w http.ResponseWriter, _ *http.Request, _ error) { writeError(w, 400, "Invalid request") }

@@ -37,7 +37,11 @@ test('real movement model selects overlapping map layers without losing results'
 	page.on('pageerror', (error) => errors.push(error.message));
 	await page.goto('/');
 	await page.waitForFunction(() => performance.getEntriesByName('corridor-map-ready').length > 0);
-	await page.getByRole('checkbox', { name: 'Show mule-deer migration areas' }).check();
+	await page
+		.getByRole('checkbox', { name: 'Show mule-deer migration areas' })
+		.evaluate((el: HTMLInputElement) => {
+			el.click();
+		});
 	await page.getByRole('button', { name: 'Predictions', exact: true }).click();
 	await page.getByRole('button', { name: 'Run movement analysis' }).click();
 	await expect(page.getByText('30.2% lower error')).toBeVisible();

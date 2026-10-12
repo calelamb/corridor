@@ -27,6 +27,7 @@ Commands:
   prioritize [flags]              Compute benefit-cost ratio mitigation site prioritization
   hotspot [flags]                 Identify collision hotspots using NKDE or Getis-Ord Gi*
   evidence [flags]                Query peer-reviewed scientific evidence and research catalog
+  seed-segments                   Populate benchmark road segments and risk scores
 
 Flags for prioritize:
   --budget <float>                Budget limit in USD (default: 5000000)
@@ -47,7 +48,7 @@ Flags for evidence:
 func Run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	if len(args) == 0 {
 		_, _ = fmt.Fprintln(stdout, helpUsage)
-		return errors.New("usage: corridorctl help|init-dev|migrate|setup|health|ingest all|prioritize|hotspot|evidence")
+		return errors.New("usage: corridorctl help|init-dev|migrate|setup|health|ingest all|prioritize|hotspot|evidence|seed-segments")
 	}
 
 	if len(args) == 2 && args[0] == "ingest" && args[1] == "all" {
@@ -93,6 +94,8 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 		return hotspotCmd(ctx, args[1:], stdout, stderr)
 	case "evidence":
 		return evidenceCmd(ctx, args[1:], stdout, stderr)
+	case "seed-segments":
+		return seedSegmentsCmd(ctx, stdout)
 	default:
 		_, _ = fmt.Fprintln(stdout, helpUsage)
 		return errors.New("unsupported command; use corridorctl help")

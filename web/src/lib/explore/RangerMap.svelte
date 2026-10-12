@@ -66,6 +66,11 @@
 				else {
 					handle = map;
 					ready = true;
+					try {
+						performance.mark('corridor-map-ready');
+					} catch {
+						/* ignore */
+					}
 				}
 			})
 			.catch(() => {

@@ -7,6 +7,7 @@
 	import { loadEvidence, extent, type Evidence, type EvidenceFeature } from './client';
 	import RangerMap from './RangerMap.svelte';
 	import Timeline from './Timeline.svelte';
+	import PredictionPanel from '$lib/predict/PredictionPanel.svelte';
 	import type { Prediction, PredictionFeature } from '$lib/predict/client';
 	import type { Theme } from '$lib/theme/theme';
 	import type { WorkspaceTab } from './state';
@@ -16,7 +17,11 @@
 		type SegmentSummary,
 		type SegmentDetail
 	} from '$lib/map/segmentLayer';
-	let view = $state<ViewState>({ ...defaults });
+	const initialView =
+		typeof window !== 'undefined'
+			? decode(new URLSearchParams(window.location.search))
+			: { ...defaults };
+	let view = $state<ViewState>(initialView);
 	let data = $state<Evidence>();
 	let detail = $state<EvidenceFeature>();
 	let segments = $state<SegmentSummary[]>([]);
@@ -38,7 +43,7 @@
 	}
 
 	let theme = $state<Theme>('light');
-	let search = $state('');
+	let search = $state(initialView.q);
 	let offset = $state(0);
 	let retry = $state(0);
 	let navigation = $state(0);
@@ -534,16 +539,14 @@
 					>
 				</div>
 				{#if panel === 'prediction'}
-					{#await import('$lib/predict/PredictionPanel.svelte') then { default: PredictionPanel }}
-						<PredictionPanel
-							selected={predictionCell}
-							onselect={selectPrediction}
-							onresult={(result) => {
-								prediction = result;
-								if (result) fit = extent(result.features);
-							}}
-						/>
-					{/await}
+					<PredictionPanel
+						selected={predictionCell}
+						onselect={selectPrediction}
+						onresult={(result) => {
+							prediction = result;
+							if (result) fit = extent(result.features);
+						}}
+					/>
 				{:else if panel === 'migration'}<span class="eyebrow">MAPPED MIGRATION EVIDENCE</span>
 					<h2>Pequop mule deer</h2>
 					<p>USGS / Nevada Department of Wildlife · 2011–2017</p>

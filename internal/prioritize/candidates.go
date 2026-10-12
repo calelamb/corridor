@@ -94,7 +94,7 @@ func GenerateCandidatesWithOptions(ctx context.Context, pool *pgxpool.Pool, opts
 			s.species_breakdown
 		FROM road_segments r
 		JOIN segment_risk_scores s ON r.id = s.segment_id
-		WHERE s.percentile_rank >= $1
+		WHERE (s.percentile_rank >= $1 OR s.percentile_rank * 100 >= $1)
 		  AND ($2::text IS NULL OR r.state = $2)
 		ORDER BY r.highway_ref, r.milepost_start, r.id
 	`
