@@ -64,17 +64,16 @@ Raw migration and collision originals remain private. Once populated, use the
 
 ## Current scope
 
-- Publication-safe exploration APIs and vector tiles: [contract](api/exploration.yaml).
-- Private original artifacts, strict validation, idempotent Go imports and fixed
-  H3 resolution-6 public projections with a 30-day delay.
-- Highway/species/source/year/season search and filters, map/list selection,
-  yearly report playback, migration geography and shareable view state.
-- Light/dark themes, keyboard controls, reduced motion and a usable evidence
-  list when WebGL or basemap geography is unavailable.
-- Experimental movement analysis: map overlay, ranked road areas, baseline comparison
-  and crossing/sign/gate assessment guidance. [Model card](docs/models/pequop-kernel-v1.md)
-  and [API](api/prediction.yaml).
-- [Exploration verification and remaining limits](docs/verification/highway-exploration.md).
+- Publication-safe exploration APIs, vector tiles, and OpenAPI 3.1 contract: [spec](api/openapi.yaml).
+- Production 0.1-mile highway segment collision risk model in pure Go (`leaves` runtime) with TreeSHAP explanations: [Model Card](docs/models/corridor-lightgbm-v1.md).
+- BioCLIP INT8 ONNX wildlife carcass classifier for field species suggestion chips: [Model Card](docs/models/bioclip-species-v1.md).
+- Statistical hotspot detection (Network KDE & Getis-Ord Gi* with Benjamini-Hochberg FDR correction) along highway networks.
+- Mitigation prioritization engine with Benefit-Cost Ratio (BCR) uncertainty bounds ($14k deer, $45k elk, $83k moose) and automated publication-grade FHWA WCPP 2-page PDF grant briefs in pure Go.
+- Park ranger field reporting offline PWA with camera capture, glove-friendly tap targets, and driver safety warning.
+- Real-time Server-Sent Events (SSE) live incident dispatch stream (`GET /v1/stream/reports`).
+- Strict sensitive species privacy gating (H3-r6 generalized public views with 30-day delay; authenticated analyst access via OIDC/API keys).
+- Highway/species/source/year/season search and filters, map/list selection, yearly report playback, and shareable view state.
+- Light/dark themes, keyboard controls, reduced motion, WCAG 2.2 AA accessibility, and code-split bundle meeting strict mobile performance budgets.
 
 MinIO upstream is archived. The pinned source build is an isolated development
 companion, not a recommendation for a maintained production deployment. Choose
