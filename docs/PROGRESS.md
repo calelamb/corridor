@@ -15,8 +15,8 @@ The Phase 1 foundation now runs locally as a Go application with embedded Svelte
 | 4 Hotspots | Statistical hotspot engine implemented in pure Go | Network Kernel Density Estimation (NKDE along road graphs) and Getis-Ord Gi* with Monte Carlo permutations and Benjamini-Hochberg FDR correction in internal/hotspot/. OpenAPI /v1/hotspots endpoint registered. 12 unit tests passing. |
 | 5 Features and ML | Production ML pipeline implemented in ml/ | Feature extractor across 10 environmental/road covariates, two-stage Hurdle model solving reporting bias with spatial block CV and JSON export, and LightGBM Poisson/Tweedie GBDT with TreeSHAP explanation export and pure Go `leaves` text model export. 33 tests passing. |
 | 6 Prioritization | Mitigation prioritization engine & FHWA PDF brief generator implemented | Benefit-cost ratio (BCR) ranking engine, peer-reviewed treatment effectiveness (fencing + crossing structures: 86% reduction, Rytwinski et al. 2016), USDOT crash valuations ($14k deer, $45k elk, $83k moose), knapsack budget optimization, OpenAPI /v1/mitigation and /v1/mitigation/{id}/brief.pdf endpoints, publication-grade 2-page FHWA WCPP PDF export in pure Go (fpdf). Full test suite passing. |
-| 7 Field PWA | Not started | Offline reporting, auth, upload privacy and classifier selection/evaluation still required. |
-| 8 Route risk/polish | Not started | Routing, public sharing, measured accessibility/performance and deployment still required. |
+| 7 Field PWA | Complete | BioCLIP INT8 ONNX species vision classifier in Python ml/, Go reporting API with pure Go EXIF GPS stripping and 200m/72h carcass dedup, and Svelte 5 offline-first PWA with glove-friendly UI (>=48px touch targets), IndexedDB queue, and driver safety warning. All 93 Playwright E2E and 38 Vitest tests passing. |
+| 8 Route risk/polish | In progress | Ranger analytical workspaces, authentication, live SSE stream, and academic methodology. |
 
 ## Research verification
 
@@ -52,6 +52,19 @@ MinIO remains an archived, isolated development companion; production storage
 requires a maintained service decision. Publication readiness and remote CI status are recorded in the repository release log.
 
 During Phase 2, verify each exact artifact's rights and schema; promote source states only on evidence. No source requests have been sent, no accounts created, no paid services purchased, and no paid data agreements accepted. Do not silently count unavailable data toward the required WA/CA/MT/UT and national-park coverage.
+
+## Park Ranger Field Reporting PWA & Photo Ingestion — 2026-10-11
+
+Implemented Phase 6 of the Ranger UI & ML plan across `ml/`, `internal/api/`, and `web/`:
+- Built wildlife carcass image classifier in Python `ml/` (`ml/corridor_ml/vision/classifier.py` and `export_onnx.py`) covering 8 North American ungulates and predators, with dynamic INT8 ONNX quantization exporting a compact 0.41 MB model under the 35 MB budget.
+- Added database migration `00010_field_reports.sql` creating the `field_reports` table with PostGIS geometry, snapping distance, and deduplication group linkages with access revoked from public roles.
+- Implemented Go reporting endpoints in `internal/api/reports.go`: `POST /v1/reports` with client-generated UUID idempotency, 50m road segment snapping, and 200m / 72h carcass deduplication; and `POST /v1/reports/{id}/photo` with pure Go EXIF GPS stripping, private storage, and AI species suggestion chips.
+- Built offline-first park ranger field reporting PWA in Svelte 5 runes mode:
+  - Resilient IndexedDB queue (`web/src/lib/pwa/queue.ts`) with client UUIDs, photo blob support, automatic background retry, and concurrency mutex.
+  - Glove-friendly UI (`web/src/routes/report/+page.svelte`) with all interactive touch targets measuring $\ge 48\text{px} \times 48\text{px}$, high-contrast typography, and 3-tap rapid carcass logging workflow (<10s).
+  - Driver safety warning modal (`DriverSafetyModal.svelte`) with session-persisted acknowledgment and auto-focus.
+  - Service worker shell caching (`service-worker.ts`) with validated asset cache lists.
+- Full verification passed: 11 Go reporting API tests, 48 Python ML tests, 38 Vitest unit tests, and 93 Playwright E2E tests across Chromium, Firefox, and WebKit (including WCAG 2.2 AA Axe audits with 0 violations). Zero CGo dependencies.
 
 ## Mitigation Prioritization & FHWA Grant-Ready PDF Briefs — 2026-10-11
 
