@@ -55,7 +55,14 @@ type HurdleModel struct {
 
 // LoadHurdleModel deserializes a Hurdle Negative Binomial model from JSON and returns
 // a Predictor implementation executing pure Go vector arithmetic with zero CGo.
-func LoadHurdleModel(reader io.Reader) (Predictor, error) {
+func LoadHurdleModel(reader io.Reader) (p Predictor, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			p = nil
+			err = fmt.Errorf("panic loading hurdle model: %v", r)
+		}
+	}()
+
 	if reader == nil {
 		return nil, fmt.Errorf("nil model reader")
 	}
@@ -70,15 +77,18 @@ func LoadHurdleModel(reader io.Reader) (Predictor, error) {
 		return nil, fmt.Errorf("invalid model_type %q: expected %q", data.ModelType, "hurdle_negative_binomial")
 	}
 
-	p := len(data.FeatureNames)
-	if p == 0 {
+	pCount := len(data.FeatureNames)
+	if pCount == 0 {
 		return nil, fmt.Errorf("no feature names defined in hurdle model")
 	}
+	if pCount > 10000 {
+		return nil, fmt.Errorf("excessive feature count: %d", pCount)
+	}
 
-	means := make([]float64, p)
-	stds := make([]float64, p)
-	hurdleCoefs := make([]float64, p)
-	countCoefs := make([]float64, p)
+	means := make([]float64, pCount)
+	stds := make([]float64, pCount)
+	hurdleCoefs := make([]float64, pCount)
+	countCoefs := make([]float64, pCount)
 
 	for i, feat := range data.FeatureNames {
 		mean, ok := data.Scaler.Means[feat]
@@ -157,7 +167,13 @@ func (m *HurdleModel) Predict(features []float64) (float64, error) {
 }
 
 // PredictWithLength calculates expected collision rate with an explicit segment length in meters.
-func (m *HurdleModel) PredictWithLength(features []float64, segmentLengthM float64) (float64, error) {
+func (m *HurdleModel) PredictWithLength(features []float64, segmentLengthM float64) (rate float64, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			rate = 0
+			err = fmt.Errorf("panic in hurdle prediction: %v", r)
+		}
+	}()
 	p := len(m.featureNames)
 	if len(features) < p {
 		return 0, fmt.Errorf("insufficient features: got %d, expected at least %d", len(features), p)
@@ -221,8 +237,8 @@ func (m *HurdleModel) PredictWithLength(features []float64, segmentLengthM float
 	}
 
 	// 4. Overall expected rate
-	rate := pHurdle * condMean
-	if rate < 0.0 {
+	rate = pHurdle * condMean
+	if math.IsNaN(rate) || rate < 0.0 {
 		rate = 0.0
 	}
 

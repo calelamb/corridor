@@ -25,7 +25,14 @@ type LeavesModel struct {
 
 // LoadLeavesModel loads a LightGBM model from text format via the pure Go leaves parser.
 // Compiles and runs cleanly with CGO_ENABLED=0 (zero CGo dependencies).
-func LoadLeavesModel(reader io.Reader) (Predictor, error) {
+func LoadLeavesModel(reader io.Reader) (p Predictor, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			p = nil
+			err = fmt.Errorf("panic parsing LightGBM ensemble: %v", r)
+		}
+	}()
+
 	if reader == nil {
 		return nil, fmt.Errorf("nil model reader")
 	}
@@ -54,7 +61,14 @@ func LoadLeavesModel(reader io.Reader) (Predictor, error) {
 }
 
 // Predict calculates the single-row prediction for the input feature vector.
-func (m *LeavesModel) Predict(features []float64) (float64, error) {
+func (m *LeavesModel) Predict(features []float64) (pred float64, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			pred = 0
+			err = fmt.Errorf("panic in prediction: %v", r)
+		}
+	}()
+
 	expected := m.ensemble.NFeatures()
 	if len(features) < expected {
 		return 0, fmt.Errorf("insufficient features: got %d, expected at least %d", len(features), expected)
