@@ -193,11 +193,11 @@ test.describe('Hotspot Lab & Mitigation Prioritization Workspace', () => {
 
 		// Switch method to Getis-Ord
 		await getisBtn.click();
-		expect(requestedUrl).toContain('method=getis_ord');
+		await expect.poll(() => requestedUrl).toContain('method=getis_ord');
 
 		// Switch bandwidth to 250m
 		await bw250.click();
-		expect(requestedUrl).toContain('bandwidth=250');
+		await expect.poll(() => requestedUrl).toContain('bandwidth=250');
 	});
 
 	test('unavailable dataset displays error and never shows zero risk', async ({ page }) => {
