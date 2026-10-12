@@ -12,10 +12,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
@@ -146,6 +148,36 @@ func (e MitigationEnvelopeStatus) Valid() bool {
 	}
 }
 
+// Defines values for PhotoUploadEnvelopeStatus.
+const (
+	PhotoUploadEnvelopeStatusSuccess PhotoUploadEnvelopeStatus = "success"
+)
+
+// Valid indicates whether the value is a known member of the PhotoUploadEnvelopeStatus enum.
+func (e PhotoUploadEnvelopeStatus) Valid() bool {
+	switch e {
+	case PhotoUploadEnvelopeStatusSuccess:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ReportEnvelopeStatus.
+const (
+	ReportEnvelopeStatusSuccess ReportEnvelopeStatus = "success"
+)
+
+// Valid indicates whether the value is a known member of the ReportEnvelopeStatus enum.
+func (e ReportEnvelopeStatus) Valid() bool {
+	switch e {
+	case ReportEnvelopeStatusSuccess:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SegmentDetailEnvelopeStatus.
 const (
 	SegmentDetailEnvelopeStatusSuccess SegmentDetailEnvelopeStatus = "success"
@@ -255,6 +287,17 @@ type CoverageEnvelope struct {
 // CoverageEnvelopeStatus defines model for CoverageEnvelope.Status.
 type CoverageEnvelopeStatus string
 
+// CreateReportRequest defines model for CreateReportRequest.
+type CreateReportRequest struct {
+	Confidence        *string            `json:"confidence,omitempty"`
+	Id                openapi_types.UUID `json:"id"`
+	Latitude          float64            `json:"latitude"`
+	Longitude         float64            `json:"longitude"`
+	Notes             *string            `json:"notes,omitempty"`
+	ObservedAt        time.Time          `json:"observed_at"`
+	SpeciesCommonName string             `json:"species_common_name"`
+}
+
 // ErrorEnvelope defines model for ErrorEnvelope.
 type ErrorEnvelope struct {
 	Data   any                 `json:"data"`
@@ -265,6 +308,26 @@ type ErrorEnvelope struct {
 
 // ErrorEnvelopeStatus defines model for ErrorEnvelope.Status.
 type ErrorEnvelopeStatus string
+
+// FieldReport defines model for FieldReport.
+type FieldReport struct {
+	Confidence         string               `json:"confidence"`
+	CreatedAt          time.Time            `json:"created_at"`
+	DedupGroupId       *openapi_types.UUID  `json:"dedup_group_id,omitempty"`
+	Id                 openapi_types.UUID   `json:"id"`
+	IsDuplicate        bool                 `json:"is_duplicate"`
+	Latitude           float64              `json:"latitude"`
+	Longitude          float64              `json:"longitude"`
+	Notes              *string              `json:"notes,omitempty"`
+	ObservedAt         time.Time            `json:"observed_at"`
+	PhotoKey           *string              `json:"photo_key,omitempty"`
+	SegmentId          *openapi_types.UUID  `json:"segment_id,omitempty"`
+	SnapDistanceM      *float64             `json:"snap_distance_m,omitempty"`
+	SnappedLatitude    *float64             `json:"snapped_latitude,omitempty"`
+	SnappedLongitude   *float64             `json:"snapped_longitude,omitempty"`
+	SpeciesCommonName  string               `json:"species_common_name"`
+	SpeciesSuggestions *[]SpeciesSuggestion `json:"species_suggestions,omitempty"`
+}
 
 // HealthData defines model for HealthData.
 type HealthData struct {
@@ -330,6 +393,35 @@ type Page struct {
 	Offset int   `json:"offset"`
 	Total  int64 `json:"total"`
 }
+
+// PhotoUploadData defines model for PhotoUploadData.
+type PhotoUploadData struct {
+	PhotoKey           string              `json:"photo_key"`
+	ReportId           openapi_types.UUID  `json:"report_id"`
+	SpeciesSuggestions []SpeciesSuggestion `json:"species_suggestions"`
+}
+
+// PhotoUploadEnvelope defines model for PhotoUploadEnvelope.
+type PhotoUploadEnvelope struct {
+	Data   PhotoUploadData           `json:"data"`
+	Error  any                       `json:"error"`
+	Meta   any                       `json:"meta"`
+	Status PhotoUploadEnvelopeStatus `json:"status"`
+}
+
+// PhotoUploadEnvelopeStatus defines model for PhotoUploadEnvelope.Status.
+type PhotoUploadEnvelopeStatus string
+
+// ReportEnvelope defines model for ReportEnvelope.
+type ReportEnvelope struct {
+	Data   FieldReport          `json:"data"`
+	Error  any                  `json:"error"`
+	Meta   any                  `json:"meta"`
+	Status ReportEnvelopeStatus `json:"status"`
+}
+
+// ReportEnvelopeStatus defines model for ReportEnvelope.Status.
+type ReportEnvelopeStatus string
 
 // SegmentDetail defines model for SegmentDetail.
 type SegmentDetail struct {
@@ -407,6 +499,12 @@ type SourcesEnvelope struct {
 // SourcesEnvelopeStatus defines model for SourcesEnvelope.Status.
 type SourcesEnvelopeStatus string
 
+// SpeciesSuggestion defines model for SpeciesSuggestion.
+type SpeciesSuggestion struct {
+	Confidence float64 `json:"confidence"`
+	Species    string  `json:"species"`
+}
+
 // BadRequest defines model for BadRequest.
 type BadRequest = ErrorEnvelope
 
@@ -446,6 +544,11 @@ type MitigationParams struct {
 	State *string `form:"state,omitempty" json:"state,omitempty"`
 }
 
+// UploadReportPhotoMultipartBody defines parameters for UploadReportPhoto.
+type UploadReportPhotoMultipartBody struct {
+	Photo *openapi_types.File `json:"photo,omitempty"`
+}
+
 // SegmentsParams defines parameters for Segments.
 type SegmentsParams struct {
 	// Bbox Bounding box filter as west,south,east,north (minLon,minLat,maxLon,maxLat)
@@ -460,6 +563,12 @@ type SourcesParams struct {
 	Limit  *int `form:"limit,omitempty" json:"limit,omitempty"`
 	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
 }
+
+// CreateReportJSONRequestBody defines body for CreateReport for application/json ContentType.
+type CreateReportJSONRequestBody = CreateReportRequest
+
+// UploadReportPhotoMultipartRequestBody defines body for UploadReportPhoto for multipart/form-data ContentType.
+type UploadReportPhotoMultipartRequestBody UploadReportPhotoMultipartBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -481,6 +590,12 @@ type ServerInterface interface {
 	// MitigationBriefPDF FHWA WCPP funding-ready PDF brief for a mitigation candidate site
 	// (GET /v1/mitigation/{id}/brief.pdf)
 	MitigationBriefPDF(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
+	// CreateReport Submit field carcass observation report
+	// (POST /v1/reports)
+	CreateReport(w http.ResponseWriter, r *http.Request)
+	// UploadReportPhoto Upload carcass observation photo
+	// (POST /v1/reports/{id}/photo)
+	UploadReportPhoto(w http.ResponseWriter, r *http.Request, id openapi_types.UUID)
 	// Segments Road segments with predicted risk and percentiles
 	// (GET /v1/segments)
 	Segments(w http.ResponseWriter, r *http.Request, params SegmentsParams)
@@ -526,6 +641,18 @@ func (_ Unimplemented) Mitigation(w http.ResponseWriter, r *http.Request, params
 // MitigationBriefPDF FHWA WCPP funding-ready PDF brief for a mitigation candidate site
 // (GET /v1/mitigation/{id}/brief.pdf)
 func (_ Unimplemented) MitigationBriefPDF(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateReport Submit field carcass observation report
+// (POST /v1/reports)
+func (_ Unimplemented) CreateReport(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UploadReportPhoto Upload carcass observation photo
+// (POST /v1/reports/{id}/photo)
+func (_ Unimplemented) UploadReportPhoto(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -732,6 +859,46 @@ func (siw *ServerInterfaceWrapper) MitigationBriefPDF(w http.ResponseWriter, r *
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.MitigationBriefPDF(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateReport operation middleware
+func (siw *ServerInterfaceWrapper) CreateReport(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateReport(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UploadReportPhoto operation middleware
+func (siw *ServerInterfaceWrapper) UploadReportPhoto(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UploadReportPhoto(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -998,6 +1165,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/mitigation/{id}/brief.pdf", wrapper.MitigationBriefPDF)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/reports", wrapper.CreateReport)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/reports/{id}/photo", wrapper.UploadReportPhoto)
 	})
 
 	return r
@@ -1395,6 +1568,170 @@ func (response MitigationBriefPDF503JSONResponse) VisitMitigationBriefPDFRespons
 	return err
 }
 
+type CreateReportRequestObject struct {
+	Body *CreateReportJSONRequestBody
+}
+
+type CreateReportResponseObject interface {
+	VisitCreateReportResponse(w http.ResponseWriter) error
+}
+
+type CreateReport200JSONResponse ReportEnvelope
+
+func (response CreateReport200JSONResponse) VisitCreateReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateReport201JSONResponse ReportEnvelope
+
+func (response CreateReport201JSONResponse) VisitCreateReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateReport400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CreateReport400JSONResponse) VisitCreateReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateReport429JSONResponse struct{ RateLimitedJSONResponse }
+
+func (response CreateReport429JSONResponse) VisitCreateReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.RetryAfter != nil {
+		w.Header().Set("Retry-After", fmt.Sprint(*response.Headers.RetryAfter))
+	}
+	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateReport503JSONResponse struct{ UnavailableJSONResponse }
+
+func (response CreateReport503JSONResponse) VisitCreateReportResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(503)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UploadReportPhotoRequestObject struct {
+	Id            openapi_types.UUID `json:"id"`
+	Body          io.Reader
+	MultipartBody *multipart.Reader
+}
+
+type UploadReportPhotoResponseObject interface {
+	VisitUploadReportPhotoResponse(w http.ResponseWriter) error
+}
+
+type UploadReportPhoto200JSONResponse PhotoUploadEnvelope
+
+func (response UploadReportPhoto200JSONResponse) VisitUploadReportPhotoResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UploadReportPhoto400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response UploadReportPhoto400JSONResponse) VisitUploadReportPhotoResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UploadReportPhoto404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response UploadReportPhoto404JSONResponse) VisitUploadReportPhotoResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UploadReportPhoto429JSONResponse struct{ RateLimitedJSONResponse }
+
+func (response UploadReportPhoto429JSONResponse) VisitUploadReportPhotoResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.RetryAfter != nil {
+		w.Header().Set("Retry-After", fmt.Sprint(*response.Headers.RetryAfter))
+	}
+	w.WriteHeader(429)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UploadReportPhoto503JSONResponse struct{ UnavailableJSONResponse }
+
+func (response UploadReportPhoto503JSONResponse) VisitUploadReportPhotoResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(503)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type SegmentsRequestObject struct {
 	Params SegmentsParams
 }
@@ -1644,6 +1981,12 @@ type StrictServerInterface interface {
 	// MitigationBriefPDF FHWA WCPP funding-ready PDF brief for a mitigation candidate site
 	// (GET /v1/mitigation/{id}/brief.pdf)
 	MitigationBriefPDF(ctx context.Context, request MitigationBriefPDFRequestObject) (MitigationBriefPDFResponseObject, error)
+	// CreateReport Submit field carcass observation report
+	// (POST /v1/reports)
+	CreateReport(ctx context.Context, request CreateReportRequestObject) (CreateReportResponseObject, error)
+	// UploadReportPhoto Upload carcass observation photo
+	// (POST /v1/reports/{id}/photo)
+	UploadReportPhoto(ctx context.Context, request UploadReportPhotoRequestObject) (UploadReportPhotoResponseObject, error)
 	// Segments Road segments with predicted risk and percentiles
 	// (GET /v1/segments)
 	Segments(ctx context.Context, request SegmentsRequestObject) (SegmentsResponseObject, error)
@@ -1844,6 +2187,74 @@ func (sh *strictHandler) MitigationBriefPDF(w http.ResponseWriter, r *http.Reque
 	}
 }
 
+// CreateReport operation middleware
+func (sh *strictHandler) CreateReport(w http.ResponseWriter, r *http.Request) {
+	var request CreateReportRequestObject
+
+	var body CreateReportJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateReport(ctx, request.(CreateReportRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateReport")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateReportResponseObject); ok {
+		if err := validResponse.VisitCreateReportResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UploadReportPhoto operation middleware
+func (sh *strictHandler) UploadReportPhoto(w http.ResponseWriter, r *http.Request, id openapi_types.UUID) {
+	var request UploadReportPhotoRequestObject
+
+	request.Id = id
+	if strings.HasPrefix(r.Header.Get("Content-Type"), "image/jpeg") {
+		request.Body = r.Body
+	}
+	if strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data") {
+		if reader, err := r.MultipartReader(); err != nil {
+			sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode multipart body: %w", err))
+			return
+		} else {
+			request.MultipartBody = reader
+		}
+	}
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UploadReportPhoto(ctx, request.(UploadReportPhotoRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UploadReportPhoto")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UploadReportPhotoResponseObject); ok {
+		if err := validResponse.VisitUploadReportPhotoResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // Segments operation middleware
 func (sh *strictHandler) Segments(w http.ResponseWriter, r *http.Request, params SegmentsParams) {
 	var request SegmentsRequestObject
@@ -1927,47 +2338,59 @@ func (sh *strictHandler) Sources(w http.ResponseWriter, r *http.Request, params 
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"5FttbxQ5Ev4rlu8+sFIn02GXk5j7BAks6GAVJSB04tDI067pro3bbmz3JAOa/36y+33G8xbILNx9ItNt",
-	"V5WfqqeqbDdfaaLyQkmQ1tDxV6rBFEoa8D+eM34Fn0sw1v1KlLQg/Z+sKAQmzKKSoz+Nku6ZSTLImfvr",
-	"7xpmdEz/NupEj6q3ZvRCa6VfyDkIVQBdLpcR5WASjYUTRsf0tZwzgZzoWvEyon8o+1KVkh/PiCswqtQJ",
-	"EKksmXndy4heMQtvMEcLRzXF40CEU0zgLgHgwGlEM2ActPfTFVi9OHk2s6CHmnOUmJc5HZ9F1C4KoGOK",
-	"0kIK2qlaRvS9ZHOGgk0FHG9JF1CA5CATBEPKngVuaC3FKTlnkiNnFq7RevMY5+hkMHGpVQHaIhg6njFh",
-	"IKJF79FXOk08FDOlc2bpmHJVOg0tDLLMpw6FiIKxk0QZOykN33fKXQGJBT5hc4Uc+CRRQqBBJc2hEgyb",
-	"o0zNAcozTLNbtph4D3xt3hurUabuPQ4FlSVyGq0PEyBTm03yPbXmKKBwKIHkh04xlmm756TiLJ7s77vi",
-	"6SGjNauCB4K4aUhUnrvA5JPqZWCQgTRvUiVayM1eWNcPmNZs4aVYZkPyvRWfS9TA6fgj9cJajc20YQSs",
-	"wbziqp6jA0tcif7tkb0haiPPtc5znVf6iH9qUVDTPyHxef1czUGzFC6YZQfSG2UKxlkC88YdrRdQ2n/8",
-	"RqMu+cXryS+iueIgJoPsB9KN/ugVdvZOlRLA5MBv9UgKeWEXNKKl9OKA99a5wamNE1dXsG7RNsja9HoY",
-	"bJzZnel74BWXqrRWuhesshTCAwiWBR679ZWmD5IpkwSM2Q+a0iHhzWw015pCaAwrzf2gWDF/dbUdifde",
-	"byXi+6/2FTBhs3uQZRDkq1G9YtX28KtMeMDg663xxw69V8qaQtnXFvIDYZhxPSkmcyZK2LfKHTRas9tJ",
-	"osqqi1vPeyZRel9Rde2ZVC3FejHEVOIMEyaTcLX8Mtlf26pDOtWNzVvcYL4xJNtSvjU2ey4PFPUfOFjf",
-	"oIRrL+t3ULnbLByIU6KU5iiZhWHns94CbWsH5etq+ON18MK/O2y6FeyGp+5s+jaHQHmLFlPfnxwjeIZ7",
-	"mZ8rfC5Zeig2frfq/sjZXb0DjeNo6340omo2M2AH+9Zg62aVZeLglm81SryQqLa0VR5a/3WViy7AMhQH",
-	"ApH2CLctPgIU/X57vVxJm4nFpNBqhmKLL/ci8ho+xVm8/35t35GgE5AWBUw0kzd7ztJobiYHVbiMFROu",
-	"cV6fpOzF5euMFRd+TnBzV4A72JhMNbAbrm7l94b7kN1jG34DbNbhrZxYOWg9XkKLWsFuJ28esGkc6PnB",
-	"c2lt63WZ5+zgMvxDJJOfme0PzJwtDj9Kh7oSXD9Xl9HLqgduqIDZUod3IJgXLLHBV7eAaWbvszdpFLbi",
-	"W2HBdfmbhPsRfsPGS2AC0oRXLFkeftH5cu1VqYftVKmRRvuQxCur5ndWtao2o3EcNgyAvwcZtgn3PfFR",
-	"GeKmo5wpj8PgPuWynApMqnsqv6EhIHmhUFpzSs5VKa0h1YwpEFYUWs2Bk6KapSFRmpvIX3UxIUh34ntK",
-	"I2rRCmfFudIaudLk2eVrGlFX8yvl8enZaey79wIkK5CO6a/+UUQLZjMPzSjzxzpfqhrmOee86m19zem4",
-	"Plei0fD68XEcf7dLqZWTq8Ct1KVWzm8EDWEC5967vz1+uklwa+mofy24jOiT+Nfdc94Pbr2cMSMNjC82",
-	"Q3TlXv+1CA3u7ZgG4k0+Nk7zs1FSH1FvBKs5w35IvNaO4gOInZdag7Q118SCaBDAjFsOcawn7UqOD2JW",
-	"H531QFy9eballobUA4nvgAxhkhOXutBYTJgg/VNAUoAmWjFO6vM7UhqUKZFgb5W+OUmUNFYzlMAJE6nS",
-	"aLPc55mVfNDY5pKIZjlYvz/7uGpiPY7kYDPFySN5wyEiKVg0E6V5RDhIg3bxi79woWP6uQS9aArXmFbz",
-	"aNRzOYcZK4WlY+qE0ajN6/XPVjiNaC09mOpXTb0GppOMTJnkt8htRlCSal2ECSXTCrYaKPJopjT5418X",
-	"LzZZ3soJG//Enbas9zXd+UscaHJWTX7uCopz31TdkRkKC5owQ27B2Mio0mYRMGMjqbTNNpk5VXcDC1dx",
-	"+vSQGW31cDjA0CaCmnjtB3kvsD0/43iTxo5rvU9mjkfpiJqmvaTXPWreouACZ9DV9IbMoaCjTWbI25PR",
-	"nbnB+QllqUpDulmk0Mr1LMSgBUNSkI7bwMl0QRJRGgvO+cTtR0/c3mqQMQx59J8yjn+Fp7HNSLfb+iUi",
-	"br9VSZmChBnak0QZS3zeILdoM5SESaKKqpsk05KnUH85s55juvPfXVnmnTsqJC3gZNbQopKPkry/viCO",
-	"sTeSFYYlN6NUA/CFNyXHL42WIEO8kAFHtvB2H9q+rQaT5zVI5w6kKw+SzTSYTAm+KR+irG/uv5s1727V",
-	"iQDrcofffpNCGQdnojg0SeURnKan5MO/NyW75s68Mypnd2/8dw3924SjJJXAtUHoq60qVHucSJoLgJoV",
-	"dbzW7v9p0suHJqUElzYk/ja+BpLN6Cvy5WiqEWanBZ9tzD2/1/nEEEYenxQshbq/8lJOUs04kMuLl601",
-	"LV+daA/80CAmmVgYNBEBmaKEKj2BsZg7NRHJWUGMo3ambORrQ4LWazPb8spzp+/y4uWu/PJ2U5QQ5C75",
-	"zRB0wwy3p+qI4Tfh3Z7S6hKC1A2f5R3Ik9onAfFTlEwvAgrWePHcj/TeGXjlvgSIf9s9pf189K9hzMtX",
-	"H56RD+eXl82KT/y2yWNQRaSrHGxzrmip0v/4bGtVjk/PTtxXYMNWXKCEyjNV9iG+9vYanq7Yeuq6gevh",
-	"fd19j7Y1qA9pHsmjHOUbJSP3D7ORy+7uF7t7w+wv920tNxbGbt17FUQ3/Bsq4kMWo7XD5VAp+tYY+B/m",
-	"5tWg8fSAFBo4Jq5b9dAMMTFrXPRFaych6wu1SmR9qxaR+lLNPZiyKQq0C9JesFV1phAM5YlgMi1dnXun",
-	"Aa5fPbsk9bVbnTpavtdWbWRtfUW2g7qDiPmhStC92LFy/7iLIt5H3M+pIsIDzqzVOC39hP8PPvSBiNoI",
-	"boPXRWc/FDtmVCf8G8/m6huA9SAM5d/m64zAEcfjJ9EBX5cso7CC+rOPoIZ4qCCO42Cm73Q8aDCvXJwE",
-	"/+tM9Ulxc7Rf/x+Wyr0I5p9Eg6mOodoOozrIlcptYxNRcuD3De9jnV66gAU9b6LG313REV1+Wv53AA==",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

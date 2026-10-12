@@ -30,7 +30,18 @@ func TestContract(t *testing.T) {
 			}
 		}
 	}
-	for _, name := range []string{"HealthEnvelope", "CoverageEnvelope", "SourcesEnvelope", "ErrorEnvelope", "SegmentsEnvelope", "SegmentDetailEnvelope", "HotspotsEnvelope", "MitigationEnvelope"} {
+	for _, path := range []string{"/v1/reports", "/v1/reports/{id}/photo"} {
+		item := doc.Paths.Find(path)
+		if item == nil || item.Post == nil {
+			t.Fatalf("missing POST %s", path)
+		}
+		for _, code := range []string{"429", "503"} {
+			if item.Post.Responses.Value(code) == nil {
+				t.Fatalf("missing %s %s", path, code)
+			}
+		}
+	}
+	for _, name := range []string{"HealthEnvelope", "CoverageEnvelope", "SourcesEnvelope", "ErrorEnvelope", "SegmentsEnvelope", "SegmentDetailEnvelope", "HotspotsEnvelope", "MitigationEnvelope", "ReportEnvelope", "PhotoUploadEnvelope"} {
 		schema := doc.Components.Schemas[name].Value
 		if !slices.Contains(schema.Required, "status") {
 			t.Fatalf("%s does not require status", name)

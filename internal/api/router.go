@@ -10,11 +10,13 @@ import (
 	"github.com/andybalholm/brotli"
 
 	"corridor/internal/db"
+	"corridor/internal/geo"
 	"corridor/internal/prioritize"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
+	"github.com/paulmach/orb"
 	"golang.org/x/time/rate"
 )
 
@@ -33,10 +35,34 @@ type MitigationProvider interface {
 	CandidateSite(ctx context.Context, id uuid.UUID) (*prioritize.CandidateSite, error)
 }
 
+type ReportStore interface {
+	CreateReport(ctx context.Context, report FieldReportRecord) (*FieldReportRecord, bool, error)
+	GetReport(ctx context.Context, id uuid.UUID) (*FieldReportRecord, error)
+	UpdateReportPhoto(ctx context.Context, id uuid.UUID, photoKey string, suggestions []SpeciesSuggestion) (*FieldReportRecord, error)
+}
+
+type PhotoStore interface {
+	PutPhoto(ctx context.Context, key string, data []byte) error
+	GetPhoto(ctx context.Context, key string) ([]byte, error)
+}
+
+type SpeciesClassifier interface {
+	Classify(ctx context.Context, imgBytes []byte) ([]SpeciesSuggestion, error)
+}
+
+type Snapper func(ctx context.Context, point orb.Point, maxDistanceMeters float64) (segmentID uuid.UUID, snapDistance float64, snappedPoint orb.Point, err error)
+
+type Deduplicator func(ctx context.Context, speciesID string, geom orb.Point, observedAt time.Time, distanceThresholdM float64, timeThresholdHours float64) (dedupGroupID *uuid.UUID, isDuplicate bool, err error)
+
 type Dependencies struct {
 	Store              Store
 	SegmentStore       SegmentStore
 	MitigationProvider MitigationProvider
+	ReportStore        ReportStore
+	PhotoStore         PhotoStore
+	SpeciesClassifier  SpeciesClassifier
+	Snapper            Snapper
+	Deduplicator       Deduplicator
 	Ready              func(context.Context) error
 	Logger             *slog.Logger
 	Limiter            *rate.Limiter
@@ -63,6 +89,57 @@ func (s service) mitigationProvider() MitigationProvider {
 	}
 	if dbs, ok := s.deps.Store.(db.Store); ok && dbs.Pool != nil {
 		return prioritize.NewEngine(dbs.Pool, prioritize.DefaultConfig())
+	}
+	return nil
+}
+
+func (s service) reportStore() ReportStore {
+	if s.deps.ReportStore != nil {
+		return s.deps.ReportStore
+	}
+	if rs, ok := s.deps.Store.(ReportStore); ok {
+		return rs
+	}
+	if dbs, ok := s.deps.Store.(db.Store); ok && dbs.Pool != nil {
+		return dbReportStoreAdapter{dbs}
+	}
+	return nil
+}
+
+func (s service) photoStore() PhotoStore {
+	if s.deps.PhotoStore != nil {
+		return s.deps.PhotoStore
+	}
+	return nil
+}
+
+func (s service) speciesClassifier() SpeciesClassifier {
+	if s.deps.SpeciesClassifier != nil {
+		return s.deps.SpeciesClassifier
+	}
+	return defaultClassifier{}
+}
+
+func (s service) snapper() Snapper {
+	if s.deps.Snapper != nil {
+		return s.deps.Snapper
+	}
+	if dbs, ok := s.deps.Store.(db.Store); ok && dbs.Pool != nil {
+		return func(ctx context.Context, point orb.Point, maxDistanceMeters float64) (uuid.UUID, float64, orb.Point, error) {
+			return geo.SnapToSegment(ctx, dbs.Pool, point, maxDistanceMeters)
+		}
+	}
+	return nil
+}
+
+func (s service) deduplicator() Deduplicator {
+	if s.deps.Deduplicator != nil {
+		return s.deps.Deduplicator
+	}
+	if dbs, ok := s.deps.Store.(db.Store); ok && dbs.Pool != nil {
+		return func(ctx context.Context, speciesID string, geom orb.Point, observedAt time.Time, distanceThresholdM, timeThresholdHours float64) (*uuid.UUID, bool, error) {
+			return geo.DeduplicateEvents(ctx, dbs.Pool, speciesID, geom, observedAt, distanceThresholdM, timeThresholdHours)
+		}
 	}
 	return nil
 }

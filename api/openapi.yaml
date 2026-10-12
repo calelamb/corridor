@@ -204,6 +204,67 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '429': { $ref: '#/components/responses/RateLimited' }
         '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/reports:
+    post:
+      operationId: CreateReport
+      summary: Submit field carcass observation report
+      description: Records carcass observations submitted by park rangers in the field. Accepts client-generated UUID for offline idempotency, snaps GPS coordinates to the nearest 0.1-mile road segment (50m tolerance), and deduplicates against recent nearby carcass reports (200m / 72h).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateReportRequest' }
+      responses:
+        '201':
+          description: Field report successfully created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReportEnvelope' }
+        '200':
+          description: Idempotent submission already recorded
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReportEnvelope' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/reports/{id}/photo:
+    post:
+      operationId: UploadReportPhoto
+      summary: Upload carcass observation photo
+      description: Accepts field photo uploads, strips EXIF GPS tags before private storage, stores raw image bytes in private object storage, executes species classification inference, and returns top suggestion chips.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Field report identifier
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          image/jpeg:
+            schema:
+              type: string
+              format: binary
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                photo:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Photo uploaded and species suggestions generated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PhotoUploadEnvelope' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
 components:
   responses:
     BadRequest:
@@ -480,6 +541,143 @@ components:
           items: { $ref: '#/components/schemas/CandidateSite' }
         error: { type: 'null' }
         meta: { type: 'null' }
+    CreateReportRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - species_common_name
+        - latitude
+        - longitude
+        - observed_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        species_common_name:
+          type: string
+        latitude:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+        observed_at:
+          type: string
+          format: date-time
+        confidence:
+          type: string
+        notes:
+          type: string
+    SpeciesSuggestion:
+      type: object
+      additionalProperties: false
+      required:
+        - species
+        - confidence
+      properties:
+        species:
+          type: string
+        confidence:
+          type: number
+          format: double
+    FieldReport:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - species_common_name
+        - latitude
+        - longitude
+        - is_duplicate
+        - observed_at
+        - confidence
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        species_common_name:
+          type: string
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+        snapped_latitude:
+          type: number
+          format: double
+        snapped_longitude:
+          type: number
+          format: double
+        segment_id:
+          type: string
+          format: uuid
+        snap_distance_m:
+          type: number
+          format: double
+        dedup_group_id:
+          type: string
+          format: uuid
+        is_duplicate:
+          type: boolean
+        observed_at:
+          type: string
+          format: date-time
+        confidence:
+          type: string
+        notes:
+          type: string
+        photo_key:
+          type: string
+        species_suggestions:
+          type: array
+          items:
+            $ref: '#/components/schemas/SpeciesSuggestion'
+        created_at:
+          type: string
+          format: date-time
+    ReportEnvelope:
+      type: object
+      additionalProperties: false
+      required: [status, data, error, meta]
+      properties:
+        status: { type: string, enum: [success] }
+        data: { $ref: '#/components/schemas/FieldReport' }
+        error: { type: 'null' }
+        meta: { type: 'null' }
+    PhotoUploadData:
+      type: object
+      additionalProperties: false
+      required:
+        - report_id
+        - photo_key
+        - species_suggestions
+      properties:
+        report_id:
+          type: string
+          format: uuid
+        photo_key:
+          type: string
+        species_suggestions:
+          type: array
+          items:
+            $ref: '#/components/schemas/SpeciesSuggestion'
+    PhotoUploadEnvelope:
+      type: object
+      additionalProperties: false
+      required: [status, data, error, meta]
+      properties:
+        status: { type: string, enum: [success] }
+        data: { $ref: '#/components/schemas/PhotoUploadData' }
+        error: { type: 'null' }
+        meta: { type: 'null' }
+
 
 
 

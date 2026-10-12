@@ -1,8 +1,11 @@
 package storage
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -41,3 +44,25 @@ func (c *Client) Check(ctx context.Context) error {
 	}
 	return nil
 }
+
+// PutPhoto uploads photo bytes to private storage.
+func (c *Client) PutPhoto(ctx context.Context, key string, data []byte) error {
+	_, err := c.api.PutObject(ctx, c.bucket, key, bytes.NewReader(data), int64(len(data)), minio.PutObjectOptions{
+		ContentType: "image/jpeg",
+	})
+	if err != nil {
+		return fmt.Errorf("store private photo: %w", err)
+	}
+	return nil
+}
+
+// GetPhoto retrieves raw photo bytes from private storage.
+func (c *Client) GetPhoto(ctx context.Context, key string) ([]byte, error) {
+	obj, err := c.api.GetObject(ctx, c.bucket, key, minio.GetObjectOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("get private photo: %w", err)
+	}
+	defer obj.Close()
+	return io.ReadAll(obj)
+}
+
