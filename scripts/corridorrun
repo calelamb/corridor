@@ -1,0 +1,113 @@
+#!/usr/bin/env bash
+set -eo pipefail
+
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO_DIR"
+
+# ANSI color codes
+BOLD='\033[1m'
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+YELLOW='\033[0;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+echo -e "${BOLD}${CYAN}=== Corridor Wildlife Intelligence Platform ===${NC}"
+
+# Handle subcommands/flags
+case "$1" in
+  stop|down)
+    echo -e "${YELLOW}Stopping Corridor containers...${NC}"
+    docker compose down
+    echo -e "${GREEN}Corridor stopped.${NC}"
+    exit 0
+    ;;
+  restart)
+    echo -e "${YELLOW}Restarting Corridor...${NC}"
+    docker compose down
+    ;;
+  logs)
+    shift
+    docker compose logs -f "$@"
+    exit 0
+    ;;
+  status)
+    docker compose ps
+    exit 0
+    ;;
+esac
+
+# 1. Check Docker Daemon
+if ! docker info >/dev/null 2>&1; then
+  echo -e "${YELLOW}[!] Docker daemon is not running. Launching Docker Desktop...${NC}"
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    open -a Docker
+    echo -n "Waiting for Docker daemon to become responsive"
+    for i in {1..40}; do
+      if docker info >/dev/null 2>&1; then
+        echo -e " ${GREEN}ready!${NC}"
+        break
+      fi
+      echo -n "."
+      sleep 1
+    done
+  fi
+fi
+
+if ! docker info >/dev/null 2>&1; then
+  echo -e "${RED}[ERROR] Docker daemon could not be reached. Please start Docker and retry.${NC}"
+  exit 1
+fi
+
+# 2. Check and initialize .env development configuration
+if [ ! -f ".env" ]; then
+  echo -e "${CYAN}[*] Initializing local development environment (.env)...${NC}"
+  go run ./cmd/corridorctl init-dev
+fi
+
+# 3. Start services via Docker Compose
+echo -e "${CYAN}[*] Starting Corridor services (PostGIS, MinIO, Migrations, Go Server)...${NC}"
+docker compose up -d --wait
+
+# 4. Wait for application readiness
+echo -n "Verifying service readiness..."
+READY=false
+for i in {1..30}; do
+  if curl -sf http://localhost:8080/readyz >/dev/null 2>&1; then
+    READY=true
+    echo -e " ${GREEN}OK!${NC}"
+    break
+  fi
+  echo -n "."
+  sleep 1
+done
+
+if [ "$READY" != "true" ]; then
+  echo -e " ${RED}Failed to verify readyz endpoint.${NC}"
+  echo "Checking container logs:"
+  docker compose logs --tail 20 corridor
+  exit 1
+fi
+
+# 5. Display operational status and URLs
+echo ""
+echo -e "${GREEN}${BOLD}✔ Corridor is up and running!${NC}"
+echo ""
+echo -e "  ${BOLD}Main Explorer:${NC}         ${CYAN}http://localhost:8080${NC}"
+echo -e "  ${BOLD}Hotspot Analysis Lab:${NC}  ${CYAN}http://localhost:8080/?workspace=hotspots${NC}"
+echo -e "  ${BOLD}Mitigation Planner:${NC}    ${CYAN}http://localhost:8080/?workspace=mitigation${NC}"
+echo -e "  ${BOLD}Methodology Library:${NC}   ${CYAN}http://localhost:8080/methodology/${NC}"
+echo -e "  ${BOLD}Ranger Field Reporting:${NC} ${CYAN}http://localhost:8080/report/${NC}"
+echo -e "  ${BOLD}API Readiness Endpoint:${NC} ${CYAN}http://localhost:8080/readyz${NC}"
+echo ""
+echo -e "${BOLD}Helpful Commands:${NC}"
+echo -e "  ${CYAN}corridorrun stop${NC}     - Stop all background containers"
+echo -e "  ${CYAN}corridorrun logs${NC}     - View real-time container logs"
+echo -e "  ${CYAN}corridorrun restart${NC}  - Restart all containers"
+echo ""
+
+# 6. Open in browser (if on macOS and not disabled)
+if [[ "$OSTYPE" == "darwin"* && "$1" != "--no-open" ]]; then
+  echo -e "${CYAN}[*] Opening Corridor in default browser...${NC}"
+  open "http://localhost:8080"
+fi
