@@ -7,6 +7,14 @@
 		onacknowledge?: () => void;
 	} = $props();
 
+	let ackBtnEl = $state<HTMLButtonElement | null>(null);
+
+	$effect(() => {
+		if (open && ackBtnEl) {
+			ackBtnEl.focus();
+		}
+	});
+
 	function acknowledge() {
 		open = false;
 		if (typeof sessionStorage !== 'undefined') {
@@ -52,6 +60,7 @@
 				<button
 					type="button"
 					class="btn-acknowledge"
+					bind:this={ackBtnEl}
 					onclick={acknowledge}
 					aria-label="I am a Passenger or Parked Safely. Acknowledge driver safety warning"
 				>

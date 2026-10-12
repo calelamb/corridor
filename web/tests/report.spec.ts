@@ -130,7 +130,7 @@ test.describe('Park Ranger Field Reporting PWA', () => {
 		// Verify success message / feedback
 		await expect(page.getByText(/Report submitted|Report saved/i)).toBeVisible();
 		expect(reportPayload).not.toBeNull();
-		expect(reportPayload.species_common_name).toBe('mule_deer');
+		expect(reportPayload?.['species_common_name']).toBe('mule_deer');
 	});
 
 	test('offline network enqueues report and reconnecting triggers sync', async ({

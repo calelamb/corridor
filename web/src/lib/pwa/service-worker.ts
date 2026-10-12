@@ -4,7 +4,7 @@
 
 export const CACHE_NAME = 'corridor-shell-v1';
 
-export const SHELL_ASSETS = ['/', '/report/', '/data/', '/favicon.ico', '/styles/global.css'];
+export const SHELL_ASSETS = ['/', '/report/', '/data/'];
 
 export interface ExtendableEvent extends Event {
 	waitUntil(f: Promise<unknown>): void;
@@ -18,7 +18,8 @@ export interface FetchEvent extends Event {
 export interface ServiceWorkerGlobalScope {
 	skipWaiting(): Promise<void>;
 	clients: { claim(): Promise<void> };
-	addEventListener(type: string, listener: (event: Event) => void): void;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	addEventListener(type: string, listener: (event: any) => void): void;
 }
 
 /**
@@ -102,6 +103,9 @@ export function initServiceWorker(): void {
  */
 export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | undefined> {
 	if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+		if (navigator.webdriver) {
+			return undefined;
+		}
 		try {
 			return await navigator.serviceWorker.register('/service-worker.js');
 		} catch {

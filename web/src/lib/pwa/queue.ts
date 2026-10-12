@@ -215,14 +215,35 @@ async function updateReport(report: QueuedReport): Promise<void> {
 	}
 }
 
+let isSyncing = false;
+
 /**
- * Syncs queued reports to backend endpoints:
+ * Synchronizes queued reports with the backend.
+ * Executes:
  * 1. POST /v1/reports
  * 2. POST /v1/reports/{id}/photo (if photo blob is attached)
  *
  * If offline or backend is unreachable, preserves items in queue for future retry.
  */
 export async function syncQueue(fetchFn?: typeof fetch): Promise<SyncResult> {
+	if (isSyncing) {
+		const pending = await getPendingReports();
+		return {
+			synced: 0,
+			failed: 0,
+			remaining: pending.length,
+			errors: []
+		};
+	}
+	isSyncing = true;
+	try {
+		return await doSyncQueue(fetchFn);
+	} finally {
+		isSyncing = false;
+	}
+}
+
+async function doSyncQueue(fetchFn?: typeof fetch): Promise<SyncResult> {
 	const callerFetch = fetchFn || (typeof fetch !== 'undefined' ? fetch : undefined);
 	if (!callerFetch) {
 		return { synced: 0, failed: 0, remaining: 0, errors: ['fetch is not available'] };
@@ -326,13 +347,17 @@ export async function syncQueue(fetchFn?: typeof fetch): Promise<SyncResult> {
 /**
  * Registers automatic background synchronization when network reconnects.
  */
-export function setupAutoSync(fetchFn?: typeof fetch): () => void {
+export function setupAutoSync(
+	fetchFn?: typeof fetch,
+	onSync?: (result: SyncResult) => void
+): () => void {
 	if (typeof window === 'undefined') {
 		return () => {};
 	}
 
-	const handleOnline = () => {
-		void syncQueue(fetchFn);
+	const handleOnline = async () => {
+		const res = await syncQueue(fetchFn);
+		onSync?.(res);
 	};
 
 	window.addEventListener('online', handleOnline);

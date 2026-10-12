@@ -210,7 +210,6 @@
 
 		const handleOnline = () => {
 			isOnline = true;
-			void handleManualSync();
 		};
 
 		const handleOffline = () => {
@@ -222,7 +221,9 @@
 
 		// Initialize queue state & auto-sync
 		void refreshPendingCount();
-		const cleanupAutoSync = setupAutoSync();
+		const cleanupAutoSync = setupAutoSync(undefined, async () => {
+			await refreshPendingCount();
+		});
 
 		// Request initial GPS fix
 		requestLocation();
@@ -347,7 +348,8 @@
 					accept="image/*"
 					capture="environment"
 					class="sr-only"
-					aria-label="Upload carcass observation photo"
+					tabindex="-1"
+					aria-hidden="true"
 					bind:this={fileInputEl}
 					onchange={handlePhotoChange}
 				/>
