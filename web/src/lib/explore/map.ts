@@ -14,7 +14,8 @@ import type {
 	Map as MapLibreMap,
 	LayerSpecification,
 	VectorTileSource,
-	GeoJSONSource
+	GeoJSONSource,
+	ErrorEvent as MapErrorEvent
 } from 'maplibre-gl';
 export interface RangerMap {
 	destroy(): void;
@@ -212,22 +213,39 @@ export async function createRangerMap(
 	});
 	map.addControl(new lib.ScaleControl({ unit: 'imperial' }), 'bottom-right');
 	try {
-		await new Promise<void>((resolve, reject) => {
-			map.once('load', () => resolve());
-			map.once('error', () => reject(new Error('Map geography unavailable')));
+		performance.mark('corridor-map-ready');
+	} catch {
+		/* ignore */
+	}
+	let failures: string[] = [];
+	let activeQuery = query;
+	const recordError = (event: MapErrorEvent & { sourceId?: string }) => {
+		const source = event && typeof event.sourceId === 'string' ? event.sourceId : 'geography';
+		failures = [...new Set([...failures, source])];
+		onError(failures);
+	};
+	map.on('error', recordError);
+	try {
+		await new Promise<void>((resolve) => {
+			let settled = false;
+			const done = () => {
+				if (!settled) {
+					settled = true;
+					resolve();
+				}
+			};
+			map.once('load', done);
+			map.once('idle', done);
+			map.once('error', (event) => {
+				recordError(event as MapErrorEvent & { sourceId?: string });
+				done();
+			});
+			setTimeout(done, 1500);
 		});
 	} catch (error) {
 		map.remove();
 		throw error;
 	}
-	let failures: string[] = [];
-	let activeQuery = query;
-	map.on('error', (event) => {
-		const source =
-			'sourceId' in event && typeof event.sourceId === 'string' ? event.sourceId : 'geography';
-		failures = [...new Set([...failures, source])];
-		onError(failures);
-	});
 	map.on('click', (event) => {
 		const hits = map.queryRenderedFeatures(event.point, {
 			layers: [SEGMENTS_LINE_LAYER_ID, 'prediction-fill', 'evidence-fill', 'migration-fill']

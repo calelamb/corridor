@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
-	import { createRangerMap, type RangerMap } from './map';
+	import type { RangerMap } from './map';
 	import type { Prediction } from '$lib/predict/client';
 	import type { Theme } from '$lib/theme/theme';
 	import type { SegmentSummary } from '$lib/map/segmentLayer';
@@ -44,20 +44,23 @@
 	let ready = $state(false);
 	onMount(() => {
 		let canceled = false;
-		createRangerMap(
-			container,
-			theme,
-			params,
-			camera,
-			onselect,
-			oncamera,
-			(errors) => {
-				layerErrors = errors;
-			},
-			onmigration,
-			onprediction,
-			onsegment
-		)
+		import('./map')
+			.then(({ createRangerMap }) =>
+				createRangerMap(
+					container,
+					theme,
+					params,
+					camera,
+					onselect,
+					oncamera,
+					(errors) => {
+						layerErrors = errors;
+					},
+					onmigration,
+					onprediction,
+					onsegment
+				)
+			)
 			.then((map) => {
 				if (canceled) map.destroy();
 				else {
@@ -66,7 +69,14 @@
 				}
 			})
 			.catch(() => {
-				if (!canceled) failed = true;
+				if (!canceled) {
+					failed = true;
+					try {
+						performance.mark('corridor-map-ready');
+					} catch {
+						/* ignore */
+					}
+				}
 			});
 		return () => {
 			canceled = true;
@@ -162,8 +172,8 @@
 		box-shadow: var(--shadow);
 	}
 	button {
-		width: 44px;
-		height: 44px;
+		width: 48px;
+		height: 48px;
 		border: 1px solid var(--line);
 		background: var(--panel);
 		font-size: 20px;
@@ -171,7 +181,8 @@
 	}
 	button.retry {
 		width: auto;
-		padding: 8px;
+		min-height: 48px;
+		padding: 8px 16px;
 		font-size: 14px;
 		margin-top: 10px;
 	}

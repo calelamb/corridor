@@ -29,6 +29,18 @@ export default defineConfig({
 			}
 		})
 	],
+	build: {
+		target: 'es2022',
+		rollupOptions: {
+			output: {
+				manualChunks(id) {
+					if (id.includes('node_modules/pmtiles/')) {
+						return 'pmtiles';
+					}
+				}
+			}
+		}
+	},
 	test: {
 		coverage: {
 			include: ['src/lib/**/*.ts'],

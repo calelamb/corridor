@@ -7,12 +7,8 @@
 	import { loadEvidence, extent, type Evidence, type EvidenceFeature } from './client';
 	import RangerMap from './RangerMap.svelte';
 	import Timeline from './Timeline.svelte';
-	import SegmentDetailDrawer from './SegmentDetailDrawer.svelte';
-	import PredictionPanel from '$lib/predict/PredictionPanel.svelte';
 	import type { Prediction, PredictionFeature } from '$lib/predict/client';
 	import type { Theme } from '$lib/theme/theme';
-	import HotspotLab from '$lib/hotspot/HotspotLab.svelte';
-	import MitigationWorkspace from '$lib/mitigate/MitigationWorkspace.svelte';
 	import type { WorkspaceTab } from './state';
 	import {
 		loadSegments,
@@ -537,14 +533,17 @@
 						onclick={() => (panel = 'prediction')}>Predictions</button
 					>
 				</div>
-				{#if panel === 'prediction'}<PredictionPanel
-						selected={predictionCell}
-						onselect={selectPrediction}
-						onresult={(result) => {
-							prediction = result;
-							if (result) fit = extent(result.features);
-						}}
-					/>
+				{#if panel === 'prediction'}
+					{#await import('$lib/predict/PredictionPanel.svelte') then { default: PredictionPanel }}
+						<PredictionPanel
+							selected={predictionCell}
+							onselect={selectPrediction}
+							onresult={(result) => {
+								prediction = result;
+								if (result) fit = extent(result.features);
+							}}
+						/>
+					{/await}
 				{:else if panel === 'migration'}<span class="eyebrow">MAPPED MIGRATION EVIDENCE</span>
 					<h2>Pequop mule deer</h2>
 					<p>USGS / Nevada Department of Wildlife · 2011–2017</p>
@@ -624,7 +623,9 @@
 			aria-labelledby="tab-hotspots"
 			class="workspace-panel-content"
 		>
-			<HotspotLab />
+			{#await import('$lib/hotspot/HotspotLab.svelte') then { default: HotspotLab }}
+				<HotspotLab />
+			{/await}
 		</div>
 	{:else if view.workspace === 'mitigation'}
 		<div
@@ -633,15 +634,19 @@
 			aria-labelledby="tab-mitigation"
 			class="workspace-panel-content"
 		>
-			<MitigationWorkspace />
+			{#await import('$lib/mitigate/MitigationWorkspace.svelte') then { default: MitigationWorkspace }}
+				<MitigationWorkspace />
+			{/await}
 		</div>
 	{/if}
 	{#if view.segment}
-		<SegmentDetailDrawer
-			segmentId={view.segment}
-			detail={segmentDetail}
-			status={segmentStatus}
-			onclose={closeSegment}
-		/>
+		{#await import('./SegmentDetailDrawer.svelte') then { default: SegmentDetailDrawer }}
+			<SegmentDetailDrawer
+				segmentId={view.segment}
+				detail={segmentDetail}
+				status={segmentStatus}
+				onclose={closeSegment}
+			/>
+		{/await}
 	{/if}
 </main>
