@@ -412,17 +412,17 @@
 - Produces: `POST /v1/reports` (accepts report JSON with client-generated UUID for idempotency, snaps to segment, records status)
 - Produces: `POST /v1/reports/{id}/photo` (stores original raw photo in private MinIO bucket, strips EXIF, executes ONNX species classification, returns suggestion chips)
 
-- [ ] **Step 1: Write failing reports API test**
+- [x] **Step 1: Write failing reports API test**
   Write tests in `internal/api/reports_test.go` testing idempotent insertion, photo upload, EXIF stripping, and suggestion chip generation.
-- [ ] **Step 2: Run test to verify failure**
+- [x] **Step 2: Run test to verify failure**
   Run: `go test -v ./internal/api -run TestFieldReportsEndpoint`
   Expected: FAIL.
-- [ ] **Step 3: Implement report creation and photo ingestion**
+- [x] **Step 3: Implement report creation and photo ingestion**
   Store raw photos in private S3 bucket `corridor-raw/photos/{uuid}.jpg`. Strip GPS EXIF tags before any metadata storage.
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
   Run: `go test -v ./internal/api -run TestFieldReportsEndpoint`
   Expected: PASS.
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   `git add internal/api/reports* internal/db/migrations/00010* api/openapi.yaml`
   `git commit -m "feat(api): implement field carcass reporting and photo upload endpoints"`
 
