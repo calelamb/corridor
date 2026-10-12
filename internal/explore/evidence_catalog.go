@@ -196,3 +196,9 @@ func GetAcademicEvidenceCatalog() []AcademicPaper {
 		},
 	}
 }
+
+// GetEvidenceCatalog returns the comprehensive curated synthesis of peer-reviewed
+// scientific research underpinning Corridor. Alias for GetAcademicEvidenceCatalog.
+func GetEvidenceCatalog() []AcademicPaper {
+	return GetAcademicEvidenceCatalog()
+}
