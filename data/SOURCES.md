@@ -230,3 +230,13 @@ The Go ingestion adapter (`IngestNPSCorridors`) verifies artifact SHA-256 integr
 
 Segments are stored in `road_segments` with state codes (`WY`, `MT`), highway references (`US-191`, `US-89`), milepost intervals (`milepost_start`, `milepost_end`), and origin OSM way IDs (`osm_way_ids`). Unprivileged roles are denied access to raw linear geometries.
 
+## Academic Evidence Base & Methodology Literature Ledger — 2026-10-12
+
+Synthesized 16 peer-reviewed scientific studies across four methodological pillars:
+1. **Mitigation Effectiveness:** Rytwinski et al. (2016, PLoS ONE, CC BY 4.0, DOI: 10.1371/journal.pone.0166941), Clevenger & Huijser (2011, FHWA, Public Domain, DOI: 10.21949/1503678), Simpson et al. (2016, TRR, DOI: 10.3141/2600-01), Seidler et al. (2015, WSB, DOI: 10.1002/wsb.495), Borda-de-Água et al. (2017, Springer, DOI: 10.1007/978-3-319-57496-7), Kramer et al. (2021, Ecol. Inform., DOI: 10.1016/j.ecoinf.2021.101375).
+2. **Reporting Bias & Detection:** Santos et al. (2011, Nat. Conserv., DOI: 10.4322/natcon.2012.012), Teixeira et al. (2020, Biol. Conserv., DOI: 10.1016/j.biocon.2020.108785), Guinard et al. (2012, Environ. Manage., DOI: 10.1007/s00267-012-9905-2), Schwartz et al. (2020, J. Wildl. Manage., DOI: 10.1002/jwmg.21855).
+3. **Movement Ecology:** Kauffman et al. (2021, USGS Vol. 1, Public Domain, DOI: 10.3133/sir20205101), Sawyer et al. (2013, Ecol. Appl., DOI: 10.1890/12-0744.1), Aikens et al. (2017, Nat. Commun., CC BY 4.0, DOI: 10.1038/s41467-017-01459-y).
+4. **Collision Economics:** Huijser et al. (2009, Ecol. Soc., CC BY-NC 4.0, DOI: 10.5751/ES-03000-140215), WSDOT (2022, WA-RD 913.1, Public Domain, DOI: 10.13140/RG.2.2.33877.91361), Riginos et al. (2022, Conserv. Sci. Pract., CC BY 4.0, DOI: 10.1111/csp2.12642).
+
+Full findings, methodology mappings, and Corridor software parameter linkages are cataloged in `docs/research/academic-evidence-base.md` and `internal/explore/evidence_catalog.go`.
+
