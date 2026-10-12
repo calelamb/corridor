@@ -193,6 +193,7 @@ def export_species_model(
     quantize_int8: bool = True,
     weights: Optional[dict[str, np.ndarray]] = None,
     classes: Optional[Sequence[str]] = None,
+    model: Optional[onnx.ModelProto] = None,
 ) -> Path:
     """Exports species classifier ONNX model to disk, optionally quantizing to int8.
 
@@ -201,6 +202,7 @@ def export_species_model(
         quantize_int8: If True, quantizes linear/conv weights dynamically to int8.
         weights: Optional dictionary of pre-computed layer weights.
         classes: Optional list of class names.
+        model: Optional pre-built onnx.ModelProto.
 
     Returns:
         Path: Path to the generated ONNX model file.
@@ -208,7 +210,8 @@ def export_species_model(
     destination = Path(out_path)
     destination.parent.mkdir(parents=True, exist_ok=True)
 
-    model = build_species_onnx_model(weights=weights, classes=classes)
+    if model is None:
+        model = build_species_onnx_model(weights=weights, classes=classes)
 
     if not quantize_int8:
         onnx.save(model, str(destination))

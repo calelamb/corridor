@@ -124,7 +124,11 @@ class SpeciesClassifier:
         Returns:
             np.ndarray: Logits array of shape [batch, n_classes].
         """
-        if not isinstance(input_tensor, np.ndarray) or input_tensor.ndim != 4:
+        if (
+            not isinstance(input_tensor, np.ndarray)
+            or input_tensor.ndim != 4
+            or input_tensor.shape[1:] != (3, 224, 224)
+        ):
             raise ValueError(f"Expected 4D input tensor [batch, 3, 224, 224], got {getattr(input_tensor, 'shape', None)}")
 
         outputs = self._session.run(None, {"input": input_tensor.astype(np.float32)})
@@ -140,6 +144,9 @@ class SpeciesClassifier:
             np.ndarray: Probabilities array of shape [batch, n_classes].
         """
         logits = self.predict_logits(input_tensor)
+        if logits.shape[-1] != len(self.classes):
+            raise ValueError(f"Model output dimension {logits.shape[-1]} does not match number of classes {len(self.classes)}")
+
         # Shift logits by max for numerical stability
         shifted = logits - np.max(logits, axis=-1, keepdims=True)
         exp_vals = np.exp(shifted)
@@ -197,5 +204,6 @@ class SpeciesClassifier:
         return export_species_model(
             out_path=destination,
             quantize_int8=quantize_int8,
+            model=self._model_proto,
             classes=self.classes,
         )
