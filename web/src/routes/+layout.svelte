@@ -36,6 +36,10 @@
 			href={resolve('/data/')}
 			aria-current={page.url.pathname.startsWith('/data') ? 'page' : undefined}
 			>Data &amp; methods</a
+		>
+		<a
+			href={resolve('/report/')}
+			aria-current={page.url.pathname.startsWith('/report') ? 'page' : undefined}>Field report</a
 		><button
 			class="theme-button"
 			onclick={toggle}
