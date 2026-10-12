@@ -223,11 +223,13 @@ test.describe('Hotspot Lab & Mitigation Prioritization Workspace', () => {
 
 			// Mitigation workspace
 			await page.goto('/?workspace=mitigation');
+			await expect(page.getByRole('heading', { name: /Mitigation Prioritization/i })).toBeVisible();
 			let axe = await new AxeBuilder({ page }).analyze();
 			expect(axe.violations).toEqual([]);
 
 			// Hotspot Lab workspace
 			await page.goto('/?workspace=hotspots');
+			await expect(page.getByRole('heading', { name: /Hotspot Analysis Lab/i })).toBeVisible();
 			axe = await new AxeBuilder({ page }).analyze();
 			expect(axe.violations).toEqual([]);
 		}
