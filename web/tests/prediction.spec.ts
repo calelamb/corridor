@@ -33,7 +33,9 @@ test('prediction outage is recoverable and cannot resemble a low score', async (
 	await page.goto('/');
 	await page.getByRole('button', { name: 'Predictions', exact: true }).click();
 	await page.getByRole('button', { name: 'Run movement analysis' }).click();
-	await expect(page.getByRole('alert')).toContainText('Analysis unavailable');
+	await expect(page.getByRole('alert').filter({ hasText: 'Analysis unavailable' })).toContainText(
+		'Analysis unavailable'
+	);
 	await expect(page.getByRole('group', { name: 'Ranked road areas' })).toHaveCount(0);
 });
 

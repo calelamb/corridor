@@ -38,6 +38,11 @@
 			>Data &amp; methods</a
 		>
 		<a
+			href={resolve('/methodology/')}
+			aria-current={page.url.pathname.startsWith('/methodology') ? 'page' : undefined}
+			>Methodology</a
+		>
+		<a
 			href={resolve('/report/')}
 			aria-current={page.url.pathname.startsWith('/report') ? 'page' : undefined}>Field report</a
 		><button
