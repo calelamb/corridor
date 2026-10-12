@@ -323,9 +323,14 @@ func (s service) CreateReport(ctx context.Context, req CreateReportRequestObject
 		}, nil
 	}
 
+	apiReport := toAPIFieldReport(*createdRecord)
+	if b := s.broadcaster(); b != nil {
+		b.Broadcast(apiReport)
+	}
+
 	return CreateReport201JSONResponse{
 		Status: ReportEnvelopeStatusSuccess,
-		Data:   toAPIFieldReport(*createdRecord),
+		Data:   apiReport,
 		Error:  nil,
 		Meta:   nil,
 	}, nil

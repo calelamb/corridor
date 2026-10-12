@@ -65,6 +65,7 @@ type Dependencies struct {
 	Snapper            Snapper
 	Deduplicator       Deduplicator
 	Authenticator      auth.Authenticator
+	Broadcaster        Broadcaster
 	Ready              func(context.Context) error
 	Logger             *slog.Logger
 	Limiter            *rate.Limiter

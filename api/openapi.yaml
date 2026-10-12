@@ -265,6 +265,20 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '429': { $ref: '#/components/responses/RateLimited' }
         '503': { $ref: '#/components/responses/Unavailable' }
+  /v1/stream/reports:
+    get:
+      operationId: StreamReports
+      summary: Real-time SSE stream of incoming carcass reports
+      description: Server-Sent Events stream delivering real-time carcass observation reports to dispatch stations and ranger desks.
+      responses:
+        '200':
+          description: Real-time incident event stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
 components:
   responses:
     BadRequest:
