@@ -47,7 +47,17 @@ func run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	handler := api.NewRouter(api.Dependencies{Predict: predict.Handler{Store: predict.Store{Pool: pool}, Logger: slog.Default()}, Explore: explore.Handler{Store: explore.Store{Pool: pool}, Basemap: os.Getenv("CORRIDOR_BASEMAP_PATH")}, Web: web.Handler(assets), Store: store, Ready: ready, Logger: slog.Default(), Limiter: rate.NewLimiter(rate.Limit(cfg.RateLimit), cfg.RateBurst), Timeout: cfg.Timeout})
+	handler := api.NewRouter(api.Dependencies{
+		Predict:    predict.Handler{Store: predict.Store{Pool: pool}, Logger: slog.Default()},
+		Explore:    explore.Handler{Store: explore.Store{Pool: pool}, Basemap: os.Getenv("CORRIDOR_BASEMAP_PATH")},
+		Web:        web.Handler(assets),
+		Store:      store,
+		PhotoStore: objects,
+		Ready:      ready,
+		Logger:     slog.Default(),
+		Limiter:    rate.NewLimiter(rate.Limit(cfg.RateLimit), cfg.RateBurst),
+		Timeout:    cfg.Timeout,
+	})
 	listener, err := net.Listen("tcp", cfg.HTTPAddress)
 	if err != nil {
 		return errors.New("HTTP listener unavailable")
