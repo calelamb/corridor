@@ -8,6 +8,11 @@
 		name="description"
 		content="Peer-reviewed research and empirical literature justifying Corridor's wildlife collision risk models, hotspot clustering, and mitigation optimization."
 	/>
+	<meta property="og:title" content="Scientific Evidence & Methodology Library · Corridor" />
+	<meta
+		property="og:description"
+		content="Peer-reviewed research and empirical literature justifying Corridor's wildlife collision risk models, hotspot clustering, and mitigation optimization."
+	/>
 </svelte:head>
 
 <main id="main" class="methodology-container" tabindex="-1">

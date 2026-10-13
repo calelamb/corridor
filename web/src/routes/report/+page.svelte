@@ -248,6 +248,11 @@
 		name="description"
 		content="Rapid glove-friendly offline field reporting PWA for park ranger wildlife carcass observations."
 	/>
+	<meta property="og:title" content="Corridor — Ranger Field Carcass Reporting" />
+	<meta
+		property="og:description"
+		content="Rapid glove-friendly offline field reporting PWA for park ranger wildlife carcass observations with GPS auto-fill and vision classification."
+	/>
 </svelte:head>
 
 <DriverSafetyModal bind:open={showSafetyModal} />

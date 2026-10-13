@@ -2,12 +2,18 @@
 	import { resolve } from '$app/paths';
 </script>
 
-<svelte:head
-	><title>Data &amp; methods — Corridor</title><meta
+<svelte:head>
+	<title>Data &amp; Methods · Corridor Wildlife Platform</title>
+	<meta
 		name="description"
-		content="How Corridor separates verified evidence, uncertainty, and wildlife privacy."
-	/></svelte:head
->
+		content="How Corridor separates verified roadkill evidence, spatial uncertainty, dual-resolution sensitive species privacy, and provenance."
+	/>
+	<meta property="og:title" content="Data &amp; Methods · Corridor Wildlife Platform" />
+	<meta
+		property="og:description"
+		content="How Corridor separates verified roadkill evidence, spatial uncertainty, dual-resolution sensitive species privacy, and provenance."
+	/>
+</svelte:head>
 <main id="main" class="methods" tabindex="-1">
 	<a class="text-link" href={resolve('/')}>← Back to the map</a>
 	<div class="eyebrow">DATA &amp; METHODS</div>
