@@ -83,7 +83,7 @@ Designed for rangers wearing winter duty gloves, parked on high-speed highway sh
 - **Sub-Meter Geolocation:** Continuous background GPS listener locks high-accuracy coordinates (±3m) without requiring manual latitude/longitude entry.
 
 ### Dead-Zone Queue Instructions
-Field patrols in Yellowstone's Gallatin Canyon, Glacier's Marias Pass, or Olympic's Hoh River often have zero cellular connectivity. Corridor is engineered specifically for these dead zones:
+Field patrols in Yellowstone's Gallatin Canyon, Glacier's Marias Pass, Grand Canyon's North Rim, or Olympic's Hoh River often have zero cellular connectivity. Corridor is engineered specifically for these dead zones:
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
@@ -153,7 +153,7 @@ Produce publication-grade, two-page grant application briefs for the **$350M FHW
 
 ### 30-Second Grant Brief Generation Steps
 1. Navigate to **Mitigation Hub**: `https://corridorwildlife.org/?workspace=mitigate`.
-2. **Select Highway Corridor:** Choose your park corridor (e.g., *Yellowstone US-191 MP 10–35*, *Grand Teton US-89 MP 380–420*, *Glacier US-2 Marias Pass*).
+2. **Select Highway Corridor:** Choose your park corridor (e.g., *Yellowstone US-191 MP 10–35*, *Grand Teton US-89 MP 380–420*, *Glacier US-2 Marias Pass*, *Rocky Mountain US-34*, *Yosemite CA-120*, *Grand Canyon AZ-64*, *Olympic US-101*, or *Shenandoah Skyline Drive*).
 3. **Input Available Budget:** Enter project capital target (e.g., `$8,000,000`).
 4. **Click `[Export FHWA WCPP Brief (PDF)]`:** The system runs an algorithmic knapsack optimizer in pure Go and downloads a publication-grade, 2-page executive summary ready for immediate submittal to FHWA and State DOT partners.
 

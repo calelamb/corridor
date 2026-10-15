@@ -26,7 +26,7 @@ This playbook establishes a standard operating procedure for park superintendent
 
 ## 2. Priority National Park Service Units & Strategic Highway Corridors
 
-Corridor is pre-configured with high-resolution 0.1-mile segmentation, topological network models, and habitat layers for major park corridors across North America. The following seven flagship units represent primary targets for initial operational deployment:
+Corridor is pre-configured with high-resolution 0.1-mile segmentation, topological network models, and habitat layers for major park corridors across North America. The following eight flagship units represent primary targets for initial operational deployment:
 
 | National Park Service Unit | Key Highway Corridors | Focal Species & Ecological Concerns | Primary Interagency Partners |
 | :--- | :--- | :--- | :--- |
@@ -35,6 +35,7 @@ Corridor is pre-configured with high-resolution 0.1-mile segmentation, topologic
 | **Glacier National Park (GLAC)** | **US-2** (Southern boundary: West Glacier to East Glacier across Marias Pass, Essex, Middle Fork Flathead River) | Grizzly bear, Canada lynx (*Lynx canadensis*), Bighorn sheep, Moose, Elk, Wolverine | MDT, Flathead National Forest, Blackfeet Nation, Burlington Northern Santa Fe (BNSF) Railway |
 | **Rocky Mountain National Park (ROMO)** | **US-34** (Trail Ridge Road, Fall River Corridor, Kawuneeche Valley), **US-36** (Lyons to Estes Park approach), **CO-7** | Rocky Mountain elk (heavy winter range concentration), Bighorn sheep, Mule deer, Shiras moose | Colorado Dept. of Transportation (CDOT), Arapaho and Roosevelt National Forests, Town of Estes Park |
 | **Yosemite National Park (YOSE)** | **CA-120** (Tioga Road high Sierra crossing, Big Oak Flat Road), **CA-140** (Merced River Canyon), **CA-41** (Wawona Road) | Sierra Nevada bighorn sheep (Federally Endangered), Pacific fisher, California black bear, Mule deer | California Dept. of Transportation (Caltrans District 10 & 6), Stanislaus & Sierra National Forests |
+| **Grand Canyon National Park (GRCA)** | **AZ-64** (South Rim / Desert View Drive), **AZ-67** (North Rim approach from Jacob Lake) | Desert bighorn sheep, Rocky Mountain elk (introduced South Rim herd), Mule deer, Mountain lion, California condor | Arizona Dept. of Transportation (ADOT), Kaibab National Forest, Arizona Game and Fish Department (AZGFD) |
 | **Olympic National Park (OLYM)** | **US-101** (Olympic Loop encircling the peninsula: Lake Crescent, Soleduck, Hoh, and Quinault river corridors) | Roosevelt elk (*Cervus canadensis roosevelti* - world's largest herd), Black bear, Cougar, Columbian black-tailed deer | Washington State Dept. of Transportation (WSDOT Olympic Region), Olympic National Forest, Tribal Nations |
 | **Shenandoah National Park (SHEN)** | **Skyline Drive** (MP 0 to 105 Blue Ridge spine), **US-211** (Thornton Gap crossing), **US-33** (Swift Run Gap crossing), **I-64** (adjacent south) | White-tailed deer (acute collision density), Black bear, Bobcat | Virginia Dept. of Transportation (VDOT Culpeper and Staunton Districts), Augusta and Rockingham Counties |
 
@@ -86,7 +87,7 @@ A successful park-wide rollout coordinates across four functional divisions and 
   - Benefit from offline capability in canyon and backcountry road segments with zero cellular connectivity.
 
 ### 3.3 Dispatch Centers & Interagency Communications
-- **Key Roles:** Lead Telecommunications Specialists, Interagency Dispatchers (e.g., Yellowstone Communications Center, Teton Interagency Dispatch Center, Olympic Peninsula Interagency Communications Center).
+- **Key Roles:** Lead Telecommunications Specialists, Interagency Dispatchers (e.g., Yellowstone Communications Center, Teton Interagency Dispatch Center, Olympic Peninsula Interagency Communications Center, Grand Canyon Dispatch).
 - **Corridor Workflow:**
   - Keep Corridor open in a dedicated desktop browser window or standalone PWA tab.
   - Monitor the real-time Server-Sent Events (SSE) live incident stream (`/v1/stream/reports`), receiving audible and visual chimes whenever field rangers log a carcass or injured animal hazard.
@@ -122,7 +123,7 @@ NPS field and dispatch computers operate under strict Department of the Interior
 - **Zero administrative privileges** are required to install, run, or update the application.
 
 ### 4.3 10-Second Offline Field Carcass Logging
-Patrol rangers responding to roadside strikes in deep river canyons (e.g., Gallatin Canyon on US-191, Lake Crescent on US-101) cannot rely on LTE/5G connectivity.
+Patrol rangers responding to roadside strikes in deep river canyons or remote plateaus (e.g., Gallatin Canyon on US-191, Desert View Drive on AZ-64, Lake Crescent on US-101) cannot rely on LTE/5G connectivity.
 - **IndexedDB Persistence:** Reports submitted while disconnected are safely stored in local browser storage and automatically synchronize with the server once connectivity is restored.
 - **Automatic Spatial Snapping:** Device GPS coordinates instantly snap to the nearest highway segment, state route identifier, and linear milepost marker.
 - **On-Device Vision Classifier:** Built-in lightweight INT8 quantized ONNX vision model provides instantaneous species identification suggestion chips (Mule deer, Elk, Moose, Pronghorn, Bighorn sheep, Black bear, Grizzly bear, Mountain lion) from carcass photographs.
@@ -190,7 +191,7 @@ Week 1 (Days 1–7)     Week 2–3 (Days 8–21)    Week 4–5 (Days 22–35)   
    - Select the park's primary highway corridor (e.g., US-191 Gallatin Canyon or US-89 Jackson Hole).
    - Enter estimated budget ceilings and target crossing structure types.
 2. **Interagency Coordination Session:**
-   - Convene a joint meeting between Park RMS, VRP, and State DOT regional engineers (e.g., WYDOT District 3 or MDT Bozeman District).
+   - Convene a joint meeting between Park RMS, VRP, and State DOT regional engineers (e.g., WYDOT District 3, MDT Bozeman District, CDOT Region 4, Caltrans District 10, or ADOT Northcentral District).
    - Review Corridor's benefit-cost calculations and identified top-tier mitigation segments.
 3. **Export Grant Documentation:**
    - Export 2-page FHWA WCPP PDF Project Briefs for the top 3 ranked segments.

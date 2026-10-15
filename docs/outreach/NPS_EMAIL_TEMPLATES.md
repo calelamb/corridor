@@ -20,15 +20,15 @@
 
 ## Template Directory
 
-- [Template 1: Park Wildlife Biologist & Ungulate/Carnivore Ecologist](#template-1-park-wildlife-biologist--ungulatecarnivore-ecologist)
-- [Template 2: Chief Park Ranger & Dispatch Communications Supervisor](#template-2-chief-park-ranger--dispatch-communications-supervisor)
-- [Template 3: Park Superintendent & Transportation Planner](#template-3-park-superintendent--transportation-planner)
-- [Template 4: State DOT Wildlife Liaison / Joint Interagency Coordinator](#template-4-state-dot-wildlife-liaison--joint-interagency-coordinator)
+- [Template 1: Park Wildlife Biologist & Ungulate/Carnivore Ecologist](#template-1-park-wildlife-biologist-ungulatecarnivore-ecologist)
+- [Template 2: Chief Park Ranger & Dispatch Communications Supervisor](#template-2-chief-park-ranger-dispatch-communications-supervisor)
+- [Template 3: Park Superintendent & Transportation Planner](#template-3-park-superintendent-transportation-planner)
+- [Template 4: State DOT Wildlife Liaison / Joint Interagency Coordinator](#template-4-state-dot-wildlife-liaison-joint-interagency-coordinator)
 - [Template 5: Polite Follow-Up (10–14 Days Later)](#template-5-polite-follow-up-1014-days-later)
 
 ---
 
-### Template 1: Park Wildlife Biologist & Ungulate/Carnivore Ecologist
+### Template 1: Park Wildlife Biologist & Ungulate/Carnivore Ecologist <a id="template-1-park-wildlife-biologist-ungulatecarnivore-ecologist"></a><a id="template-1-park-wildlife-biologist--ungulatecarnivore-ecologist"></a>
 
 **Target Audience:** Wildlife Biologists, Ungulate Specialists, Bear Management Specialists, GIS Coordinators, Natural Resource Specialists (Division of Resource Management and Science).  
 **Primary Focus:** Research data integrity, sub-10s offline carcass logging, dual-resolution poaching protection, migration corridor spatial overlap, and open CSV/GeoJSON export.
@@ -66,7 +66,7 @@ https://corridorwildlife.org
 
 ---
 
-### Template 2: Chief Park Ranger & Dispatch Communications Supervisor
+### Template 2: Chief Park Ranger & Dispatch Communications Supervisor <a id="template-2-chief-park-ranger-dispatch-communications-supervisor"></a><a id="template-2-chief-park-ranger--dispatch-communications-supervisor"></a>
 
 **Target Audience:** Chief Park Rangers, Supervisory Protection Rangers, Road Patrol Supervisors, Telecommunications / Interagency Dispatch Center Supervisors (Division of Visitor and Resource Protection).  
 **Primary Focus:** Patrol officer roadside safety, 10-second glove-friendly field entry, offline reliability, real-time dispatch SSE chimes, zero IT administrative barriers, and zero software licensing cost.
@@ -76,7 +76,7 @@ Subject: Offline roadside carcass logging & live dispatch feed for [Park Name] r
 
 Dear [Chief/Captain/Supervisor Last Name],
 
-As your patrol rangers manage visitor traffic and wildlife hazards along [Highway / Corridor, e.g., US-191 / US-89 / Skyline Drive], stopping to log animal-vehicle strikes on narrow shoulders or in active traffic lanes creates significant officer safety exposure. Compounding this, cellular dead zones frequently prevent timely reporting.
+As your patrol rangers manage visitor traffic and wildlife hazards along [Highway / Corridor, e.g., US-191 / US-89 / AZ-64 / Skyline Drive], stopping to log animal-vehicle strikes on narrow shoulders or in active traffic lanes creates significant officer safety exposure. Compounding this, cellular dead zones frequently prevent timely reporting.
 
 Corridor (https://corridorwildlife.org/rangers/) is a 100% free, open-source tool developed to streamline this exact field workflow for National Park Service protection rangers and dispatch centers:
 
@@ -103,7 +103,7 @@ https://corridorwildlife.org
 
 ---
 
-### Template 3: Park Superintendent & Transportation Planner
+### Template 3: Park Superintendent & Transportation Planner <a id="template-3-park-superintendent-transportation-planner"></a><a id="template-3-park-superintendent--transportation-planner"></a>
 
 **Target Audience:** Park Superintendents, Deputy Superintendents, Facility Managers, Transportation Planners, Denver Service Center (DSC) Project Managers.  
 **Primary Focus:** FHWA $350M Wildlife Crossings Pilot Program (23 U.S.C. § 171) grant readiness, Benefit-Cost Ratio (BCR) optimization, 2-page publication-grade PDF grant briefs, and state DOT alignment.
@@ -113,7 +113,7 @@ Subject: FHWA Wildlife Crossings Pilot Program (WCPP) grant intelligence for [Pa
 
 Dear Superintendent [Last Name],
 
-With the Federal Highway Administration’s (FHWA) $350 million Wildlife Crossings Pilot Program (23 U.S.C. § 171) providing unprecedented funding for wildlife overpasses, underpasses, and exclusion fencing, National Park Service units have a historic opportunity to eliminate collision hotspots along park boundary highways like [Highway, e.g., US-191 / US-89 / US-2 / US-34].
+With the Federal Highway Administration’s (FHWA) $350 million Wildlife Crossings Pilot Program (23 U.S.C. § 171) providing unprecedented funding for wildlife overpasses, underpasses, and exclusion fencing, National Park Service units have a historic opportunity to eliminate collision hotspots along park boundary highways like [Highway, e.g., US-191 / US-89 / US-2 / US-34 / AZ-64 / US-101 / Skyline Drive].
 
 However, assembling competitive federal grant proposals with validated Benefit-Cost Ratios (BCRs) and engineering justification often requires substantial time and outside consulting budgets.
 
@@ -121,7 +121,7 @@ To support your park's capital planning, Corridor (https://corridorwildlife.org)
 
 1. Statutory FHWA Scoring Alignment: Corridor evaluates [Park Name]'s highway segments against statutory criteria under 23 U.S.C. § 171—measuring severe crash risk, ecological connectivity for [Focal Species, e.g., grizzly bear, elk, moose], and economic return.
 2. Rigorous Economic & Engineering Modeling: The platform applies peer-reviewed mitigation efficacy (86% crash reduction for crossing structures paired with exclusion fencing; Rytwinski et al. 2016) against USDOT comprehensive collision valuations ($14,000 per deer, $45,000 per elk, $83,000 per moose) to determine empirical benefit-cost ratios across custom budget limits.
-3. 1-Click 2-Page Grant PDF Generator: Corridor instantly generates publication-grade, two-page FHWA WCPP Project Briefs (`/v1/mitigation/{id}/brief.pdf`) containing project boundary maps, collision history histograms, ecological benefit matrices, and engineering cost breakdowns—ready for inclusion in grant submissions or joint planning meetings with [State DOT, e.g., WYDOT / MDT / CDOT / Caltrans / WSDOT].
+3. 1-Click 2-Page Grant PDF Generator: Corridor instantly generates publication-grade, two-page FHWA WCPP Project Briefs (`/v1/mitigation/{id}/brief.pdf`) containing project boundary maps, collision history histograms, ecological benefit matrices, and engineering cost breakdowns—ready for inclusion in grant submissions or joint planning meetings with [State DOT, e.g., WYDOT / MDT / CDOT / Caltrans / ADOT / WSDOT / VDOT].
 
 Corridor is already in use to model priority highway segments across western national parks. We would be honored to provide your executive and planning staff with a tailored demonstration of the FHWA grant generation tool for [Park Name].
 
@@ -142,7 +142,7 @@ https://corridorwildlife.org
 
 ---
 
-### Template 4: State DOT Wildlife Liaison / Joint Interagency Coordinator
+### Template 4: State DOT Wildlife Liaison / Joint Interagency Coordinator <a id="template-4-state-dot-wildlife-liaison-joint-interagency-coordinator"></a><a id="template-4-state-dot-wildlife-liaison--joint-interagency-coordinator"></a>
 
 **Target Audience:** State Department of Transportation (DOT) Environmental Coordinators, Wildlife Crossings Program Managers, District Traffic Engineers.  
 **Primary Focus:** Cross-jurisdictional data harmonization, combining park interior carcass data with state highway crash records, and co-submitting joint FHWA WCPP applications.
@@ -181,7 +181,7 @@ https://corridorwildlife.org
 
 ---
 
-### Template 5: Polite Follow-Up (10–14 Days Later)
+### Template 5: Polite Follow-Up (10–14 Days Later) <a id="template-5-polite-follow-up-1014-days-later"></a>
 
 **Target Audience:** Follow-up for Biologists, Chief Rangers, or Superintendents.  
 **Primary Focus:** Brief, courteous check-in respecting time constraints, offering a quick 10-minute briefing or sandbox credentials.
