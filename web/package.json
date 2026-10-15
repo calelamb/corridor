@@ -28,7 +28,7 @@
 		"@sveltejs/vite-plugin-svelte": "7.3.0",
 		"@tailwindcss/vite": "4.3.3",
 		"@testing-library/svelte": "5.4.2",
-		"@types/node": "24.13.6",
+		"@types/node": "26.6.2",
 		"@vitest/coverage-v8": "4.1.11",
 		"eslint": "10.11.0",
 		"eslint-config-prettier": "10.1.8",
