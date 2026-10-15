@@ -1,6 +1,6 @@
 # Corridor progress
 
-Updated: 2026-09-21.
+Updated: 2026-10-14.
 
 ## Current state
 
@@ -18,6 +18,7 @@ The Phase 1 foundation now runs locally as a Go application with embedded Svelte
 | 7 Analytical Workspaces & Performance | Complete | 0.1-mile segment risk map layer, TreeSHAP plain-language explanation drawer, Hotspot Lab (NKDE, Getis-Ord Gi*, Planar Density), Mitigation Prioritization Workspace (greedy knapsack, BCR uncertainty, FHWA 2-page PDF export), and dynamic code-splitting achieving 98 mobile performance and 100 accessibility. |
 | 8 Authentication, Live Dispatch & Models | Complete | OIDC / API Key RBAC with role-based privacy gating (H3-r6 + 30-day delay for public vs unredacted for rangers), Server-Sent Events (SSE) live incident dispatch stream (`GET /v1/stream/reports`), LiveFeed Svelte component with audio cues, and model cards published for Corridor LightGBM and BioCLIP. |
 | 9 Academic Methodology Library | Complete | 16 peer-reviewed literature synthesis, pure Go catalog in internal/explore/evidence_catalog.go, interactive evidence library UI in web/src/lib/evidence/ and /methodology route, justifying every model and algorithm. Full verification passing. |
+| 10 Ranger SEO, Desktop Web App & Federal Outreach | Complete | W3C Progressive Web App manifest & icons, JSON-LD rich structured data (SoftwareApplication, FAQPage), dedicated NPS Ranger Hub (/rangers/) with 8 national park spotlights, in-app zero-admin desktop install banner/modal, federal adoption playbook, non-spammy email templates for 3 personas, FHWA WCPP brief, 8-park contact directory, and printable ranger field quickstart guide. 174 Playwright tests, 51 Vitest tests, and all Go tests passing with 0 Axe violations. |
 
 ## Research verification
 
@@ -53,6 +54,38 @@ MinIO remains an archived, isolated development companion; production storage
 requires a maintained service decision. Publication readiness and remote CI status are recorded in the repository release log.
 
 During Phase 2, verify each exact artifact's rights and schema; promote source states only on evidence. No source requests have been sent, no accounts created, no paid services purchased, and no paid data agreements accepted. Do not silently count unavailable data toward the required WA/CA/MT/UT and national-park coverage.
+
+## NPS Ranger SEO, Desktop Web App & Federal Outreach Package — 2026-10-14
+
+Implemented Phase 10 to establish Corridor as the premier, 100% free (Apache-2.0) desktop and field application for National Park Service (NPS) wildlife rangers, resource managers, and federal transportation planners:
+- **W3C Desktop Web App Manifest & App Icons (`web/static/`):**
+  - Declared `manifest.webmanifest` with `standalone` display mode, `#102b23` / `#163d31` brand tokens, and `government`, `productivity`, `utilities`, `navigation` categories.
+  - Added maskable vector SVG application icons (`/icons/icon-192.svg`, `/icons/icon-512.svg`) featuring Corridor brand mark "⋈".
+  - Configured 4 native OS desktop shortcuts: Field Carcass Report (`/report/`), Mitigation Planner (`/?workspace=mitigate`), Hotspot Lab (`/?workspace=hotspot`), and NPS Ranger Hub (`/rangers/`).
+- **Technical & On-Page SEO (`web/src/` & `web/static/`):**
+  - Enriched Schema.org `SoftwareApplication` JSON-LD schema with `operatingSystem` (Windows, macOS, Linux, ChromeOS, Android, iOS), `applicationCategory` (`GovernmentApplication, ScienceApplication, UtilityApplication`), offers price $0 ("Free Public Good for National Parks and Wildlife Coexistence"), and comprehensive feature list.
+  - Added canonical `<link rel="canonical" ... />` tags and OpenGraph/Twitter card metadata across `/`, `/rangers/`, `/report/`, `/methodology/`, and `/data/`.
+  - Expanded `web/static/sitemap.xml` with `/rangers/` priority 0.95 and high-intent keyword discovery.
+- **Dedicated NPS Ranger Discovery Hub (`/rangers`):**
+  - Svelte 5 runes mode (`$state`, `$props`), responsive layout, and WCAG 2.2 AA compliance (0 Axe violations in light and dark mode).
+  - 4 Operational Feature Pillars: Sub-10s Carcass Logging (cellular dead zones), Dual-Resolution Poaching Protection (H3-r6 + 30-day delay for public vs real-time GPS for rangers), FHWA WCPP Grant-Ready 2-Page Briefs, and Real-Time Incident Stream & Dispatch.
+  - 8 Park Highway Spotlights: Yellowstone (US-191 & US-89), Grand Teton (US-89 & US-26), Glacier (US-2), Rocky Mountain (US-34), Yosemite (CA-120 Tioga Pass), Grand Canyon (AZ-64), Olympic (US-101), and Shenandoah (Skyline Drive).
+  - 4-Step Park Adoption Guide and embedded `FAQPage` Schema.org JSON-LD structured data.
+- **In-App Desktop Install Promotion & GFE Guidance (`DesktopInstallBanner.svelte`):**
+  - Listens for W3C `beforeinstallprompt` event and triggers native browser desktop application installation.
+  - Provides zero-admin Government Furnished Equipment (GFE) guidance modal for Microsoft Edge, Google Chrome, and Apple Safari (macOS Sonoma+ Add to Dock) with FISMA/NIST SP 800-53 sandboxing compliance notes.
+  - Persists dismissal in `localStorage` and gracefully hides on mobile viewports (<768px) to preserve compact mobile navigation.
+- **Federal Agency Outreach Package (`docs/outreach/`):**
+  - `NPS_RANGER_ADOPTION_PLAYBOOK.md`: 21.8 KB guide covering division structures, value propositions, and rollout plans across 8 premier national parks.
+  - `NPS_EMAIL_TEMPLATES.md`: 14.8 KB non-spammy email drafts tailored for Park Wildlife Biologists, Chief Park Rangers, and Park Superintendents.
+  - `FHWA_WCPP_PARTNERSHIP_BRIEF.md`: 15.2 KB statutory alignment brief under 23 U.S.C. § 171.
+  - `NPS_CONTACT_DIRECTORY.md`: 18.2 KB authoritative contact directory for 8 target park units, 7 state DOT wildlife crossing liaisons (WYDOT, MDT, CDOT, Caltrans, ADOT, WSDOT, VDOT), and FHWA regional offices.
+  - `NPS_RANGER_QUICKSTART_GUIDE.md`: 15.9 KB printable 1-page cheatsheet for patrol vehicles and dispatch desks.
+- **Full Verification & Quality Metrics:**
+  - 174 Playwright end-to-end tests passing cleanly across Chromium, Firefox, and WebKit (including WCAG 2.2 AA Axe audits with 0 violations from 320px to 1920px).
+  - 51 Vitest unit tests passing in `web/`.
+  - All pure Go tests passing in `internal/api`, `internal/auth`, `internal/export`, `internal/hotspot`, `internal/model`, `internal/prioritize`, `internal/route`, `internal/server`, `internal/storage`, `internal/web`, and `tests/`.
+  - Zero CGo dependencies, zero Docker on macOS, 100% Prettier & ESLint clean.
 
 ## Park Ranger Field Reporting PWA & Photo Ingestion — 2026-10-11
 
