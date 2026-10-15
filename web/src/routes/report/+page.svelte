@@ -244,13 +244,20 @@
 
 <svelte:head>
 	<title>Corridor — Ranger Field Carcass Reporting</title>
+	<link rel="canonical" href="https://corridorwildlife.org/report/" />
 	<meta
 		name="description"
 		content="Rapid glove-friendly offline field reporting PWA for park ranger wildlife carcass observations."
 	/>
+	<meta property="og:url" content="https://corridorwildlife.org/report/" />
 	<meta property="og:title" content="Corridor — Ranger Field Carcass Reporting" />
 	<meta
 		property="og:description"
+		content="Rapid glove-friendly offline field reporting PWA for park ranger wildlife carcass observations with GPS auto-fill and vision classification."
+	/>
+	<meta name="twitter:title" content="Corridor — Ranger Field Carcass Reporting" />
+	<meta
+		name="twitter:description"
 		content="Rapid glove-friendly offline field reporting PWA for park ranger wildlife carcass observations with GPS auto-fill and vision classification."
 	/>
 </svelte:head>

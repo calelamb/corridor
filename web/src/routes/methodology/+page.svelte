@@ -4,13 +4,20 @@
 
 <svelte:head>
 	<title>Scientific Evidence & Methodology Library · Corridor</title>
+	<link rel="canonical" href="https://corridorwildlife.org/methodology/" />
 	<meta
 		name="description"
 		content="Peer-reviewed research and empirical literature justifying Corridor's wildlife collision risk models, hotspot clustering, and mitigation optimization."
 	/>
+	<meta property="og:url" content="https://corridorwildlife.org/methodology/" />
 	<meta property="og:title" content="Scientific Evidence & Methodology Library · Corridor" />
 	<meta
 		property="og:description"
+		content="Peer-reviewed research and empirical literature justifying Corridor's wildlife collision risk models, hotspot clustering, and mitigation optimization."
+	/>
+	<meta name="twitter:title" content="Scientific Evidence & Methodology Library · Corridor" />
+	<meta
+		name="twitter:description"
 		content="Peer-reviewed research and empirical literature justifying Corridor's wildlife collision risk models, hotspot clustering, and mitigation optimization."
 	/>
 </svelte:head>
