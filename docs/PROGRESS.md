@@ -1,6 +1,6 @@
 # Corridor progress
 
-Updated: 2026-10-14.
+Updated: 2026-10-15.
 
 ## Current state
 
@@ -18,7 +18,7 @@ The Phase 1 foundation now runs locally as a Go application with embedded Svelte
 | 7 Analytical Workspaces & Performance | Complete | 0.1-mile segment risk map layer, TreeSHAP plain-language explanation drawer, Hotspot Lab (NKDE, Getis-Ord Gi*, Planar Density), Mitigation Prioritization Workspace (greedy knapsack, BCR uncertainty, FHWA 2-page PDF export), and dynamic code-splitting achieving 98 mobile performance and 100 accessibility. |
 | 8 Authentication, Live Dispatch & Models | Complete | OIDC / API Key RBAC with role-based privacy gating (H3-r6 + 30-day delay for public vs unredacted for rangers), Server-Sent Events (SSE) live incident dispatch stream (`GET /v1/stream/reports`), LiveFeed Svelte component with audio cues, and model cards published for Corridor LightGBM and BioCLIP. |
 | 9 Academic Methodology Library | Complete | 16 peer-reviewed literature synthesis, pure Go catalog in internal/explore/evidence_catalog.go, interactive evidence library UI in web/src/lib/evidence/ and /methodology route, justifying every model and algorithm. Full verification passing. |
-| 10 Ranger SEO, Desktop Web App & Federal Outreach | Complete | W3C Progressive Web App manifest & icons, JSON-LD rich structured data (SoftwareApplication, FAQPage), dedicated NPS Ranger Hub (/rangers/) with 8 national park spotlights, in-app zero-admin desktop install banner/modal, federal adoption playbook, non-spammy email templates for 3 personas, FHWA WCPP brief, 8-park contact directory, and printable ranger field quickstart guide. 174 Playwright tests, 51 Vitest tests, and all Go tests passing with 0 Axe violations. |
+| 10 Ranger SEO, Desktop Web App & Federal Outreach | Complete & Swarm-Verified | W3C Progressive Web App manifest & icons, JSON-LD rich structured data (SoftwareApplication, FAQPage), dedicated NPS Ranger Hub (/rangers/) with 8 national park spotlights, in-app zero-admin desktop install banner/modal, federal adoption playbook, non-spammy email templates for 3 personas, FHWA WCPP brief, 8-park contact directory, and printable ranger field quickstart guide. Swarm-verified with 363 Playwright tests across Chromium, Firefox, WebKit, 51 Vitest tests, and all Go tests passing with 0 Axe violations. |
 
 ## Research verification
 
@@ -81,11 +81,15 @@ Implemented Phase 10 to establish Corridor as the premier, 100% free (Apache-2.0
   - `FHWA_WCPP_PARTNERSHIP_BRIEF.md`: 15.2 KB statutory alignment brief under 23 U.S.C. § 171.
   - `NPS_CONTACT_DIRECTORY.md`: 18.2 KB authoritative contact directory for 8 target park units, 7 state DOT wildlife crossing liaisons (WYDOT, MDT, CDOT, Caltrans, ADOT, WSDOT, VDOT), and FHWA regional offices.
   - `NPS_RANGER_QUICKSTART_GUIDE.md`: 15.9 KB printable 1-page cheatsheet for patrol vehicles and dispatch desks.
-- **Full Verification & Quality Metrics:**
-  - 174 Playwright end-to-end tests passing cleanly across Chromium, Firefox, and WebKit (including WCAG 2.2 AA Axe audits with 0 violations from 320px to 1920px).
-  - 51 Vitest unit tests passing in `web/`.
-  - All pure Go tests passing in `internal/api`, `internal/auth`, `internal/export`, `internal/hotspot`, `internal/model`, `internal/prioritize`, `internal/route`, `internal/server`, `internal/storage`, `internal/web`, and `tests/`.
-  - Zero CGo dependencies, zero Docker on macOS, 100% Prettier & ESLint clean.
+- **Multi-Agent Verification Swarm Audit & Hardening — 2026-10-15:**
+  - Deployed a 4-auditor verification swarm covering: (1) E2E Tests, Accessibility & Responsive Viewports, (2) Technical SEO, Structured Data & Search Discoverability, (3) Federal Outreach & Documentation, and (4) Engineering Contract, Architecture & Privacy.
+  - **Eliminated 320px/375px Horizontal Scrollbar Leaks:** Added `min-width: 0;`, `overflow-wrap: anywhere;`, and `word-break: break-word` to `EvidenceCard.svelte`, `EvidenceLibrary.svelte`, `workbench.css`, and `methodology/+page.svelte`, ensuring zero horizontal scrollbar leaks across all 5 routes.
+  - **Glove-Friendly Touch Targets ($\ge 48\text{px}$):** Updated `DriverSafetyModal.svelte`, `Timeline.svelte`, `PredictionPanel.svelte`, `report/+page.svelte`, and `global.css` theme toggles to enforce minimum 48px tactile tap targets for winter field gear.
+  - **Full Verification & Quality Metrics:**
+    - 363 Playwright end-to-end tests passing cleanly across Chromium, Firefox, and WebKit (including WCAG 2.2 AA Axe audits with 0 violations across 320px, 375px, 768px, 1024px, 1440px, and 1920px viewports in both light and dark modes).
+    - 51 Vitest unit tests passing in `web/`.
+    - All pure Go tests passing in `internal/api`, `internal/auth`, `internal/export`, `internal/hotspot`, `internal/model`, `internal/prioritize`, `internal/route`, `internal/server`, `internal/storage`, `internal/web`, and `tests/`.
+    - Zero CGo dependencies (`CGO_ENABLED=0`), zero Docker on macOS, 100% Prettier & ESLint clean.
 
 ## Park Ranger Field Reporting PWA & Photo Ingestion — 2026-10-11
 
