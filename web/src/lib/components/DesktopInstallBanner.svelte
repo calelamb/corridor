@@ -568,15 +568,7 @@
 
 	@media (max-width: 768px) {
 		.install-banner {
-			flex-direction: column;
-			align-items: flex-start;
-			padding: 16px;
-		}
-
-		.banner-actions {
-			width: 100%;
-			justify-content: flex-start;
-			flex-wrap: wrap;
+			display: none;
 		}
 
 		.browser-cards {

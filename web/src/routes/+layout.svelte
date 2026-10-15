@@ -108,13 +108,9 @@
 		outline-offset: 2px;
 	}
 
-	@media (max-width: 640px) {
-		.install-cta-text {
-			display: none;
-		}
+	@media (max-width: 768px) {
 		.install-cta-btn {
-			padding: 0 10px;
-			min-width: 44px;
+			display: none;
 		}
 	}
 </style>
