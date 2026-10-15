@@ -596,7 +596,7 @@
 		min-width: 100px;
 		padding: 8px 16px;
 		background: var(--accent, #21644d);
-		color: #ffffff;
+		color: var(--accent-ink, #ffffff);
 		border: none;
 		border-radius: 24px;
 		font-size: 0.9rem;
@@ -681,7 +681,7 @@
 		width: 28px;
 		height: 28px;
 		background: var(--accent, #21644d);
-		color: #ffffff;
+		color: var(--accent-ink, #ffffff);
 		border-radius: 50%;
 		font-size: 0.9rem;
 		font-weight: 700;
@@ -734,7 +734,7 @@
 	.species-chip.active {
 		border-color: var(--accent, #21644d);
 		background: var(--accent, #21644d);
-		color: #ffffff;
+		color: var(--accent-ink, #ffffff);
 		box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
 	}
 
@@ -873,13 +873,15 @@
 
 	.confidence-chips {
 		display: flex;
+		flex-wrap: wrap;
 		gap: 10px;
 		margin-top: 6px;
 	}
 
 	.confidence-chip {
 		min-height: 48px;
-		min-width: 100px;
+		min-width: 80px;
+		flex: 1 1 80px;
 		padding: 8px 16px;
 		border: 1px solid var(--line, #d5dfd9);
 		border-radius: 8px;
@@ -889,12 +891,16 @@
 		font-weight: 600;
 		text-transform: capitalize;
 		cursor: pointer;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		text-align: center;
 	}
 
 	.confidence-chip.active {
 		border-color: var(--accent, #21644d);
 		background: var(--accent, #21644d);
-		color: #ffffff;
+		color: var(--accent-ink, #ffffff);
 	}
 
 	.field-label {
@@ -938,7 +944,7 @@
 		min-height: 58px;
 		padding: 16px 28px;
 		background: var(--accent, #21644d);
-		color: #ffffff;
+		color: var(--accent-ink, #ffffff);
 		border: none;
 		border-radius: 14px;
 		font-size: 1.25rem;
@@ -977,5 +983,24 @@
 	.btn-icon {
 		font-size: 1.3rem;
 		line-height: 1;
+	}
+
+	@media (max-width: 640px) {
+		.form-section {
+			padding: 16px 12px;
+		}
+	}
+
+	@media (max-width: 480px) {
+		.report-container {
+			padding: 16px 12px 64px;
+		}
+		.btn-photo {
+			min-width: 0;
+			width: 100%;
+		}
+		.btn-sync {
+			min-width: 80px;
+		}
 	}
 </style>

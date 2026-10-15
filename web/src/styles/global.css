@@ -152,7 +152,10 @@ nav {
 nav a {
 	display: inline-flex;
 	align-items: center;
+	justify-content: center;
 	min-height: 48px;
+	min-width: 48px;
+	padding: 0 4px;
 	font-size: 0.875rem;
 	font-weight: 600;
 }
@@ -641,8 +644,8 @@ nav a {
 		display: none;
 	}
 	.site-header .theme-button {
-		min-width: 44px;
-		min-height: 44px;
+		min-width: 48px;
+		min-height: 48px;
 	}
 }
 
@@ -671,7 +674,7 @@ nav a {
 	}
 	.site-header .theme-button {
 		font-size: 20px;
-		min-width: 40px;
-		min-height: 40px;
+		min-width: 48px;
+		min-height: 48px;
 	}
 }

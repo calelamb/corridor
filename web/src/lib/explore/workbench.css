@@ -388,7 +388,7 @@
 	background: var(--panel);
 	border-radius: 7px;
 	padding: 10px;
-	min-height: 44px;
+	min-height: 48px;
 }
 .workbench button {
 	font-size: 0.875rem;
@@ -507,7 +507,9 @@
 .workbench .source-note summary {
 	font-size: 0.875rem;
 	font-weight: 600;
-	min-height: 32px;
+	min-height: 48px;
+	display: flex;
+	align-items: center;
 }
 .workbench .migration-toggle {
 	display: flex;
