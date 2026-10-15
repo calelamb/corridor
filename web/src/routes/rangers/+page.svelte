@@ -58,7 +58,7 @@
 	<title>NPS Rangers Wildlife Intelligence &amp; Field Hub · Corridor</title>
 	<meta
 		name="description"
-		content="Empowering National Park Service rangers with predictive wildlife collision intelligence, sub-10s offline carcass reporting, poaching protection, and FHWA grant briefs."
+		content="Empowering National Park Service rangers across Yellowstone, Grand Teton, Glacier, Rocky Mountain, Yosemite, Grand Canyon, Olympic, and Shenandoah with predictive wildlife collision intelligence, sub-10s offline carcass reporting, poaching protection, and FHWA grant briefs."
 	/>
 	<link rel="canonical" href="https://corridorwildlife.org/rangers/" />
 	<meta
@@ -67,7 +67,7 @@
 	/>
 	<meta
 		property="og:description"
-		content="100% Free &amp; Open-Source for the National Park Service. Sub-10s offline carcass logging, dual-resolution poaching protection, and FHWA WCPP grant briefs."
+		content="100% Free &amp; Open-Source for the National Park Service. Predictive wildlife collision intelligence across Yellowstone, Grand Teton, Glacier, Rocky Mountain, Yosemite, Grand Canyon, Olympic, and Shenandoah."
 	/>
 	<meta property="og:url" content="https://corridorwildlife.org/rangers/" />
 	<meta property="og:type" content="website" />
@@ -78,7 +78,7 @@
 	/>
 	<meta
 		name="twitter:description"
-		content="Empowering NPS rangers with predictive wildlife collision intelligence, offline carcass reporting, and FHWA grant briefs."
+		content="Empowering NPS rangers with predictive wildlife collision intelligence across Yellowstone, Yosemite, Grand Canyon, Olympic, Shenandoah, and more."
 	/>
 	<!-- Structured Data: FAQPage -->
 	<!-- eslint-disable-next-line svelte/no-at-html-tags -->
@@ -342,6 +342,82 @@
 					<span class="meta-tag">Bighorn Sheep</span>
 					<span class="meta-tag">Rocky Mountain Elk</span>
 					<span class="meta-tag">Mule Deer</span>
+				</div>
+			</article>
+
+			<article class="spotlight-card">
+				<div class="spotlight-header">
+					<span class="spotlight-park">Yosemite National Park</span>
+					<span class="spotlight-highway">CA-120 / Tioga Pass</span>
+				</div>
+				<h3 class="spotlight-title">CA-120 Tioga Pass &amp; Big Oak Flat Road</h3>
+				<p class="spotlight-body">
+					Ascending through high-Sierra passes up to 9,943 feet, CA-120 experiences heavy summer
+					traffic cutting across critical black bear protection corridors and seasonal
+					high-elevation wildlife movements. Corridor highlights deceleration hot spots near Crane
+					Flat and Tuolumne Meadows to prevent vehicle strikes.
+				</p>
+				<div class="spotlight-meta">
+					<span class="meta-tag">American Black Bear</span>
+					<span class="meta-tag">Sierra Nevada Bighorn Sheep</span>
+					<span class="meta-tag">Mule Deer</span>
+				</div>
+			</article>
+
+			<article class="spotlight-card">
+				<div class="spotlight-header">
+					<span class="spotlight-park">Grand Canyon National Park</span>
+					<span class="spotlight-highway">AZ-64</span>
+				</div>
+				<h3 class="spotlight-title">AZ-64 Desert View Drive South Rim</h3>
+				<p class="spotlight-body">
+					Winding along the South Rim, AZ-64 Desert View Drive intersects frequent canyon rim
+					crossings by resident elk, desert bighorn sheep, and mule deer searching for water and
+					forage. Corridor pinpoints high-collision rim road sectors to guide dynamic solar-powered
+					warning signs and exclusionary fencing.
+				</p>
+				<div class="spotlight-meta">
+					<span class="meta-tag">Rocky Mountain Elk</span>
+					<span class="meta-tag">Desert Bighorn Sheep</span>
+					<span class="meta-tag">Mule Deer</span>
+				</div>
+			</article>
+
+			<article class="spotlight-card">
+				<div class="spotlight-header">
+					<span class="spotlight-park">Olympic National Park</span>
+					<span class="spotlight-highway">US-101</span>
+				</div>
+				<h3 class="spotlight-title">US-101 Lake Crescent &amp; Hoh River Corridor</h3>
+				<p class="spotlight-body">
+					Traversing ancient temperate rainforests, US-101 experiences seasonal Roosevelt elk herd
+					migration between lowland river valleys and subalpine slopes. Heavy maritime precipitation
+					hazards, tight curves, and low visibility elevate strike frequencies, making Corridor’s
+					predictive targeting essential for highway infrastructure.
+				</p>
+				<div class="spotlight-meta">
+					<span class="meta-tag">Roosevelt Elk</span>
+					<span class="meta-tag">Black-Tailed Deer</span>
+					<span class="meta-tag">Cougar</span>
+				</div>
+			</article>
+
+			<article class="spotlight-card">
+				<div class="spotlight-header">
+					<span class="spotlight-park">Shenandoah National Park</span>
+					<span class="spotlight-highway">Skyline Drive</span>
+				</div>
+				<h3 class="spotlight-title">Skyline Drive Ridge Highway</h3>
+				<p class="spotlight-body">
+					Riding the crest of Virginia's Blue Ridge Mountains, Skyline Drive contends with extreme
+					white-tailed deer rut density, active black bear crossings, and low-visibility mountain
+					fog hazards. Corridor assists resource managers and park rangers in scheduling targeted
+					patrols and speed compliance advisories during peak autumn migration.
+				</p>
+				<div class="spotlight-meta">
+					<span class="meta-tag">White-Tailed Deer</span>
+					<span class="meta-tag">American Black Bear</span>
+					<span class="meta-tag">Bobcat</span>
 				</div>
 			</article>
 		</div>

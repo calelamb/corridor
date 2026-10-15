@@ -18,13 +18,24 @@ test.describe('NPS Ranger Discovery Hub (/rangers/)', () => {
 		await expect(page.getByText(/FHWA/i).first()).toBeVisible();
 		await expect(page.getByText(/Poaching Protection|Sensitive Species/i).first()).toBeVisible();
 
-		// Park spotlights
+		// Park spotlights (8 flagship park units)
 		await expect(page.getByText(/Yellowstone/i).first()).toBeVisible();
 		await expect(page.getByText(/US-191/i).first()).toBeVisible();
 		await expect(page.getByText(/Grand Teton/i).first()).toBeVisible();
 		await expect(page.getByText(/US-89/i).first()).toBeVisible();
 		await expect(page.getByText(/Glacier/i).first()).toBeVisible();
 		await expect(page.getByText(/US-2/i).first()).toBeVisible();
+		await expect(page.getByText(/Rocky Mountain/i).first()).toBeVisible();
+		await expect(page.getByText(/US-34/i).first()).toBeVisible();
+		await expect(page.getByText(/Yosemite/i).first()).toBeVisible();
+		await expect(page.getByText(/CA-120/i).first()).toBeVisible();
+		await expect(page.getByText(/Tioga Pass/i).first()).toBeVisible();
+		await expect(page.getByText(/Grand Canyon/i).first()).toBeVisible();
+		await expect(page.getByText(/AZ-64/i).first()).toBeVisible();
+		await expect(page.getByText(/Olympic/i).first()).toBeVisible();
+		await expect(page.getByText(/US-101/i).first()).toBeVisible();
+		await expect(page.getByText(/Shenandoah/i).first()).toBeVisible();
+		await expect(page.getByText(/Skyline Drive/i).first()).toBeVisible();
 
 		// FAQ structured data (JSON-LD)
 		const faqScript = page.locator('script[data-schema="faq"]');
