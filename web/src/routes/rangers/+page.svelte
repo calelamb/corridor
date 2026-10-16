@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import RangerDemoSimulator from '$lib/rangers/RangerDemoSimulator.svelte';
 
 	// Runes mode
 	let openFaq = $state<number | null>(null);
@@ -255,6 +256,21 @@
 				</ul>
 			</article>
 		</div>
+	</section>
+
+	<!-- Interactive Ranger Field Demo Simulator -->
+	<section class="simulator-section" aria-labelledby="simulator-heading" id="ranger-sandbox">
+		<div class="section-header">
+			<span class="section-eyebrow">FIELD SIMULATION SANDBOX</span>
+			<h2 id="simulator-heading">Interactive Ranger Sandbox: Test the Field Flow in 15 Seconds</h2>
+			<p class="section-lead">
+				Experience Corridor’s sub-10-second offline carcass logging, dual-resolution poaching
+				protection, and publication-ready FHWA Wildlife Crossings Pilot Program (WCPP) grant briefs
+				directly from your patrol vehicle or desk.
+			</p>
+		</div>
+
+		<RangerDemoSimulator />
 	</section>
 
 	<!-- Park Highway Spotlights -->
