@@ -31,6 +31,17 @@ func Handler(assets fs.FS) http.Handler {
 		}
 		data, err := fs.ReadFile(assets, name)
 		if err != nil {
+			if !strings.HasSuffix(r.URL.Path, "/") {
+				indexPath := path.Join(name, "index.html")
+				if info, statErr := fs.Stat(assets, indexPath); statErr == nil && !info.IsDir() {
+					target := r.URL.Path + "/"
+					if r.URL.RawQuery != "" {
+						target += "?" + r.URL.RawQuery
+					}
+					http.Redirect(w, r, target, http.StatusMovedPermanently)
+					return
+				}
+			}
 			http.NotFound(w, r)
 			return
 		}

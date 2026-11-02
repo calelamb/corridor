@@ -1,0 +1,39 @@
+From: Corridor Wildlife Project <adoption@corridorwildlife.org>
+To: John Waller <john_waller@nps.gov>
+Subject: Open-source wildlife carcass logging & migration corridor analysis for Glacier National Park
+Date: Fri, 16 Oct 2026 19:41:59 +0000
+Message-ID: <glacier-biologist-1792179719@corridorwildlife.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
+X-Unsent: 1
+
+Dear John Waller,
+
+I am writing to share Corridor (https://corridorwildlife.org/rangers/), an open-source, non-commercial wildlife-highway intelligence platform built specifically to support National Park Service wildlife biologists and field crews monitoring wildlife-vehicle collisions.
+
+Managing ungulate migrations and carnivore movements across highway corridors like US-2 through Glacier National Park presents severe challenges—especially with fragmented incident data and zero-cellular dead zones along canyon bottoms and mountain passes.
+
+Corridor was developed under the Apache-2.0 license (100% free and open for public science) to solve three specific data bottlenecks for park biological staff:
+
+1. Sub-10-Second Offline Carcass Reporting: Field crews and patrol rangers can log carcass locations in under 10 seconds via our offline PWA (https://corridorwildlife.org/report/). It operates with zero cellular connectivity, uses on-device species AI suggestions for grizzly bear, Canada lynx, elk, moose, and automatically snaps to nearest highway mileposts before syncing once back in station WiFi.
+
+2. Strict Dual-Resolution Poaching Protection: To protect sensitive and listed species from illegal harvest or harassment, public maps display only generalized H3 resolution-6 hexagon aggregates (~36 km²) with a mandatory 30-day quarantine delay. Authenticated park biologists retain instantaneous, unredacted access to sub-meter GPS coordinates, photos, and field notes.
+
+3. Open Research Export & Transparent Science: All historical and newly recorded incidents can be exported directly into open formats (GeoJSON, CSV, Parquet) for seamless import into ArcGIS Pro or R. Our analytical methods—including Network Kernel Density Estimation (NKDE), Getis-Ord Gi*, and TreeSHAP risk modeling—are fully documented in our open methodology library (https://corridorwildlife.org/methodology/).
+
+USDOT comprehensive crash valuations ($14,000 per deer, $45,000 per elk, and $83,000 per moose) underscore the immense economic and ecological return of targeted highway mitigation.
+
+If you would find it helpful, we would welcome the opportunity to set up your team with agency credentials and demonstrate how Corridor can ingest Glacier National Park's legacy carcass data into a unified spatial view.
+
+You can explore the live ranger interface directly at:
+https://corridorwildlife.org/rangers/
+
+Thank you for your dedicated stewardship of Glacier National Park's wildlife.
+
+Respectfully,
+
+Federal Agency Outreach Specialist
+Corridor Wildlife Intelligence Initiative
+adoption@corridorwildlife.org
+https://corridorwildlife.org

@@ -5,6 +5,7 @@ export default defineConfig({
 		baseURL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:4173',
 		serviceWorkers: 'block'
 	},
+	workers: process.env.CI ? 2 : 4,
 	projects: [
 		{ name: 'chromium', use: { ...devices['Desktop Chrome'] } },
 		{ name: 'firefox', use: { ...devices['Desktop Firefox'] } },

@@ -152,7 +152,10 @@ nav {
 nav a {
 	display: inline-flex;
 	align-items: center;
+	justify-content: center;
 	min-height: 48px;
+	min-width: 48px;
+	padding: 0 4px;
 	font-size: 0.875rem;
 	font-weight: 600;
 }
@@ -632,6 +635,7 @@ nav a {
 	}
 	.site-header nav {
 		gap: 12px;
+		flex-wrap: wrap;
 	}
 	.site-header nav a {
 		font-size: 0.875rem;
@@ -640,7 +644,37 @@ nav a {
 		display: none;
 	}
 	.site-header .theme-button {
-		min-width: 44px;
-		min-height: 44px;
+		min-width: 48px;
+		min-height: 48px;
+	}
+}
+
+@media (max-width: 480px) {
+	.site-header nav {
+		gap: 8px;
+	}
+	.site-header nav a {
+		font-size: 12px;
+	}
+}
+
+@media (max-width: 375px) {
+	.site-header {
+		padding: 0 10px;
+		gap: 6px;
+	}
+	.site-header .brand {
+		font-size: 24px;
+	}
+	.site-header nav {
+		gap: 6px;
+	}
+	.site-header nav a {
+		font-size: 11px;
+	}
+	.site-header .theme-button {
+		font-size: 20px;
+		min-width: 48px;
+		min-height: 48px;
 	}
 }

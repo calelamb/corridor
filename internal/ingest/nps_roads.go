@@ -55,6 +55,14 @@ var (
 	re89Ref   = regexp.MustCompile(`(?i)\b(US[- ]?89|U\.S\.[- ]?89|^89$|;89|89;)\b`)
 	re191Name = regexp.MustCompile(`(?i)\b(US[- ]?191|U\.S\.[- ]?191|Highway 191|Hwy 191)\b`)
 	re89Name  = regexp.MustCompile(`(?i)\b(US[- ]?89|U\.S\.[- ]?89|Highway 89|Hwy 89)\b`)
+
+	re120Ref  = regexp.MustCompile(`(?i)\b(CA[- ]?120|SR[- ]?120|State Route 120|^120$|;120|120;)\b`)
+	re140Ref  = regexp.MustCompile(`(?i)\b(CA[- ]?140|SR[- ]?140|State Route 140|^140$|;140|140;)\b`)
+	re41Ref   = regexp.MustCompile(`(?i)\b(CA[- ]?41|SR[- ]?41|State Route 41|^41$|;41|41;)\b`)
+
+	re120Name = regexp.MustCompile(`(?i)\b(CA[- ]?120|Highway 120|Hwy 120|Tioga Road|Tioga Pass Road|Big Oak Flat Road)\b`)
+	re140Name = regexp.MustCompile(`(?i)\b(CA[- ]?140|Highway 140|Hwy 140|El Portal Road|Merced River Canyon(?: Road)?)\b`)
+	re41Name  = regexp.MustCompile(`(?i)\b(CA[- ]?41|Highway 41|Hwy 41|Wawona Road)\b`)
 )
 
 // NPSRoadArtifact returns the provenance artifact metadata for Yellowstone & Grand Teton highways.
@@ -184,14 +192,14 @@ func IngestNPSCorridors(ctx context.Context, pool *pgxpool.Pool, objects *storag
 			if err := validateWGS84(*p.Lon, *p.Lat); err != nil {
 				return IngestStats{}, err
 			}
-			if !inYellowstoneCorridorBbox(*p.Lon, *p.Lat) {
+			if !inCorridorBbox(*p.Lon, *p.Lat) {
 				outsideBbox = true
 				break
 			}
 			points = append(points, [2]float64{*p.Lon, *p.Lat})
 		}
 		if outsideBbox || len(points) < 2 {
-			// Skip ways outside Yellowstone / Grand Teton corridor bounds
+			// Skip ways outside national park corridor bounds
 			continue
 		}
 
@@ -412,7 +420,18 @@ func inYellowstoneCorridorBbox(lon, lat float64) bool {
 	return lat >= 43.0 && lat <= 46.0 && lon >= -112.5 && lon <= -109.5
 }
 
-// matchHighwayRef identifies US-191 and US-89 corridors using exact tokens and regex boundaries.
+// inYosemiteCorridorBbox checks if a coordinate falls within the Yosemite National Park
+// highway corridor study area.
+// Lat: [37.4, 38.3], Lon: [-119.95, -119.15].
+func inYosemiteCorridorBbox(lon, lat float64) bool {
+	return lat >= 37.4 && lat <= 38.3 && lon >= -119.95 && lon <= -119.15
+}
+
+func inCorridorBbox(lon, lat float64) bool {
+	return inYellowstoneCorridorBbox(lon, lat) || inYosemiteCorridorBbox(lon, lat)
+}
+
+// matchHighwayRef identifies US-191, US-89, CA-120, CA-140, and CA-41 corridors using exact tokens and regex boundaries.
 func matchHighwayRef(tags map[string]string) (string, bool) {
 	hw := tags["highway"]
 	if hw == "" || hw == "footway" || hw == "path" || hw == "cycleway" || hw == "service" || hw == "track" || hw == "steps" {
@@ -424,6 +443,9 @@ func matchHighwayRef(tags map[string]string) (string, bool) {
 
 	has191 := isMatch191(ref, name)
 	has89 := isMatch89(ref, name)
+	has120 := isMatch120(ref, name)
+	has140 := isMatch140(ref, name)
+	has41 := isMatch41(ref, name)
 
 	if has191 && has89 {
 		return "US-191; US-89", true
@@ -433,6 +455,15 @@ func matchHighwayRef(tags map[string]string) (string, bool) {
 	}
 	if has89 {
 		return "US-89", true
+	}
+	if has120 {
+		return "CA-120", true
+	}
+	if has140 {
+		return "CA-140", true
+	}
+	if has41 {
+		return "CA-41", true
 	}
 	return "", false
 }
@@ -468,6 +499,60 @@ func isMatch89(ref, name string) bool {
 		}
 	}
 	if name != "" && re89Name.MatchString(name) {
+		return true
+	}
+	return false
+}
+
+func isMatch120(ref, name string) bool {
+	if ref != "" {
+		for _, part := range strings.Split(ref, ";") {
+			p := strings.TrimSpace(strings.ToUpper(part))
+			if p == "120" || p == "CA 120" || p == "CA-120" || p == "SR 120" || p == "SR-120" || p == "CALIFORNIA 120" {
+				return true
+			}
+		}
+		if re120Ref.MatchString(ref) {
+			return true
+		}
+	}
+	if name != "" && re120Name.MatchString(name) {
+		return true
+	}
+	return false
+}
+
+func isMatch140(ref, name string) bool {
+	if ref != "" {
+		for _, part := range strings.Split(ref, ";") {
+			p := strings.TrimSpace(strings.ToUpper(part))
+			if p == "140" || p == "CA 140" || p == "CA-140" || p == "SR 140" || p == "SR-140" || p == "CALIFORNIA 140" {
+				return true
+			}
+		}
+		if re140Ref.MatchString(ref) {
+			return true
+		}
+	}
+	if name != "" && re140Name.MatchString(name) {
+		return true
+	}
+	return false
+}
+
+func isMatch41(ref, name string) bool {
+	if ref != "" {
+		for _, part := range strings.Split(ref, ";") {
+			p := strings.TrimSpace(strings.ToUpper(part))
+			if p == "41" || p == "CA 41" || p == "CA-41" || p == "SR 41" || p == "SR-41" || p == "CALIFORNIA 41" {
+				return true
+			}
+		}
+		if re41Ref.MatchString(ref) {
+			return true
+		}
+	}
+	if name != "" && re41Name.MatchString(name) {
 		return true
 	}
 	return false
@@ -517,11 +602,20 @@ func parseMilepostNum(val string) (float64, bool) {
 }
 
 func determineState(tags map[string]string, lat, lon float64) string {
-	if s := strings.ToUpper(strings.TrimSpace(tags["state"])); s == "WY" || s == "MT" || s == "ID" {
+	if s := strings.ToUpper(strings.TrimSpace(tags["state"])); s == "WY" || s == "MT" || s == "ID" || s == "CA" || s == "CALIFORNIA" {
+		if s == "CALIFORNIA" {
+			return "CA"
+		}
 		return s
 	}
-	if s := strings.ToUpper(strings.TrimSpace(tags["addr:state"])); s == "WY" || s == "MT" || s == "ID" {
+	if s := strings.ToUpper(strings.TrimSpace(tags["addr:state"])); s == "WY" || s == "MT" || s == "ID" || s == "CA" || s == "CALIFORNIA" {
+		if s == "CALIFORNIA" {
+			return "CA"
+		}
 		return s
+	}
+	if lat >= 37.0 && lat <= 39.0 && lon >= -121.0 && lon <= -118.0 {
+		return "CA"
 	}
 	if lat >= 45.0 {
 		return "MT"
