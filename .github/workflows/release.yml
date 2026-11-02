@@ -71,7 +71,7 @@ jobs:
           cat SHA256SUMS
 
       - name: Upload binaries as workflow artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: corridor-release-binaries
           path: release-artifacts/
