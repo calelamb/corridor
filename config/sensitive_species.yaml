@@ -1,0 +1,82 @@
+# Sensitive Wildlife Classification and Privacy Rules
+# Governs public location generalization and temporal quarantine to protect vulnerable species from poaching and harassment.
+# Configures Uber H3 spatial generalization and observation quarantine periods.
+
+privacy:
+  generalization:
+    system: "Uber H3"
+    resolution: 6 # H3 resolution 6 (~36 km² cell area)
+    min_resolution: 6
+    description: "Public views and feeds generalize sensitive species coordinates to H3 resolution 6 hexagons (~36 km²)."
+  quarantine:
+    delay_days: 30
+    delay_duration: "720h" # 30 calendar days
+    description: "Sensitive species observations are quarantined and withheld from public views for 30 days."
+  exempt_roles:
+    - "analyst"
+    - "admin"
+
+species:
+  - common_name: "Sierra Nevada bighorn sheep"
+    scientific_name: "Ovis canadensis sierrae"
+    status: "endangered"
+    category: "listed_ungulate"
+    aliases:
+      - "sierra_bighorn_sheep"
+      - "sierra_nevada_bighorn_sheep"
+      - "bighorn_sheep"
+    notes: "Federally and California state-listed endangered subspecies (poaching/trophy risk)."
+
+  - common_name: "Pacific fisher"
+    scientific_name: "Pekania pennanti"
+    status: "endangered"
+    category: "rare_carnivore"
+    aliases:
+      - "pacific_fisher"
+      - "fisher"
+    notes: "Southern Sierra Nevada DPS listed as endangered."
+
+  - common_name: "California black bear"
+    scientific_name: "Ursus americanus californiensis"
+    status: "protected"
+    category: "apex_predator"
+    aliases:
+      - "california_black_bear"
+      - "black_bear"
+    notes: "State-protected game mammal vulnerable to illegal harvesting."
+
+  - common_name: "Grizzly bear"
+    scientific_name: "Ursus arctos horribilis"
+    status: "threatened"
+    category: "apex_predator"
+    aliases:
+      - "grizzly_bear"
+      - "grizzly"
+    notes: "Federally listed threatened apex predator."
+
+  - common_name: "Canada lynx"
+    scientific_name: "Lynx canadensis"
+    status: "threatened"
+    category: "rare_carnivore"
+    aliases:
+      - "canada_lynx"
+      - "lynx"
+    notes: "Federally listed threatened carnivore subject to fur poaching."
+
+  - common_name: "Gray wolf"
+    scientific_name: "Canis lupus"
+    status: "endangered"
+    category: "apex_predator"
+    aliases:
+      - "gray_wolf"
+      - "grey_wolf"
+      - "wolf"
+    notes: "Federally and state listed endangered carnivore."
+
+  - common_name: "Wolverine"
+    scientific_name: "Gulo gulo luscus"
+    status: "threatened"
+    category: "rare_carnivore"
+    aliases:
+      - "wolverine"
+    notes: "Federally listed threatened species in contiguous US."

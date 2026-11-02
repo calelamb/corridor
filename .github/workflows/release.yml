@@ -1,0 +1,92 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Cross-Platform Build & Publish Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go 1.23+
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Set up Node.js 20+
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build production Svelte frontend
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+
+      - name: Cross-compile single static Go binary across target platforms
+        run: |
+          mkdir -p release-artifacts
+
+          echo "Compiling darwin/arm64 (Apple Silicon Mac)..."
+          CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o release-artifacts/corridor-darwin-arm64 ./cmd/corridor
+
+          echo "Compiling darwin/amd64 (Intel Mac)..."
+          CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o release-artifacts/corridor-darwin-amd64 ./cmd/corridor
+
+          echo "Compiling linux/amd64 (Linux x86_64 server)..."
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o release-artifacts/corridor-linux-amd64 ./cmd/corridor
+
+          echo "Compiling linux/arm64 (Linux ARM64 / Graviton)..."
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o release-artifacts/corridor-linux-arm64 ./cmd/corridor
+
+          echo "Compiling windows/amd64 (Windows x64 executable corridor.exe)..."
+          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o release-artifacts/corridor-windows-amd64.exe ./cmd/corridor
+
+      - name: Generate SHA-256 checksums
+        run: |
+          cd release-artifacts
+          sha256sum corridor-* > SHA256SUMS
+          sha256sum -c SHA256SUMS
+          echo "=== SHA-256 Checksums ==="
+          cat SHA256SUMS
+
+      - name: Upload binaries as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: corridor-release-binaries
+          path: release-artifacts/
+          retention-days: 7
+
+      - name: Publish release assets to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          files: |
+            release-artifacts/corridor-darwin-arm64
+            release-artifacts/corridor-darwin-amd64
+            release-artifacts/corridor-linux-amd64
+            release-artifacts/corridor-linux-arm64
+            release-artifacts/corridor-windows-amd64.exe
+            release-artifacts/SHA256SUMS
+          generate_release_notes: true
+          fail_on_unmatched_files: true

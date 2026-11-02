@@ -4,13 +4,20 @@
 
 <svelte:head>
 	<title>Data &amp; Methods · Corridor Wildlife Platform</title>
+	<link rel="canonical" href="https://corridorwildlife.org/data/" />
 	<meta
 		name="description"
 		content="How Corridor separates verified roadkill evidence, spatial uncertainty, dual-resolution sensitive species privacy, and provenance."
 	/>
+	<meta property="og:url" content="https://corridorwildlife.org/data/" />
 	<meta property="og:title" content="Data &amp; Methods · Corridor Wildlife Platform" />
 	<meta
 		property="og:description"
+		content="How Corridor separates verified roadkill evidence, spatial uncertainty, dual-resolution sensitive species privacy, and provenance."
+	/>
+	<meta name="twitter:title" content="Data &amp; Methods · Corridor Wildlife Platform" />
+	<meta
+		name="twitter:description"
 		content="How Corridor separates verified roadkill evidence, spatial uncertainty, dual-resolution sensitive species privacy, and provenance."
 	/>
 </svelte:head>
