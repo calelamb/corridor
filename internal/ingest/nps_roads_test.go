@@ -556,3 +556,300 @@ func TestNPSRoadsPermissiveSubstringPrevention(t *testing.T) {
 		t.Errorf("permissive substring bug: matched %d non-highway ways (%d segments)", stats.WaysParsed, stats.SegmentsCreated)
 	}
 }
+
+func TestYosemiteBoundingBoxValidation(t *testing.T) {
+	tests := []struct {
+		name string
+		lon  float64
+		lat  float64
+		want bool
+	}{
+		// Inside Yosemite corridor bounds [37.4, 38.3], [-119.95, -119.15]
+		{"Crane Flat / Tioga Pass", -119.80, 37.85, true},
+		{"Merced River Canyon", -119.75, 37.70, true},
+		{"SW Boundary Corner", -119.95, 37.40, true},
+		{"NE Boundary Corner", -119.15, 38.30, true},
+		{"Yosemite Valley Central", -119.58, 37.74, true},
+		{"Tuolumne Meadows", -119.35, 37.87, true},
+
+		// Outside Yosemite bounds
+		{"Yellowstone US-191", -110.80, 44.50, false},
+		{"Grand Teton US-89", -110.60, 43.80, false},
+		{"Too far West", -120.00, 37.85, false},
+		{"Too far East", -119.10, 37.85, false},
+		{"Too far South", -119.50, 37.35, false},
+		{"Too far North", -119.50, 38.35, false},
+		{"Out of state (North Carolina)", -80.00, 35.00, false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := ingest.InYosemiteCorridorBbox(tc.lon, tc.lat)
+			if got != tc.want {
+				t.Errorf("InYosemiteCorridorBbox(%.2f, %.2f) = %v; want %v", tc.lon, tc.lat, got, tc.want)
+			}
+		})
+	}
+
+	// Also verify combined corridor bbox allows both Yellowstone and Yosemite
+	if !ingest.InCorridorBbox(-110.80, 44.50) {
+		t.Errorf("InCorridorBbox should accept Yellowstone coordinate (-110.80, 44.50)")
+	}
+	if !ingest.InCorridorBbox(-119.80, 37.85) {
+		t.Errorf("InCorridorBbox should accept Yosemite coordinate (-119.80, 37.85)")
+	}
+	if ingest.InCorridorBbox(-80.00, 35.00) {
+		t.Errorf("InCorridorBbox should reject coordinate outside both corridors (-80.00, 35.00)")
+	}
+}
+
+func TestCaliforniaStateDetermination(t *testing.T) {
+	tests := []struct {
+		name string
+		tags map[string]string
+		lat  float64
+		lon  float64
+		want string
+	}{
+		{
+			name: "explicit state tag CA",
+			tags: map[string]string{"state": "CA"},
+			lat:  37.85,
+			lon:  -119.80,
+			want: "CA",
+		},
+		{
+			name: "explicit lowercase state tag ca",
+			tags: map[string]string{"state": "ca"},
+			lat:  37.85,
+			lon:  -119.80,
+			want: "CA",
+		},
+		{
+			name: "explicit addr:state tag CA",
+			tags: map[string]string{"addr:state": "CA"},
+			lat:  37.85,
+			lon:  -119.80,
+			want: "CA",
+		},
+		{
+			name: "full state name California",
+			tags: map[string]string{"state": "California"},
+			lat:  37.85,
+			lon:  -119.80,
+			want: "CA",
+		},
+		{
+			name: "coordinates within California bbox without tags",
+			tags: map[string]string{},
+			lat:  37.85,
+			lon:  -119.80,
+			want: "CA",
+		},
+		{
+			name: "coordinates at CA bbox SW boundary",
+			tags: map[string]string{},
+			lat:  37.0,
+			lon:  -121.0,
+			want: "CA",
+		},
+		{
+			name: "coordinates at CA bbox NE boundary",
+			tags: map[string]string{},
+			lat:  39.0,
+			lon:  -118.0,
+			want: "CA",
+		},
+		{
+			name: "Montana latitude",
+			tags: map[string]string{},
+			lat:  45.5,
+			lon:  -110.8,
+			want: "MT",
+		},
+		{
+			name: "Idaho coordinates",
+			tags: map[string]string{},
+			lat:  44.0,
+			lon:  -111.2,
+			want: "ID",
+		},
+		{
+			name: "Yellowstone Wyoming coordinates",
+			tags: map[string]string{},
+			lat:  44.5,
+			lon:  -110.8,
+			want: "WY",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := ingest.DetermineState(tc.tags, tc.lat, tc.lon)
+			if got != tc.want {
+				t.Errorf("DetermineState() = %q; want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestYosemiteHighwayRefMatching(t *testing.T) {
+	tests := []struct {
+		name       string
+		tags       map[string]string
+		wantRef    string
+		wantTarget bool
+	}{
+		// CA-120
+		{
+			name:       "CA-120 ref formatted",
+			tags:       map[string]string{"highway": "primary", "ref": "CA-120"},
+			wantRef:    "CA-120",
+			wantTarget: true,
+		},
+		{
+			name:       "CA 120 ref spaced",
+			tags:       map[string]string{"highway": "primary", "ref": "CA 120"},
+			wantRef:    "CA-120",
+			wantTarget: true,
+		},
+		{
+			name:       "120 plain ref",
+			tags:       map[string]string{"highway": "primary", "ref": "120"},
+			wantRef:    "CA-120",
+			wantTarget: true,
+		},
+		{
+			name:       "Tioga Road name",
+			tags:       map[string]string{"highway": "primary", "name": "Tioga Road"},
+			wantRef:    "CA-120",
+			wantTarget: true,
+		},
+		{
+			name:       "Big Oak Flat Road name",
+			tags:       map[string]string{"highway": "primary", "name": "Big Oak Flat Road"},
+			wantRef:    "CA-120",
+			wantTarget: true,
+		},
+		{
+			name:       "Tioga Pass Road name",
+			tags:       map[string]string{"highway": "trunk", "name": "Tioga Pass Road"},
+			wantRef:    "CA-120",
+			wantTarget: true,
+		},
+		{
+			name:       "SR 120 ref",
+			tags:       map[string]string{"highway": "primary", "ref": "SR 120"},
+			wantRef:    "CA-120",
+			wantTarget: true,
+		},
+
+		// CA-140
+		{
+			name:       "CA-140 ref formatted",
+			tags:       map[string]string{"highway": "primary", "ref": "CA-140"},
+			wantRef:    "CA-140",
+			wantTarget: true,
+		},
+		{
+			name:       "CA 140 ref spaced",
+			tags:       map[string]string{"highway": "primary", "ref": "CA 140"},
+			wantRef:    "CA-140",
+			wantTarget: true,
+		},
+		{
+			name:       "140 plain ref",
+			tags:       map[string]string{"highway": "primary", "ref": "140"},
+			wantRef:    "CA-140",
+			wantTarget: true,
+		},
+		{
+			name:       "El Portal Road name",
+			tags:       map[string]string{"highway": "primary", "name": "El Portal Road"},
+			wantRef:    "CA-140",
+			wantTarget: true,
+		},
+		{
+			name:       "Merced River Canyon Road name",
+			tags:       map[string]string{"highway": "primary", "name": "Merced River Canyon Road"},
+			wantRef:    "CA-140",
+			wantTarget: true,
+		},
+
+		// CA-41
+		{
+			name:       "CA-41 ref formatted",
+			tags:       map[string]string{"highway": "primary", "ref": "CA-41"},
+			wantRef:    "CA-41",
+			wantTarget: true,
+		},
+		{
+			name:       "CA 41 ref spaced",
+			tags:       map[string]string{"highway": "primary", "ref": "CA 41"},
+			wantRef:    "CA-41",
+			wantTarget: true,
+		},
+		{
+			name:       "41 plain ref",
+			tags:       map[string]string{"highway": "primary", "ref": "41"},
+			wantRef:    "CA-41",
+			wantTarget: true,
+		},
+		{
+			name:       "Wawona Road name",
+			tags:       map[string]string{"highway": "primary", "name": "Wawona Road"},
+			wantRef:    "CA-41",
+			wantTarget: true,
+		},
+
+		// False positives and non-target roads
+		{
+			name:       "120th Avenue residential street",
+			tags:       map[string]string{"highway": "residential", "name": "120th Avenue"},
+			wantRef:    "",
+			wantTarget: false,
+		},
+		{
+			name:       "140th Street residential road",
+			tags:       map[string]string{"highway": "residential", "name": "140th Street"},
+			wantRef:    "",
+			wantTarget: false,
+		},
+		{
+			name:       "4100 Pine Way address",
+			tags:       map[string]string{"highway": "residential", "name": "4100 Pine Way"},
+			wantRef:    "",
+			wantTarget: false,
+		},
+		{
+			name:       "Footway excluded even with highway ref",
+			tags:       map[string]string{"highway": "footway", "ref": "CA-120"},
+			wantRef:    "",
+			wantTarget: false,
+		},
+		{
+			name:       "Cycleway excluded",
+			tags:       map[string]string{"highway": "cycleway", "name": "Tioga Road Trail"},
+			wantRef:    "",
+			wantTarget: false,
+		},
+		{
+			name:       "Generic unrelated street",
+			tags:       map[string]string{"highway": "secondary", "name": "Main Street"},
+			wantRef:    "",
+			wantTarget: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			ref, ok := ingest.MatchHighwayRef(tc.tags)
+			if ok != tc.wantTarget {
+				t.Errorf("MatchHighwayRef(%v) target = %v; want %v", tc.tags, ok, tc.wantTarget)
+			}
+			if ref != tc.wantRef {
+				t.Errorf("MatchHighwayRef(%v) ref = %q; want %q", tc.tags, ref, tc.wantRef)
+			}
+		})
+	}
+}

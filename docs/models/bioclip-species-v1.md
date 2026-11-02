@@ -5,7 +5,7 @@
 ## Model Details
 - **Architecture:** Quantized INT8 Vision Classifier based on BioCLIP / SpeciesNet representations for wildlife carcass identification.
 - **Input Dimensions:** `[1, 3, 224, 224]` normalized using standard ImageNet mean (`[0.485, 0.456, 0.406]`) and standard deviation (`[0.229, 0.224, 0.225]`).
-- **Target Classes (8 species):**
+- **Target Classes (11 species):**
   1. `mule_deer` (*Odocoileus hemionus*)
   2. `white_tailed_deer` (*Odocoileus virginianus*)
   3. `elk` (*Cervus canadensis*)
@@ -14,6 +14,9 @@
   6. `black_bear` (*Ursus americanus*)
   7. `raccoon` (*Procyon lotor*)
   8. `coyote` (*Canis latrans*)
+  9. `sierra_bighorn_sheep` (*Ovis canadensis sierrae*)
+  10. `pacific_fisher` (*Pekania pennanti*)
+  11. `mountain_lion` (*Puma concolor*)
 - **Model Size:** 0.41 MB (strictly below the 35 MB budget for field caching).
 
 ## Field Deployment & Human-in-the-Loop Safeguards

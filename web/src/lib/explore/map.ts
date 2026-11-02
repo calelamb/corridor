@@ -198,6 +198,7 @@ export async function createRangerMap(
 		minZoom: 2,
 		maxZoom: 14,
 		attributionControl: false,
+		cooperativeGestures: true,
 		style: {
 			version: 8,
 			glyphs: `${location.origin}/maps/fonts/{fontstack}/{range}.pbf`,
@@ -212,11 +213,6 @@ export async function createRangerMap(
 		}
 	});
 	map.addControl(new lib.ScaleControl({ unit: 'imperial' }), 'bottom-right');
-	try {
-		performance.mark('corridor-map-ready');
-	} catch {
-		/* ignore */
-	}
 	let failures: string[] = [];
 	let activeQuery = query;
 	const recordError = (event: MapErrorEvent & { sourceId?: string }) => {
@@ -280,7 +276,6 @@ export async function createRangerMap(
 		const c = map.getCenter();
 		onCamera([+c.lng.toFixed(5), +c.lat.toFixed(5), +map.getZoom().toFixed(2)]);
 	});
-	performance.mark('corridor-map-ready');
 	return {
 		destroy: () => map.remove(),
 		prediction: (result, cell) => {

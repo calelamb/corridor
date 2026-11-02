@@ -1,0 +1,35 @@
+From: Corridor Wildlife Project <adoption@corridorwildlife.org>
+To: Paul Austin <paul_austin@nps.gov>
+Subject: Offline roadside carcass logging & live dispatch feed for Glacier National Park rangers
+Date: Fri, 16 Oct 2026 19:41:59 +0000
+Message-ID: <glacier-ranger-1792179719@corridorwildlife.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
+X-Unsent: 1
+
+Dear Chief Ranger Austin,
+
+As your patrol rangers manage visitor traffic and wildlife hazards along US-2 through Glacier National Park, stopping to log animal-vehicle strikes on narrow shoulders or in active traffic lanes creates significant officer safety exposure. Compounding this, cellular dead zones frequently prevent timely reporting.
+
+Corridor (https://corridorwildlife.org/rangers/) is a 100% free, open-source tool developed to streamline this exact field workflow for National Park Service protection rangers and dispatch centers:
+
+- 10-Second Glove-Friendly Field Reporting: Designed for one-handed operation on mobile phones or patrol Toughbooks. Features large 48px touch targets, offline IndexedDB storage that never drops data in dead zones, automatic milepost snapping, and on-device species suggestion chips for grizzly bear, Canada lynx, elk, moose. Rangers log the strike in seconds and resume traffic safety duties.
+- Real-Time Dispatch Integration: Communications consoles can run Corridor's Live Incident Feed (GET /v1/stream/reports), featuring optional audible chimes when an animal strike or highway obstruction is logged by field rangers—enabling instant interagency dispatch of road cleanup or veterinary response.
+- Zero IT Installation Friction: Corridor is a W3C Progressive Web Application. Rangers can install it on any government workstation or Toughbook in one click directly from Microsoft Edge or Chrome—no .exe installers, no administrator privileges required, and fully compliant with DOI IT security guidelines.
+- 100% Free & Open Source: Licensed under Apache-2.0. There are no licensing fees, no maintenance contracts, and no procurement hurdles.
+- Public Safety Economics: Proven collision mitigation directly targets the highest-cost incidents based on USDOT valuations ($14,000 per deer, $45,000 per elk, $83,000 per moose).
+
+We would be glad to coordinate a 15-minute briefing for your district patrol leads or dispatch team, or provide instructions on adding the one-click desktop app to your station consoles.
+
+The ranger hub is available for immediate review here:
+https://corridorwildlife.org/rangers/
+
+Thank you for keeping both Glacier National Park's visitors and wildlife safe.
+
+Sincerely,
+
+Field Operations Outreach Coordinator
+Corridor Wildlife Intelligence Initiative
+adoption@corridorwildlife.org
+https://corridorwildlife.org
