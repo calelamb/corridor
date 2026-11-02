@@ -8,7 +8,7 @@ The Phase 1 foundation now runs locally as a Go application with embedded Svelte
 
 | Phase | State | Evidence / remaining gate |
 | --- | --- | --- |
-| 0 Research | Research inventory and literature review written; source-level verification complete for 16 public/conditional source families | [RESEARCH.md](RESEARCH.md), [SOURCES.md](../data/SOURCES.md). Thirty ledger entries including restricted/unresolved candidates. Three cleared analytical products are now imported; other candidates still require artifact-specific clearance. This is not 16 production-ready datasets. |
+| 0 Research | Research inventory and literature review written; source-level verification complete for 16 public/conditional source families | [RESEARCH.md](RESEARCH.md), [SOURCES.md](../data/SOURCES.md). Thirty-seven ledger entries including restricted/unresolved candidates and November 2026 expansion (S31–S37). Three cleared analytical products are now imported; other candidates still require artifact-specific clearance. This is not 16 production-ready datasets. |
 | 1 Foundation | Complete for the approved Phase 1 scope; review fixes and local verification passed | [Verification evidence](verification/phase-1.md), [foundation design](superpowers/specs/2026-09-20-foundation-design.md), [implementation plan](superpowers/plans/2026-09-21-foundation.md). |
 | 2 Ingestion | Pilot & National Parks implemented | 5,211 US Global Roadkill v5 records, 8,854 animals, 218 Pequop routes, 284 OSM I-80 ways, and Yellowstone/Grand Teton US-191/US-89 corridor. 0.1-mile road segmentation schema, H3-r8 indexing, PostGIS spatial snapping engine, and carcass deduplication verified. Multi-state bulk requests (WA/UT) remain open. |
 | 3 Exploration | Interactive pilot implemented; broader phase incomplete | Basemap, filters, connected selection/list, reporting timeline, migration context and share state. [Verification](verification/highway-exploration.md). Populated performance budgets and remaining design features still open. |
@@ -89,6 +89,28 @@ Executed an end-to-end modernization across the Go backend, Python ML pipeline, 
    - Added Yosemite CA-120 Crane Flat scenario to `web/src/lib/rangers/RangerDemoSimulator.svelte` ($8.4M capital, 2.9x BCR, H3-r6 privacy badge).
    - Added Yosemite extent preset button in `web/src/lib/explore/RangerMap.svelte`.
    - Updated Playwright E2E tests in `web/tests/ranger-demo.spec.ts` asserting 4 scenario cards and verifying 0 Axe accessibility violations.
+
+7. **Domain 6: November 2026 Data Expansion Sweep (`data/SOURCES.md`, `docs/research/`):**
+   - Expanded `data/SOURCES.md` ledger from 30 to 37 entries (S31–S37) with verified public catalog entries:
+     - **S31 Caltrans AADT & LRS Postmiles**: State open data (CC-BY), FeatureServer points + LRS measures.
+     - **S32 Montana DOT Carcass Collection (2016–2025)**: 60,592 records, Montana State Plane (EPSG:32100), informational use permitted under 23 U.S.C. § 407.
+     - **S33 NPS IRMA Wildlife Mortality and Morbidity Observations (WHMMO)**: 11.3 MB CSV, nationwide park units (Yosemite, Yellowstone, Grand Teton, Glacier, Olympic), Public Domain.
+     - **S34 NOAA SNODAS Daily Snow Grids**: 1 km CONUS SWE & snow depth, Public Domain, requires 2014–2019 zero repair mask.
+     - **S35 USGS 3DEP High-Resolution Elevation COGs**: Public S3 Cloud-Optimized GeoTIFFs (10m & 1m LiDAR), Public Domain.
+     - **S36 Snapshot USA Coordinated National Camera Trap Survey (2019–2024)**: Dryad DOIs, CC0 1.0 Universal, nationwide survey effort & observation counts for Hurdle model reporting-bias correction.
+     - **S37 LILA BC Western Camera Traps (Idaho, CCT, WSU Lynx)**: Source Cooperative AWS S3, CDLA-Permissive-1.0 / CC-BY, pre-training library for BioCLIP/SpeciesNet 11-class vision head.
+   - Authored complete research dossier and integration guide in `docs/research/2026-11-02-data-sweep.md`.
+
+8. **Domain 7: SNODAS & Alpine Snow Depth Covariate Engine (`internal/covariates/`, `ml/corridor_ml/features/`):**
+   - Implemented pure Go snow depth and seasonal pass closure calculator in `internal/covariates/snow.go` (and unit tests in `internal/covariates/snow_test.go`):
+     - `EstimateSnowDepth(lat, lon, elevationMeters, month)`: Models snow water equivalent (SWE) and snow depth (cm) based on orographic elevation lapse and latitude across Western US mountain systems (Sierra Nevada, Central Rockies, Northern Rockies).
+     - `IsPassSeasonallyClosed(elevationMeters, month)`: Deterministically identifies winter alpine pass closures (November through May) with latitude-aware regional elevation thresholds (Glacier NP at 2000m, Sierra/Rockies at 2500m).
+     - `AdjustTrafficForSnow(baseAADT, elevationMeters, month)`: Zeroes winter traffic volume for closed passes and scales shoulder-month traffic (June 50%, October 60%) while maintaining full traffic on valley floor roads.
+     - Table-driven unit tests verifying Tioga Pass (3031m, Yosemite), Trail Ridge Road (3713m, Rocky Mountain), Logan Pass (2026m, Glacier), Beartooth Highway (3336m), Yosemite Valley (1200m), and Jackson Hole (1900m).
+   - Unified Python ML feature extraction in `ml/corridor_ml/features/extractor.py` with Go covariate calculator:
+     - Added latitude-aware elevation thresholding in `compute_seasonal_pass_closure()` and extended pass nomenclature matching for multi-park coverage.
+     - Implemented `estimate_snow_depth()`, `is_pass_seasonally_closed()`, and `adjust_traffic_for_snow()` in Python with mathematical parity to Go production inference.
+     - Added multi-park test suite in `ml/tests/test_features.py` (`test_multipark_alpine_pass_elevation_and_snow_handling` and `test_snow_depth_and_closure_parity_with_go_covariates`), passing all 16 tests in <1 second.
 
 ## NPS Ranger Desktop Adoption, Outreach & CI/CD Automation Suites — 2026-10-16
 

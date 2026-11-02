@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { loadHotspots, type HotspotItem, type HotspotMethod } from './client';
+	import HotspotControls, { METHODS } from '$lib/explore/HotspotControls.svelte';
 
 	let method = $state<HotspotMethod>('nkde');
 	let bandwidth = $state<number>(500);
@@ -16,6 +17,13 @@
 		activeController = controller;
 		status = 'loading';
 		errorMessage = '';
+
+		if (typeof window !== 'undefined') {
+			const url = new URL(window.location.href);
+			url.searchParams.set('method', selectedMethod);
+			url.searchParams.set('bandwidth', String(selectedBandwidth));
+			window.history.replaceState(null, '', url.toString());
+		}
 
 		try {
 			const res = await loadHotspots(
@@ -35,43 +43,18 @@
 	}
 
 	onMount(() => {
+		const searchParams = new URLSearchParams(window.location.search);
+		const urlMethod = searchParams.get('method') as HotspotMethod;
+		if (urlMethod && ['nkde', 'getis_ord', 'density'].includes(urlMethod)) {
+			method = urlMethod;
+		}
+		const urlBandwidth = Number(searchParams.get('bandwidth'));
+		if (urlBandwidth && Number.isFinite(urlBandwidth) && urlBandwidth >= 250 && urlBandwidth <= 2000) {
+			bandwidth = urlBandwidth;
+		}
 		fetchHotspots(method, bandwidth);
 		return () => activeController?.abort();
 	});
-
-	function handleMethodChange(newMethod: HotspotMethod) {
-		method = newMethod;
-		fetchHotspots(newMethod, bandwidth);
-	}
-
-	function handleBandwidthChange(newBandwidth: number) {
-		bandwidth = newBandwidth;
-		fetchHotspots(method, newBandwidth);
-	}
-
-	const METHODS: { id: HotspotMethod; name: string; desc: string }[] = [
-		{
-			id: 'nkde',
-			name: 'Network KDE',
-			desc: '1D network-constrained kernel density estimation along the highway graph.'
-		},
-		{
-			id: 'getis_ord',
-			name: 'Getis-Ord Gi*',
-			desc: 'Spatial clustering statistics identifying significant clusters of collision intensity.'
-		},
-		{
-			id: 'density',
-			name: 'Planar Density',
-			desc: '2D planar kernel density estimation baseline across Euclidean space.'
-		}
-	];
-
-	const BANDWIDTHS = [
-		{ label: '250 m', value: 250, desc: 'Local acute clusters' },
-		{ label: '500 m', value: 500, desc: 'Standard corridor scale' },
-		{ label: '1000 m', value: 1000, desc: 'Broad regional sweep' }
-	] as const;
 </script>
 
 <section class="hotspot-lab" aria-label="Hotspot Analysis Lab">
@@ -84,46 +67,16 @@
 		</p>
 	</header>
 
-	<div class="controls-panel">
-		<!-- Method Selection -->
-		<div class="control-group">
-			<span id="method-group-label" class="group-label">Statistical Algorithm:</span>
-			<div class="buttons-row" role="group" aria-labelledby="method-group-label">
-				{#each METHODS as m (m.id)}
-					<button
-						type="button"
-						class="control-btn"
-						class:active={method === m.id}
-						aria-pressed={method === m.id}
-						onclick={() => handleMethodChange(m.id)}
-					>
-						<strong>{m.name}</strong>
-					</button>
-				{/each}
-			</div>
-			<p class="method-description">
-				{METHODS.find((m) => m.id === method)?.desc}
-			</p>
-		</div>
-
-		<!-- Bandwidth Selection -->
-		<div class="control-group">
-			<span id="bandwidth-group-label" class="group-label">Network Smoothing Bandwidth:</span>
-			<div class="buttons-row" role="group" aria-labelledby="bandwidth-group-label">
-				{#each BANDWIDTHS as b (b.value)}
-					<button
-						type="button"
-						class="control-btn"
-						class:active={bandwidth === b.value}
-						aria-pressed={bandwidth === b.value}
-						onclick={() => handleBandwidthChange(b.value)}
-					>
-						<strong>{b.label}</strong>
-					</button>
-				{/each}
-			</div>
-		</div>
-	</div>
+	<!-- Controls Panel via HotspotControls -->
+	<HotspotControls
+		bind:method
+		bind:bandwidth
+		onchange={({ method: newMethod, bandwidth: newBandwidth }) => {
+			method = newMethod;
+			bandwidth = newBandwidth;
+			fetchHotspots(newMethod, newBandwidth);
+		}}
+	/>
 
 	<!-- Statistical Significance Reference & Badges -->
 	<div class="significance-reference" aria-label="Statistical Significance Tiers">
@@ -269,68 +222,7 @@
 		color: var(--muted);
 	}
 
-	.controls-panel {
-		background: var(--panel);
-		border: 1px solid var(--line);
-		border-radius: var(--radius);
-		padding: 24px;
-		display: flex;
-		flex-direction: column;
-		gap: 20px;
-	}
 
-	.control-group {
-		display: flex;
-		flex-direction: column;
-		gap: 10px;
-	}
-
-	.group-label {
-		font-size: 0.875rem;
-		font-weight: 700;
-		color: var(--ink);
-	}
-
-	.buttons-row {
-		display: flex;
-		gap: 12px;
-		flex-wrap: wrap;
-	}
-
-	.control-btn {
-		min-height: 48px;
-		min-width: 48px;
-		padding: 12px 20px;
-		border: 1px solid var(--line);
-		border-radius: 8px;
-		background: var(--surface);
-		color: var(--ink);
-		font-size: 0.875rem;
-		cursor: pointer;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		transition:
-			background-color 0.15s ease,
-			border-color 0.15s ease;
-	}
-
-	.control-btn:hover {
-		border-color: var(--accent);
-		background: var(--canvas);
-	}
-
-	.control-btn.active {
-		background: var(--accent);
-		color: var(--accent-ink);
-		border-color: var(--accent);
-	}
-
-	.method-description {
-		font-size: 0.8125rem;
-		color: var(--muted);
-		margin-top: 2px;
-	}
 
 	.significance-reference {
 		display: grid;
@@ -574,10 +466,6 @@
 	@media (max-width: 600px) {
 		.hotspot-lab {
 			padding: 16px;
-		}
-
-		.control-btn {
-			flex: 1;
 		}
 	}
 </style>

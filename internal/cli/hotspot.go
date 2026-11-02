@@ -116,9 +116,7 @@ func computeHotspots(g *hotspot.RoadGraph, events []hotspot.EventPoint, method s
 }
 
 // loadHotspotData attempts database loading if configured; otherwise provides
-// reference corridor data. When --state=CA or --park=Yosemite is specified, it constructs
-// the CA-120 corridor (Crane Flat to Tuolumne Meadows) with black bear and mule deer clusters.
-// Otherwise it defaults to the Yellowstone/Grand Teton US-191 corridor.
+// reference corridor data for the 5 national park corridors (YOSE/CA, YELL/WY, GRTE/WY, GLAC/MT, ROMO/CO).
 func loadHotspotData(ctx context.Context, state, park string) (*hotspot.RoadGraph, []hotspot.EventPoint, error) {
 	// 1. Try DB if configured
 	dbURL := os.Getenv("CORRIDOR_DATABASE_URL")
@@ -129,16 +127,11 @@ func loadHotspotData(ctx context.Context, state, park string) (*hotspot.RoadGrap
 		}
 	}
 
-	normState := strings.ToUpper(strings.TrimSpace(state))
-	normPark := strings.ToLower(strings.TrimSpace(park))
-
-	// When --state=CA or --park=Yosemite is specified, use CA-120 corridor
-	if normState == "CA" || strings.Contains(normPark, "yosemite") {
-		corridor := hotspot.ReferenceYosemiteCorridor()
-		return corridor.Graph, corridor.Events, nil
+	if ref := hotspot.FindReferenceCorridor(state, park); ref != nil {
+		return ref.Graph, ref.Events, nil
 	}
 
-	// Default reference corridor: Yellowstone/Grand Teton US-191 corridor
-	corridor := hotspot.ReferenceWyomingCorridor()
+	// Default reference corridor: Yellowstone US-191 corridor
+	corridor := hotspot.ReferenceYellowstoneCorridor()
 	return corridor.Graph, corridor.Events, nil
 }

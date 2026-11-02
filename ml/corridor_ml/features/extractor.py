@@ -73,6 +73,197 @@ def _compute_slope_array(dem: np.ndarray, dx: float, dy: float) -> np.ndarray:
     return np.degrees(slope_rad)
 
 
+def get_mountain_region(lat: float, lon: float) -> str:
+    """Determine Western US mountain system for a coordinate pair."""
+    if 35.0 <= lat <= 41.5 and -122.5 <= lon <= -117.5:
+        return "Sierra Nevada"
+    if 42.5 <= lat <= 49.5 and -117.0 <= lon <= -108.0:
+        return "Northern Rockies"
+    if 36.0 <= lat < 42.5 and -112.5 <= lon <= -104.5:
+        return "Central Rockies"
+    if 31.0 <= lat <= 49.5 and -125.0 <= lon <= -102.0:
+        return "General Western US"
+    return "Outside Western US"
+
+
+def monthly_snow_factor(month: int) -> float:
+    """Seasonal snowpack accumulation and melt factor (0.0 to 1.0) for month 1-12."""
+    factors = {
+        1: 0.80,
+        2: 0.92,
+        3: 1.00,
+        4: 0.88,
+        5: 0.45,
+        6: 0.12,
+        7: 0.00,
+        8: 0.00,
+        9: 0.00,
+        10: 0.10,
+        11: 0.35,
+        12: 0.60,
+    }
+    return factors.get(month, 0.0)
+
+
+def is_winter_month(month: int) -> bool:
+    """Returns True for months November through May (months 11, 12, 1, 2, 3, 4, 5)."""
+    return month in (11, 12, 1, 2, 3, 4, 5)
+
+
+def is_shoulder_month(month: int) -> bool:
+    """Returns True for shoulder months (June and October)."""
+    return month in (6, 10)
+
+
+def get_alpine_elevation_threshold(lat: Optional[float] = None, base_threshold: float = 2500.0) -> float:
+    """Returns elevation threshold in meters above which passes are closed in winter.
+
+    Adjusted for latitude (drops from 2500m in Sierra Nevada to 2000m in Northern Rockies/Glacier).
+    """
+    if lat is None:
+        return 2000.0
+    if lat >= 45.0:
+        threshold = 2500.0 - (lat - 38.0) * 50.0
+        return max(1950.0, min(threshold, base_threshold))
+    return base_threshold
+
+
+def estimate_swe(lat: float, lon: float, elevation_m: float, month: int) -> float:
+    """Models monthly Snow Water Equivalent (SWE) in mm based on lat, lon, elevation, and month."""
+    if month < 1 or month > 12:
+        return 0.0
+    region = get_mountain_region(lat, lon)
+    if region == "Outside Western US":
+        return 0.0
+
+    m_factor = monthly_snow_factor(month)
+    if m_factor <= 0.0:
+        return 0.0
+
+    if region == "Sierra Nevada":
+        base_snowline = 1400.0
+        swe_rate = 0.55
+    elif region == "Central Rockies":
+        base_snowline = 2000.0
+        swe_rate = 0.45
+    elif region == "Northern Rockies":
+        base_snowline = max(1000.0, 1800.0 - (lat - 40.0) * 80.0)
+        swe_rate = 0.60
+    else:
+        base_snowline = 1800.0 - (lat - 40.0) * 70.0
+        swe_rate = 0.50
+
+    if month == 5:
+        base_snowline += 300.0
+    elif month == 6:
+        base_snowline += 600.0
+
+    if elevation_m <= base_snowline:
+        return 0.0
+
+    effective_elev = min(3000.0, elevation_m - base_snowline)
+    swe = effective_elev * swe_rate * m_factor
+    return round(swe, 2)
+
+
+def estimate_snow_depth(lat: float, lon: float, elevation_m: float, month: int) -> float:
+    """Returns estimated snow depth in centimeters based on lat, lon, elevation, and month."""
+    swe = estimate_swe(lat, lon, elevation_m, month)
+    if swe <= 0.0:
+        return 0.0
+
+    region = get_mountain_region(lat, lon)
+    if region == "Sierra Nevada":
+        density_factor = 3.3
+    elif region == "Central Rockies":
+        density_factor = 2.5
+    elif region == "Northern Rockies":
+        density_factor = 2.8
+    else:
+        density_factor = 3.0
+
+    depth = swe / density_factor
+    return round(depth, 1)
+
+
+def is_pass_seasonally_closed(elevation_m: float, month: int, lat: Optional[float] = None) -> bool:
+    """Returns True if alpine pass is closed to vehicular traffic due to snow."""
+    if not is_winter_month(month):
+        return False
+    threshold = get_alpine_elevation_threshold(lat) if lat is not None else 2000.0
+    return elevation_m >= threshold
+
+
+def adjust_traffic_for_snow(
+    base_aadt: float,
+    elevation_m: float,
+    month: int,
+    lat: Optional[float] = None,
+) -> float:
+    """Scales traffic volume to zero when pass is closed or reduces it during shoulder months."""
+    if base_aadt <= 0.0:
+        return 0.0
+    if month < 1 or month > 12:
+        return base_aadt
+
+    if is_pass_seasonally_closed(elevation_m, month, lat=lat):
+        return 0.0
+
+    threshold = get_alpine_elevation_threshold(lat) if lat is not None else 2000.0
+    if elevation_m >= threshold:
+        if month == 6:
+            return base_aadt * 0.50
+        if month == 10:
+            return base_aadt * 0.60
+
+    return base_aadt
+
+
+def _extract_lat_lons(segments_df: gpd.GeoDataFrame) -> tuple[np.ndarray, np.ndarray]:
+    """Helper to extract latitude and longitude arrays from GeoDataFrame attributes or geometries."""
+    n_rows = len(segments_df)
+    lats = np.full(n_rows, np.nan, dtype=np.float64)
+    lons = np.full(n_rows, np.nan, dtype=np.float64)
+
+    for lat_col in ("lat", "latitude", "y", "LAT", "LATITUDE"):
+        if lat_col in segments_df.columns:
+            vals = pd.to_numeric(segments_df[lat_col], errors="coerce").to_numpy()
+            if not np.all(np.isnan(vals)):
+                lats = vals
+                break
+
+    for lon_col in ("lon", "longitude", "x", "long", "LON", "LONGITUDE"):
+        if lon_col in segments_df.columns:
+            vals = pd.to_numeric(segments_df[lon_col], errors="coerce").to_numpy()
+            if not np.all(np.isnan(vals)):
+                lons = vals
+                break
+
+    if hasattr(segments_df, "geometry") and segments_df.geometry is not None:
+        needs_geom = np.isnan(lats) | np.isnan(lons)
+        if np.any(needs_geom):
+            crs = segments_df.crs
+            geoms = segments_df.geometry
+            if crs is not None and crs.is_geographic:
+                for i in range(n_rows):
+                    if needs_geom[i] and geoms.iloc[i] is not None and not geoms.iloc[i].is_empty:
+                        centroid = geoms.iloc[i].centroid
+                        lats[i] = centroid.y
+                        lons[i] = centroid.x
+            elif crs is not None:
+                try:
+                    reproj = segments_df.to_crs("EPSG:4326")
+                    for i in range(n_rows):
+                        if needs_geom[i] and reproj.geometry.iloc[i] is not None and not reproj.geometry.iloc[i].is_empty:
+                            centroid = reproj.geometry.iloc[i].centroid
+                            lats[i] = centroid.y
+                            lons[i] = centroid.x
+                except Exception:
+                    pass
+
+    return lats, lons
+
+
 class FeatureExtractor:
     """Extracts topographic, ecological, hydrological, and traffic covariates for road segments."""
 
@@ -168,14 +359,27 @@ class FeatureExtractor:
                     if metric_closures.geometry.intersects(geom).any():
                         closure_state[i] = 1.0
 
-        # 3. Check highway name / description attributes
-        name_cols = [c for c in ("name", "highway_name", "pass_name", "description") if c in segments_df.columns]
-        pass_keywords = ("tioga", "sonora", "ebbetts", "monitor", "carson pass", "pass closed", "seasonal closure")
-        for col in name_cols:
-            names = segments_df[col].astype(str).str.lower()
-            for kw in pass_keywords:
-                matched = names.str.contains(kw, na=False).to_numpy()
-                closure_state = np.where(matched, 1.0, closure_state)
+        # 3. Check highway name / description attributes during winter conditions
+        if is_winter:
+            name_cols = [c for c in ("name", "highway_name", "pass_name", "description") if c in segments_df.columns]
+            pass_keywords = (
+                "tioga",
+                "sonora",
+                "ebbetts",
+                "monitor",
+                "carson pass",
+                "trail ridge",
+                "logan pass",
+                "logan",
+                "beartooth",
+                "pass closed",
+                "seasonal closure",
+            )
+            for col in name_cols:
+                names = segments_df[col].astype(str).str.lower()
+                for kw in pass_keywords:
+                    matched = names.str.contains(kw, na=False).to_numpy()
+                    closure_state = np.where(matched, 1.0, closure_state)
 
         # 4. Elevation-based closure during winter conditions
         if is_winter:
@@ -195,7 +399,13 @@ class FeatureExtractor:
                         if geom is not None and not geom.is_empty:
                             elevs[i], _, _ = self._extract_elevation_slope_and_tri(ds, geom.buffer(50.0))
 
-            alpine_mask = elevs >= elevation_threshold_m
+            lats, _ = _extract_lat_lons(segments_df)
+            thresholds = np.full(n_rows, elevation_threshold_m, dtype=np.float64)
+            for i in range(n_rows):
+                if not np.isnan(lats[i]) and lats[i] > 0:
+                    thresholds[i] = get_alpine_elevation_threshold(float(lats[i]), base_threshold=elevation_threshold_m)
+
+            alpine_mask = elevs >= thresholds
             closure_state = np.where(alpine_mask, 1.0, closure_state)
 
         return closure_state
@@ -240,6 +450,7 @@ class FeatureExtractor:
         closure_traffic_factor: float = 0.0,
         elevation_threshold_m: float = 2500.0,
         is_winter: bool = True,
+        month: Optional[int] = None,
     ) -> pd.DataFrame:
         """Extract all 12 spatial and traffic covariates for each segment in segments_df.
 
@@ -411,6 +622,14 @@ class FeatureExtractor:
             )
             patrol_score = np.maximum(patrol_score, 0.0)
 
+        # Resolve effective month and winter status
+        if month is not None:
+            eff_month = int(month)
+            eff_is_winter = is_winter_month(eff_month)
+        else:
+            eff_is_winter = is_winter
+            eff_month = 1 if eff_is_winter else 7
+
         # 8. Snow depth in cm (snow_depth_cm)
         snow_depth = np.zeros(n_rows, dtype=np.float64)
         if self.snow_raster_path and Path(self.snow_raster_path).exists():
@@ -432,6 +651,14 @@ class FeatureExtractor:
                 else:
                     snow_series = swe_series
             snow_depth = snow_series.fillna(0.0).to_numpy() if snow_series is not None else np.zeros(n_rows)
+        else:
+            # Fall back to SNODAS / alpine physical snow depth model if elevation and lat/lon are available
+            if np.any(elev_vals > 0):
+                lats, lons = _extract_lat_lons(segments_df)
+                for i in range(n_rows):
+                    if not np.isnan(lats[i]) and not np.isnan(lons[i]) and elev_vals[i] > 0:
+                        snow_depth[i] = estimate_snow_depth(float(lats[i]), float(lons[i]), float(elev_vals[i]), eff_month)
+
         snow_depth = np.maximum(snow_depth, 0.0)
 
         # 9. Seasonal pass closure (seasonal_pass_closed)
@@ -439,7 +666,7 @@ class FeatureExtractor:
         pass_closed = self.compute_seasonal_pass_closure(
             segments_df,
             elevation_threshold_m=elevation_threshold_m,
-            is_winter=is_winter,
+            is_winter=eff_is_winter,
             elevation_values=elev_for_closure,
         )
 
@@ -474,6 +701,7 @@ class FeatureExtractor:
         closure_traffic_factor: float = 0.0,
         elevation_threshold_m: float = 2500.0,
         is_winter: bool = True,
+        month: Optional[int] = None,
     ) -> pd.DataFrame:
         """Alias for extract_covariates."""
         return self.extract_covariates(
@@ -482,6 +710,7 @@ class FeatureExtractor:
             closure_traffic_factor=closure_traffic_factor,
             elevation_threshold_m=elevation_threshold_m,
             is_winter=is_winter,
+            month=month,
         )
 
     @staticmethod
@@ -561,6 +790,7 @@ def extract_features(
     closure_traffic_factor: float = 0.0,
     elevation_threshold_m: float = 2500.0,
     is_winter: bool = True,
+    month: Optional[int] = None,
     default_metric_crs: str = "EPSG:5070",
 ) -> pd.DataFrame:
     """Module-level convenience function to extract all spatial covariates."""
@@ -581,6 +811,7 @@ def extract_features(
         closure_traffic_factor=closure_traffic_factor,
         elevation_threshold_m=elevation_threshold_m,
         is_winter=is_winter,
+        month=month,
     )
 
 

@@ -70,7 +70,7 @@ run_verification() {
   local suite_failed=0
 
   echo -e "${CYAN}[1/4] Running Go Unit & CLI Test Suite...${NC}"
-  if CGO_ENABLED=0 go test -v ./internal/cli/... ./internal/prioritize/... ./internal/hotspot/... ./internal/config/... ./internal/auth/...; then
+  if CGO_ENABLED=0 go test -v ./internal/cli/... ./internal/prioritize/... ./internal/hotspot/... ./internal/config/... ./internal/auth/... ./internal/ingest/... ./internal/covariates/...; then
     echo -e "${GREEN}✓ Go unit and CLI tests passed.${NC}"
   else
     echo -e "${RED}✗ Go tests failed.${NC}"
