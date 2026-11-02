@@ -69,6 +69,26 @@ func SeedSegments(ctx context.Context, pool *pgxpool.Pool, stdout io.Writer) err
 		160.9344,
 		'benchmark-i84-0004',
 		ST_SetSRID(ST_GeomFromText('LINESTRING(-115.10 43.1, -115.08 43.1)'), 4326)
+	),
+	(
+		'00000000-0000-0000-0000-000000000005',
+		'CA',
+		'CA-120',
+		42.0,
+		42.1,
+		160.9344,
+		'benchmark-ca120-0005',
+		ST_SetSRID(ST_GeomFromText('LINESTRING(-119.80 37.85, -119.78 37.85)'), 4326)
+	),
+	(
+		'00000000-0000-0000-0000-000000000006',
+		'CA',
+		'CA-140',
+		8.5,
+		8.6,
+		160.9344,
+		'benchmark-ca140-0006',
+		ST_SetSRID(ST_GeomFromText('LINESTRING(-119.75 37.70, -119.73 37.70)'), 4326)
 	)
 	ON CONFLICT (id) DO UPDATE SET
 		geom = EXCLUDED.geom,
@@ -121,6 +141,26 @@ func SeedSegments(ctx context.Context, pool *pgxpool.Pool, stdout io.Writer) err
 		'{"10": 1.5, "11": 1.9, "12": 1.4}'::jsonb,
 		'{"Mule deer": 60.0, "Elk": 40.0}'::jsonb,
 		'[{"feature": "Canyon slope", "impact": "Medium", "weight": 0.35}]'::jsonb
+	),
+	(
+		'00000000-0000-0000-0000-000000000005',
+		16.8,
+		95.0,
+		11.0,
+		22.5,
+		'{"1": 0.2, "2": 0.2, "3": 0.4, "4": 0.7, "5": 1.4, "6": 2.4, "7": 2.8, "8": 2.6, "9": 1.9, "10": 1.0, "11": 0.4, "12": 0.2}'::jsonb,
+		'{"Black bear": 45.0, "Mule deer": 40.0, "Sierra bighorn sheep": 15.0}'::jsonb,
+		'[{"feature": "High summer visitor volume", "impact": "Critical", "weight": 0.55}, {"feature": "Winter snow pass closure", "impact": "Seasonal relief", "weight": -0.35}]'::jsonb
+	),
+	(
+		'00000000-0000-0000-0000-000000000006',
+		13.5,
+		92.0,
+		9.0,
+		17.5,
+		'{"1": 0.8, "2": 0.9, "3": 1.2, "4": 1.5, "5": 1.8, "6": 1.9, "7": 1.8, "8": 1.6, "9": 1.4, "10": 1.1, "11": 0.9, "12": 0.8}'::jsonb,
+		'{"Mule deer": 65.0, "Black bear": 35.0}'::jsonb,
+		'[{"feature": "Merced River riparian corridor", "impact": "High attraction", "weight": 0.48}, {"feature": "Steep canyon topography", "impact": "Bottleneck", "weight": 0.32}]'::jsonb
 	)
 	ON CONFLICT (segment_id) DO UPDATE SET
 		risk_score = EXCLUDED.risk_score,
@@ -142,7 +182,7 @@ func SeedSegments(ctx context.Context, pool *pgxpool.Pool, stdout io.Writer) err
 	}
 
 	if stdout != nil {
-		_, _ = fmt.Fprintln(stdout, "Seeded 4 benchmark road segments with risk scores and SHAP drivers.")
+		_, _ = fmt.Fprintln(stdout, "Seeded 6 benchmark road segments with risk scores and SHAP drivers.")
 	}
 	return nil
 }

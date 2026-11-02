@@ -71,6 +71,56 @@ func TestPrioritize_Text(t *testing.T) {
 	}
 }
 
+func TestPrioritize_StateCA(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	ctx := context.Background()
+
+	// 1. Text table output
+	err := cli.Run(ctx, []string{"prioritize", "--state=CA"}, &stdout, &stderr)
+	if err != nil {
+		t.Fatalf("prioritize --state=CA failed: %v, stderr: %s", err, stderr.String())
+	}
+
+	out := stdout.String()
+	if !strings.Contains(out, "CA-120") {
+		t.Errorf("expected CA-120 in text output:\n%s", out)
+	}
+	if !strings.Contains(out, "MP 42.0-42.1") {
+		t.Errorf("expected MP 42.0-42.1 in text output:\n%s", out)
+	}
+
+	// 2. JSON output
+	stdout.Reset()
+	stderr.Reset()
+	err = cli.Run(ctx, []string{"prioritize", "--state=CA", "--json"}, &stdout, &stderr)
+	if err != nil {
+		t.Fatalf("prioritize --state=CA --json failed: %v", err)
+	}
+
+	var candidates []prioritize.CandidateSite
+	if err := json.Unmarshal(stdout.Bytes(), &candidates); err != nil {
+		t.Fatalf("failed to decode JSON output: %v, raw: %s", err, stdout.String())
+	}
+
+	if len(candidates) == 0 {
+		t.Fatalf("expected at least 1 candidate for state CA, got 0")
+	}
+
+	c := candidates[0]
+	if c.State != "CA" {
+		t.Errorf("expected candidate state CA, got %s", c.State)
+	}
+	if c.HighwayRef != "CA-120" {
+		t.Errorf("expected highway CA-120, got %s", c.HighwayRef)
+	}
+	if c.BCR < 1.0 {
+		t.Errorf("expected BCR >= 1.0, got %.2f", c.BCR)
+	}
+	if c.MilepostStart != 42.0 || c.MilepostEnd != 42.1 {
+		t.Errorf("expected mileposts 42.0-42.1, got %.1f-%.1f", c.MilepostStart, c.MilepostEnd)
+	}
+}
+
 func TestPrioritize_InvalidOptions(t *testing.T) {
 	ctx := context.Background()
 	var stdout, stderr bytes.Buffer
@@ -175,6 +225,63 @@ func TestHotspot_InvalidOptions(t *testing.T) {
 
 	if err := cli.Run(ctx, []string{"hotspot", "--bandwidth=-100"}, &stdout, &stderr); err == nil {
 		t.Fatalf("expected error for negative bandwidth")
+	}
+}
+
+func TestHotspot_Yosemite(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	ctx := context.Background()
+
+	err := cli.Run(ctx, []string{"hotspot", "--park=Yosemite", "--json"}, &stdout, &stderr)
+	if err != nil {
+		t.Fatalf("hotspot yosemite command failed: %v, stderr: %s", err, stderr.String())
+	}
+
+	var results []cli.HotspotOutput
+	if err := json.Unmarshal(stdout.Bytes(), &results); err != nil {
+		t.Fatalf("failed to parse JSON hotspots: %v", err)
+	}
+
+	if len(results) == 0 {
+		t.Fatalf("expected results for Yosemite, got 0")
+	}
+
+	if !strings.HasPrefix(results[0].SegmentID, "ca-120-seg-") {
+		t.Errorf("expected segment ID to start with ca-120-seg-, got %s", results[0].SegmentID)
+	}
+	if results[0].SegmentID != "ca-120-seg-04" {
+		t.Errorf("expected top hotspot ca-120-seg-04, got %s", results[0].SegmentID)
+	}
+	if results[0].RawCount != 18 {
+		t.Errorf("expected 18 raw counts for ca-120-seg-04, got %d", results[0].RawCount)
+	}
+	if !strings.Contains(results[0].Significance, "Hotspot") {
+		t.Errorf("expected Hotspot significance, got %s", results[0].Significance)
+	}
+}
+
+func TestHotspot_StateCA(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	ctx := context.Background()
+
+	err := cli.Run(ctx, []string{"hotspot", "--state=CA", "--method=getis_ord", "--json"}, &stdout, &stderr)
+	if err != nil {
+		t.Fatalf("hotspot state CA failed: %v", err)
+	}
+
+	var results []cli.HotspotOutput
+	if err := json.Unmarshal(stdout.Bytes(), &results); err != nil {
+		t.Fatalf("failed to parse JSON hotspots: %v", err)
+	}
+
+	if len(results) == 0 {
+		t.Fatalf("expected results for CA, got 0")
+	}
+	if !strings.HasPrefix(results[0].SegmentID, "ca-120-seg-") {
+		t.Errorf("expected ca-120 segment, got %s", results[0].SegmentID)
+	}
+	if results[0].ZScore == nil || *results[0].ZScore <= 0 {
+		t.Errorf("expected positive z-score for top hotspot, got %v", results[0].ZScore)
 	}
 }
 

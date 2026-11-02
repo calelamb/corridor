@@ -28,6 +28,7 @@ Commands:
   hotspot [flags]                 Identify collision hotspots using NKDE or Getis-Ord Gi*
   evidence [flags]                Query peer-reviewed scientific evidence and research catalog
   seed-segments                   Populate benchmark road segments and risk scores
+  outreach [flags]                Generate federal outreach email drafts, briefs, and CRM ledger
 
 Flags for prioritize:
   --budget <float>                Budget limit in USD (default: 5000000)
@@ -43,12 +44,18 @@ Flags for hotspot:
 
 Flags for evidence:
   --category <string>             Category filter: "all", "mitigation", "bias", "ecology", "economics" (default: "all")
-  --json                          Output results as JSON array`
+  --json                          Output results as JSON array
+
+Flags for outreach:
+  --park <name>                   Park filter ("Yellowstone", "Grand Teton", ..., or "all", default: "all")
+  --persona <role>                Target role filter ("biologist", "ranger", "superintendent", "all", default: "all")
+  --format <format>               Format: "all", "eml", "brief", "csv" (default: "all")
+  --out <dir>                     Output directory (default: "docs/outreach/generated")`
 
 func Run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	if len(args) == 0 {
 		_, _ = fmt.Fprintln(stdout, helpUsage)
-		return errors.New("usage: corridorctl help|init-dev|migrate|setup|health|ingest all|prioritize|hotspot|evidence|seed-segments")
+		return errors.New("usage: corridorctl help|init-dev|migrate|setup|health|ingest all|prioritize|hotspot|evidence|seed-segments|outreach")
 	}
 
 	if len(args) == 2 && args[0] == "ingest" && args[1] == "all" {
@@ -96,6 +103,8 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 		return evidenceCmd(ctx, args[1:], stdout, stderr)
 	case "seed-segments":
 		return seedSegmentsCmd(ctx, stdout)
+	case "outreach":
+		return outreachCmd(ctx, args[1:], stdout, stderr)
 	default:
 		_, _ = fmt.Fprintln(stdout, helpUsage)
 		return errors.New("unsupported command; use corridorctl help")
