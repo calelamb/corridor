@@ -3,7 +3,7 @@
 	import { onMount } from 'svelte';
 
 	export interface Scenario {
-		id: 'yellowstone' | 'grand-teton' | 'glacier';
+		id: 'yellowstone' | 'grand-teton' | 'glacier' | 'yosemite';
 		title: string;
 		shortName: string;
 		park: string;
@@ -172,18 +172,61 @@
 					'High-span arch wildlife overpass with dynamic roadside driver warning sensors',
 				grantProgram: 'FHWA WCPP FY2026 Category 1 Pilot Grant'
 			}
+		},
+		{
+			id: 'yosemite',
+			title: 'Yosemite NP: CA-120 MP 42.0 — Black Bear Strike (Tioga / Crane Flat Dead Zone)',
+			shortName: 'Yosemite NP · CA-120',
+			park: 'Yosemite National Park',
+			highway: 'CA-120',
+			milepost: 'MP 42.0',
+			incidentType: 'Black Bear Collision',
+			deadZoneDesc: 'Crane Flat / Tioga Road Cellular Dead Zone (0 Bars LTE)',
+			lat: 37.7505,
+			lng: -119.8142,
+			coordsFormatted: '37.7505°N, 119.8142°W',
+			gpsAccuracy: '±2.8m',
+			speciesCommon: 'California Black Bear (Ursus americanus)',
+			speciesScientific: 'Ursus americanus',
+			speciesChip: '🐻 Black Bear',
+			speciesConfidence: '97.6%',
+			idbKey: 'idb-report-yose-120-0420',
+			dispatchAlert: {
+				title: 'DISPATCH ALERT: CA-120 MP 42.0 (Crane Flat / Tioga Pass)',
+				summary:
+					'Black bear roadside collision near Crane Flat junction. Valley & Mather District patrol alerted.',
+				timestamp: '14:28:10 PDT (Instant Local Push)',
+				priority: 'Sensitive Wildlife Dispatch',
+				status: 'Biological Field Response Dispatched'
+			},
+			privacyBadgeText:
+				'Park Ranger View: Exact GPS 37.7505°N, 119.8142°W | Public Map: Generalized H3 Cell + 30d Delay',
+			h3Cell: 'H3 Res 6: 8629a50b7ffffff (~36 km²)',
+			bcrBrief: {
+				projectTitle: 'CA-120 Crane Flat Wildlife Underpass & Bear Fencing',
+				corridorRange: 'CA-120 MP 38.0 – MP 46.0 (Crane Flat to Tioga Pass)',
+				benefitCostRatio: '2.9x',
+				bcrValue: 2.9,
+				avoidedCollisionsAnnual: '36 collisions / year',
+				netSavings20Yr: '$16,240,000 net savings',
+				capitalCost: '$8,400,000',
+				avoidedLosses20Yr: '$24,640,000',
+				structureRecommendation:
+					'Oversized ungulate underpass + dry culvert retrofits with small-carnivore shelves & 8-foot high-tensile fencing',
+				grantProgram: 'FHWA WCPP 23 U.S.C. § 171 Project Brief'
+			}
 		}
 	];
 
 	interface Props {
-		initialScenarioId?: 'yellowstone' | 'grand-teton' | 'glacier';
+		initialScenarioId?: 'yellowstone' | 'grand-teton' | 'glacier' | 'yosemite';
 		class?: string;
 	}
 
 	let { initialScenarioId = 'yellowstone', class: className = '' }: Props = $props();
 
 	// Active states
-	let selectedScenarioId = $state<'yellowstone' | 'grand-teton' | 'glacier'>('yellowstone');
+	let selectedScenarioId = $state<'yellowstone' | 'grand-teton' | 'glacier' | 'yosemite'>('yellowstone');
 
 	$effect(() => {
 		if (initialScenarioId) {
@@ -206,7 +249,7 @@
 		SCENARIOS.find((s) => s.id === selectedScenarioId) ?? SCENARIOS[0]
 	);
 
-	function selectScenario(id: 'yellowstone' | 'grand-teton' | 'glacier') {
+	function selectScenario(id: 'yellowstone' | 'grand-teton' | 'glacier' | 'yosemite') {
 		selectedScenarioId = id;
 		reportLogged = false;
 		isLogging = false;

@@ -1,7 +1,7 @@
 # FHWA WCPP Interagency Project Brief: Yosemite National Park (YOSE)
 ## Federal Highway Administration Wildlife Crossings Pilot Program (23 U.S.C. § 171) Prioritization Assessment
 
-**Date Generated:** October 16, 2026  
+**Date Generated:** November 2, 2026  
 **Target Unit:** Yosemite National Park (YOSE), CA  
 **Primary Highway Corridors:** CA-120 & CA-140  
 **Evaluated Roadway Geometry:** 97.0 miles (CA-120 MP 0.0-61.0 Tioga/Big Oak Flat; CA-140 MP 0.0-12.0 Merced Canyon; CA-41 MP 0.0-28.0 Wawona)  

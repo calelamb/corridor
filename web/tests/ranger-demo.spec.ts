@@ -43,7 +43,7 @@ test.describe('Interactive Ranger Field Demo Simulator (/rangers/#ranger-sandbox
 
 		// Scenario cards
 		const scenarioCards = section.locator('.scenario-card');
-		await expect(scenarioCards).toHaveCount(3);
+		await expect(scenarioCards).toHaveCount(4);
 
 		// Default is Yellowstone
 		await expect(scenarioCards.nth(0)).toHaveAttribute('aria-checked', 'true');
@@ -59,6 +59,11 @@ test.describe('Interactive Ranger Field Demo Simulator (/rangers/#ranger-sandbox
 		await scenarioCards.nth(2).click();
 		await expect(scenarioCards.nth(2)).toHaveAttribute('aria-checked', 'true');
 		await expect(section.locator('.scenario-summary-inline')).toContainText(/Glacier/i);
+
+		// Select Yosemite
+		await scenarioCards.nth(3).click();
+		await expect(scenarioCards.nth(3)).toHaveAttribute('aria-checked', 'true');
+		await expect(section.locator('.scenario-summary-inline')).toContainText(/Yosemite/i);
 	});
 
 	test('simulates 1-tap offline carcass logging with GPS, species AI chip, and IndexedDB write', async ({

@@ -1,25 +1,4 @@
 Park,Unit Code,State,Persona,Recipient Name,Recipient Email,Highway Corridor,Statutory Focus,Contact Status,Last Generated
-Yellowstone National Park,YELL,WY,biologist,Dr. P.J. White,pj_white@nps.gov,US-191 Gallatin Canyon,23 U.S.C. § 171(e)(1)(B) Ungulate & Carnivore Migration,Demo Scheduled,2026-10-16T19:41:59Z
-Yellowstone National Park,YELL,WY,ranger,Sarah Davis,sarah_davis@nps.gov,US-191 / US-89 Corridor,23 U.S.C. § 171(e)(1)(A) Roadside Safety & Incident Response,Briefing Dispatched,2026-10-16T19:41:59Z
-Yellowstone National Park,YELL,WY,superintendent,Cam Sholly,cam_sholly@nps.gov,US-191 / US-89 Highway System,23 U.S.C. § 171(e)(1)(C) Capital Mitigation & BCR Prioritization,Incumbent Verified,2026-10-16T19:41:59Z
-Grand Teton National Park,GRTE,WY,biologist,Sarah Dewey,sarah_dewey@nps.gov,US-89/191 Moran-Moose,23 U.S.C. § 171(e)(1)(B) Pronghorn & Moose Movement,PWA Installed,2026-10-16T19:41:59Z
-Grand Teton National Park,GRTE,WY,ranger,Michael Boyce,michael_boyce@nps.gov,Valley Highway Spine (US-89/26/191),23 U.S.C. § 171(e)(1)(A) Road Patrol & Dispatch SSE Feed,SSE Live Feed Active,2026-10-16T19:41:59Z
-Grand Teton National Park,GRTE,WY,superintendent,Chip Jenkins,chip_jenkins@nps.gov,US-89 / US-191 / US-26,23 U.S.C. § 171(e)(1)(D) WYDOT Joint Partnership,Demo Scheduled,2026-10-16T19:41:59Z
-Glacier National Park,GLAC,MT,biologist,John Waller,john_waller@nps.gov,US-2 Marias Pass (MP 142-198),23 U.S.C. § 171(e)(1)(B) Grizzly & Lynx Corridors,Briefing Dispatched,2026-10-16T19:41:59Z
-Glacier National Park,GLAC,MT,ranger,Paul Austin,paul_austin@nps.gov,US-2 / Going-to-the-Sun Road,23 U.S.C. § 171(e)(1)(A) Alpine Traffic & Carcass Logging,Incumbent Verified,2026-10-16T19:41:59Z
-Glacier National Park,GLAC,MT,superintendent,Dave Roemer,dave_roemer@nps.gov,US-2 Southern Boundary,23 U.S.C. § 171(e)(1)(C) MDT Interagency Crossing Grants,Incumbent Verified,2026-10-16T19:41:59Z
-Rocky Mountain National Park,ROMO,CO,biologist,Dr. Jason Ransom,jason_ransom@nps.gov,US-34 / US-36 Kawuneeche & Estes Park,23 U.S.C. § 171(e)(1)(B) Elk Rut & Bighorn Movement,Demo Scheduled,2026-10-16T19:41:59Z
-Rocky Mountain National Park,ROMO,CO,ranger,Chris Hinson,chris_hinson@nps.gov,US-36 / US-34 Trail Ridge,23 U.S.C. § 171(e)(1)(A) High-Altitude Patrol & PWA,Briefing Dispatched,2026-10-16T19:41:59Z
-Rocky Mountain National Park,ROMO,CO,superintendent,Gary Ingram,gary_ingram@nps.gov,US-34 / US-36 Gateway Corridors,23 U.S.C. § 171(e)(1)(D) CDOT Region 4 WCPP Alliance,Incumbent Verified,2026-10-16T19:41:59Z
-Yosemite National Park,YOSE,CA,biologist,Dr. Rachel Mazur,rachel_mazur@nps.gov,CA-120 Tioga Pass / CA-140,23 U.S.C. § 171(e)(1)(B) Sierra Bighorn & Black Bear Protection,Demo Scheduled,2026-10-16T19:41:59Z
-Yosemite National Park,YOSE,CA,ranger,Kevin Killian,kevin_killian@nps.gov,CA-120 / CA-140 / CA-41,23 U.S.C. § 171(e)(1)(A) Valley & High Sierra Road Patrol,Briefing Dispatched,2026-10-16T19:41:59Z
-Yosemite National Park,YOSE,CA,superintendent,Cicely Muldoon,cicely_muldoon@nps.gov,CA-120 / CA-140 Corridors,23 U.S.C. § 171(e)(1)(D) Caltrans District 10 Joint Grant,Incumbent Verified,2026-10-16T19:41:59Z
-Grand Canyon National Park,GRCA,AZ,biologist,Greg Holm,greg_holm@nps.gov,AZ-64 Desert View Drive,23 U.S.C. § 171(e)(1)(B) South Rim Elk & Bighorn Connectivity,Incumbent Verified,2026-10-16T19:41:59Z
-Grand Canyon National Park,GRCA,AZ,ranger,Shannon McTaggart,shannon_mctaggart@nps.gov,AZ-64 / South & North Rims,23 U.S.C. § 171(e)(1)(A) Remote Patrol Dead-Zone Reporting,Incumbent Verified,2026-10-16T19:41:59Z
-Grand Canyon National Park,GRCA,AZ,superintendent,Ed Keable,ed_keable@nps.gov,AZ-64 / AZ-67 Approaches,23 U.S.C. § 171(e)(1)(C) ADOT Wildlife Crossing Co-Sponsorship,Incumbent Verified,2026-10-16T19:41:59Z
-Olympic National Park,OLYM,WA,biologist,Dr. Patti Happe,patti_happe@nps.gov,US-101 Lake Crescent & Hoh River,23 U.S.C. § 171(e)(1)(B) Roosevelt Elk Coastal Herds,Briefing Dispatched,2026-10-16T19:41:59Z
-Olympic National Park,OLYM,WA,ranger,Brian Smith,brian_smith@nps.gov,US-101 Peninsula Loop,23 U.S.C. § 171(e)(1)(A) Coastal Highway Patrol Toughbook PWA,Incumbent Verified,2026-10-16T19:41:59Z
-Olympic National Park,OLYM,WA,superintendent,Sula Jacobs,sula_jacobs@nps.gov,US-101 Olympic Highway,23 U.S.C. § 171(e)(1)(D) WSDOT Olympic Region Partnership,Incumbent Verified,2026-10-16T19:41:59Z
-Shenandoah National Park,SHEN,VA,biologist,Rolf Gubler,rolf_gubler@nps.gov,Skyline Drive MP 0-105,23 U.S.C. § 171(e)(1)(B) High-Density Deer Strike Hotspots,Demo Scheduled,2026-10-16T19:41:59Z
-Shenandoah National Park,SHEN,VA,ranger,Dave Wood,dave_wood@nps.gov,Skyline Drive & Gaps (US-211/US-33),23 U.S.C. § 171(e)(1)(A) Patrol Vehicle Offline Carcass Capture,PWA Installed,2026-10-16T19:41:59Z
-Shenandoah National Park,SHEN,VA,superintendent,Patrick Kenney,patrick_kenney@nps.gov,Skyline Drive / US-211,23 U.S.C. § 171(e)(1)(C) VDOT Staunton District Grant Alliance,Incumbent Verified,2026-10-16T19:41:59Z
+Yosemite National Park,YOSE,CA,biologist,Dr. Rachel Mazur,rachel_mazur@nps.gov,CA-120 Tioga Pass / CA-140,23 U.S.C. § 171(e)(1)(B) Sierra Bighorn & Black Bear Protection,Demo Scheduled,2026-11-02T21:47:46Z
+Yosemite National Park,YOSE,CA,ranger,Kevin Killian,kevin_killian@nps.gov,CA-120 / CA-140 / CA-41,23 U.S.C. § 171(e)(1)(A) Valley & High Sierra Road Patrol,Briefing Dispatched,2026-11-02T21:47:46Z
+Yosemite National Park,YOSE,CA,superintendent,Cicely Muldoon,cicely_muldoon@nps.gov,CA-120 / CA-140 Corridors,23 U.S.C. § 171(e)(1)(D) Caltrans District 10 Joint Grant,Incumbent Verified,2026-11-02T21:47:46Z
