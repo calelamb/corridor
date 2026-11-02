@@ -51,6 +51,10 @@ type SpeciesClassifier interface {
 	Classify(ctx context.Context, imgBytes []byte) ([]SpeciesSuggestion, error)
 }
 
+type HotspotProvider interface {
+	Hotspots(ctx context.Context, params HotspotsParams) ([]HotspotItem, error)
+}
+
 type Snapper func(ctx context.Context, point orb.Point, maxDistanceMeters float64) (segmentID uuid.UUID, snapDistance float64, snappedPoint orb.Point, err error)
 
 type Deduplicator func(ctx context.Context, speciesID string, geom orb.Point, observedAt time.Time, distanceThresholdM float64, timeThresholdHours float64) (dedupGroupID *uuid.UUID, isDuplicate bool, err error)
@@ -59,6 +63,7 @@ type Dependencies struct {
 	Store              Store
 	SegmentStore       SegmentStore
 	MitigationProvider MitigationProvider
+	HotspotProvider    HotspotProvider
 	ReportStore        ReportStore
 	PhotoStore         PhotoStore
 	SpeciesClassifier  SpeciesClassifier
@@ -75,6 +80,10 @@ type Dependencies struct {
 	Predict            http.Handler
 }
 type service struct{ deps Dependencies }
+
+func (s service) hotspotProvider() HotspotProvider {
+	return s.deps.HotspotProvider
+}
 
 func (s service) segmentStore() SegmentStore {
 	if s.deps.SegmentStore != nil {
@@ -183,6 +192,7 @@ func NewRouter(deps Dependencies) http.Handler {
 		r.Get("/v1/migration", deps.Explore.ServeHTTP)
 		r.Get("/tiles/evidence/{z}/{x}/{y}", deps.Explore.ServeHTTP)
 		r.Get("/maps/region.pmtiles", deps.Explore.ServeHTTP)
+		r.Head("/maps/region.pmtiles", deps.Explore.ServeHTTP)
 	}
 	r.MethodNotAllowed(func(w http.ResponseWriter, _ *http.Request) { writeError(w, 405, "Method not allowed") })
 	bad := func(w http.ResponseWriter, _ *http.Request, _ error) { writeError(w, 400, "Invalid request") }

@@ -94,7 +94,7 @@ func GenerateCandidatesWithOptions(ctx context.Context, pool *pgxpool.Pool, opts
 			s.species_breakdown
 		FROM road_segments r
 		JOIN segment_risk_scores s ON r.id = s.segment_id
-		WHERE s.percentile_rank >= $1
+		WHERE (s.percentile_rank >= $1 OR s.percentile_rank * 100 >= $1)
 		  AND ($2::text IS NULL OR r.state = $2)
 		ORDER BY r.highway_ref, r.milepost_start, r.id
 	`
@@ -437,6 +437,64 @@ func buildCandidateSite(cluster []SegmentRecord, state, highwayRef string, cfg P
 	}
 }
 
+// NormalizeSpeciesKey standardizes species names: trimmed, lowercase, hyphens/spaces to underscores.
+func NormalizeSpeciesKey(sp string) string {
+	s := strings.ToLower(strings.TrimSpace(sp))
+	s = strings.ReplaceAll(s, "-", "_")
+	s = strings.ReplaceAll(s, " ", "_")
+	for strings.Contains(s, "__") {
+		s = strings.ReplaceAll(s, "__", "_")
+	}
+	return s
+}
+
+// getSpeciesCost retrieves the collision cost for a species, normalizing keys and applying aliases.
+func getSpeciesCost(sp string, cfg PrioritizeConfig) float64 {
+	norm := NormalizeSpeciesKey(sp)
+
+	// Direct lookup by normalized key
+	if cost, ok := cfg.SpeciesCosts[norm]; ok {
+		return cost
+	}
+
+	// Specific fallback mappings
+	switch norm {
+	case "mule_deer", "white_tailed_deer", "whitetailed_deer":
+		if cost, ok := cfg.SpeciesCosts["deer"]; ok {
+			return cost
+		}
+	case "sierra_nevada_bighorn_sheep":
+		if cost, ok := cfg.SpeciesCosts["sierra_bighorn_sheep"]; ok {
+			return cost
+		}
+		if cost, ok := cfg.SpeciesCosts["bighorn_sheep"]; ok {
+			return cost
+		}
+	case "california_black_bear":
+		if cost, ok := cfg.SpeciesCosts["black_bear"]; ok {
+			return cost
+		}
+	case "pacific_fisher":
+		if cost, ok := cfg.SpeciesCosts["fisher"]; ok {
+			return cost
+		}
+	}
+
+	// Direct raw key lookup fallback
+	if cost, ok := cfg.SpeciesCosts[sp]; ok {
+		return cost
+	}
+
+	// Scan with normalization in case config keys have different formatting
+	for k, cost := range cfg.SpeciesCosts {
+		if NormalizeSpeciesKey(k) == norm {
+			return cost
+		}
+	}
+
+	return cfg.DefaultSpeciesCost
+}
+
 func calculateAvgSpeciesCost(weights map[string]float64, cfg PrioritizeConfig) float64 {
 	var totalWeight float64
 	var weightedSum float64
@@ -445,10 +503,7 @@ func calculateAvgSpeciesCost(weights map[string]float64, cfg PrioritizeConfig) f
 		if w <= 0 {
 			continue
 		}
-		cost, ok := cfg.SpeciesCosts[sp]
-		if !ok {
-			cost = cfg.DefaultSpeciesCost
-		}
+		cost := getSpeciesCost(sp, cfg)
 		weightedSum += w * cost
 		totalWeight += w
 	}
@@ -459,16 +514,90 @@ func calculateAvgSpeciesCost(weights map[string]float64, cfg PrioritizeConfig) f
 	return weightedSum / totalWeight
 }
 
+func isSmallCarnivore(norm string) bool {
+	switch norm {
+	case "fisher", "pacific_fisher", "raccoon", "small_carnivore":
+		return true
+	default:
+		return false
+	}
+}
+
+func isSmallCarnivoreDominant(speciesWeights map[string]float64) bool {
+	if len(speciesWeights) == 0 {
+		return false
+	}
+
+	agg := make(map[string]float64)
+	var totalWeight, smallCarnivoreWeight float64
+
+	for sp, w := range speciesWeights {
+		if w <= 0 {
+			continue
+		}
+		norm := NormalizeSpeciesKey(sp)
+		agg[norm] += w
+		totalWeight += w
+		if isSmallCarnivore(norm) {
+			smallCarnivoreWeight += w
+		}
+	}
+
+	if totalWeight <= 0 {
+		return false
+	}
+
+	var maxWeight float64
+	var dominantSp string
+	for sp, w := range agg {
+		if w > maxWeight {
+			maxWeight = w
+			dominantSp = sp
+		}
+	}
+
+	if isSmallCarnivore(dominantSp) {
+		return true
+	}
+	if smallCarnivoreWeight > (totalWeight - smallCarnivoreWeight) {
+		return true
+	}
+
+	return false
+}
+
+func isLargeMammal(norm string) bool {
+	switch norm {
+	case "moose", "elk", "pronghorn",
+		"bighorn_sheep", "sierra_bighorn_sheep", "sierra_nevada_bighorn_sheep",
+		"black_bear", "california_black_bear", "grizzly_bear", "bear":
+		return true
+	default:
+		return false
+	}
+}
+
 func recommendStructureType(cluster []SegmentRecord, totalRisk, totalLengthM float64, speciesWeights map[string]float64, cfg PrioritizeConfig) string {
 	if cfg.DefaultStructureType != "" {
 		return cfg.DefaultStructureType
 	}
 
-	// Calculate large mammal proportion (moose, elk, pronghorn)
+	// If dominant species is small carnivore (fisher, raccoon), recommend retrofit if available
+	if isSmallCarnivoreDominant(speciesWeights) {
+		if _, ok := cfg.Structures["small_carnivore_culvert_retrofit"]; ok {
+			return "small_carnivore_culvert_retrofit"
+		}
+	}
+
+	// Calculate large mammal proportion (moose, elk, pronghorn, bighorn sheep, bear)
 	var largeMammalWeight, totalWeight float64
 	for sp, w := range speciesWeights {
+		if w <= 0 {
+			continue
+		}
 		totalWeight += w
-		if sp == "moose" || sp == "elk" || sp == "pronghorn" {
+		norm := NormalizeSpeciesKey(sp)
+		if isLargeMammal(norm) {
 			largeMammalWeight += w
 		}
 	}

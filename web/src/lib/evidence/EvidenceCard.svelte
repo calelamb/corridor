@@ -70,6 +70,7 @@
 		flex-direction: column;
 		gap: 14px;
 		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+		min-width: 0;
 		transition:
 			border-color 0.15s,
 			box-shadow 0.15s;
@@ -132,6 +133,8 @@
 		line-height: 1.35;
 		margin: 0;
 		color: var(--ink, #0f172a);
+		word-break: break-word;
+		overflow-wrap: anywhere;
 	}
 
 	.paper-authors {
@@ -246,6 +249,8 @@
 		align-items: center;
 		gap: 6px;
 		min-height: 48px;
+		max-width: 100%;
+		box-sizing: border-box;
 		padding: 8px 14px;
 		font-size: 0.82rem;
 		font-weight: 600;
@@ -254,6 +259,14 @@
 		border: 1px solid var(--line, #cbd5e1);
 		border-radius: 6px;
 		background: var(--surface, #f8fafc);
+		word-break: break-word;
+		overflow-wrap: anywhere;
+	}
+
+	.doi-link span:first-child {
+		word-break: break-all;
+		overflow-wrap: anywhere;
+		min-width: 0;
 	}
 
 	.doi-link:hover,
@@ -265,5 +278,18 @@
 
 	.arrow {
 		font-size: 0.95rem;
+		flex-shrink: 0;
+	}
+
+	@media (max-width: 640px) {
+		.evidence-card {
+			padding: 16px 12px;
+		}
+	}
+
+	@media (max-width: 375px) {
+		.evidence-card {
+			padding: 14px 8px;
+		}
 	}
 </style>

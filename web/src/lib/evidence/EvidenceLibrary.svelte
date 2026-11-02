@@ -197,8 +197,21 @@
 	}
 
 	@media (max-width: 640px) {
+		.library-toolbar {
+			padding: 14px 12px;
+		}
 		.papers-grid {
-			grid-template-columns: 1fr;
+			grid-template-columns: minmax(0, 1fr);
+		}
+	}
+
+	@media (max-width: 375px) {
+		.library-toolbar {
+			padding: 12px 8px;
+			gap: 12px;
+		}
+		.papers-grid {
+			gap: 14px;
 		}
 	}
 

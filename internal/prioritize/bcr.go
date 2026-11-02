@@ -143,13 +143,30 @@ func DefaultConfig() PrioritizeConfig {
 			LifespanYears:        10,
 			Citation:             "Huijser, M.P., et al. (2009). Cost-Benefit Analyses of Mitigation Measures Aimed at Reducing Large Ungulate Collisions.",
 		},
+		"small_carnivore_culvert_retrofit": {
+			ID:                   "small_carnivore_culvert_retrofit",
+			Name:                 "Dry Culvert Retrofit with Small Carnivore Shelving",
+			Effectiveness:        0.70,
+			BaseCostUSD:          45000.0,
+			FencingCostPerMeter:  40.0,
+			AnnualMaintenancePct: 0.02,
+			LifespanYears:        15,
+			Citation:             "Clevenger & Huijser (2011)",
+		},
 	}
 
 	speciesCosts := map[string]float64{
-		"deer":      14000.0,
-		"elk":       45000.0,
-		"moose":     83000.0,
-		"pronghorn": 16000.0,
+		"deer":                 14000.0,
+		"mule_deer":            14000.0,
+		"elk":                  45000.0,
+		"moose":                83000.0,
+		"pronghorn":            16000.0,
+		"bighorn_sheep":        25000.0,
+		"sierra_bighorn_sheep": 25000.0,
+		"black_bear":           20000.0,
+		"mountain_lion":        18000.0,
+		"fisher":               15000.0,
+		"pacific_fisher":       15000.0,
 	}
 
 	return PrioritizeConfig{

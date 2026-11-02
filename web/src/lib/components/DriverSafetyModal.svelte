@@ -132,12 +132,12 @@
 
 	.btn-acknowledge {
 		min-height: 52px;
-		min-width: 260px;
+		min-width: 0;
 		width: 100%;
 		max-width: 380px;
 		padding: 14px 24px;
 		background: var(--accent, #21644d);
-		color: #ffffff;
+		color: var(--accent-ink, #ffffff);
 		border: 2px solid transparent;
 		border-radius: 12px;
 		font-size: 1.1rem;
@@ -163,5 +163,11 @@
 
 	.btn-acknowledge:active {
 		transform: scale(0.98);
+	}
+
+	@media (max-width: 480px) {
+		.safety-dialog {
+			padding: 24px 16px;
+		}
 	}
 </style>
