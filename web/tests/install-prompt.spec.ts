@@ -79,12 +79,6 @@ test.describe('Desktop App Install Flow & GFE Guidance', () => {
 			await page.goto('/');
 			await expect(page.locator('aside[data-testid="desktop-install-banner"]')).toBeVisible();
 			await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
-			await page.evaluate(
-				() =>
-					new Promise<void>((resolve) =>
-						requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
-					)
-			);
 
 			await page.screenshot({
 				path: test.info().outputPath(`desktop-install-${theme}.png`),

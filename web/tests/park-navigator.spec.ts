@@ -153,12 +153,10 @@ test.describe('Multi-Park Navigator & Hotspot Controls', () => {
 			await page.goto('/');
 			await expect(page.getByRole('region', { name: /National Park navigation/i })).toBeVisible();
 			await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
-			await page.evaluate(
-				() =>
-					new Promise<void>((resolve) =>
-						requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
-					)
-			);
+			await page.screenshot({
+				path: test.info().outputPath(`park-navigation-${theme}.png`),
+				fullPage: true
+			});
 			let axe = await new AxeBuilder({ page })
 				.withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
 				.analyze();
@@ -168,12 +166,10 @@ test.describe('Multi-Park Navigator & Hotspot Controls', () => {
 			await page.goto('/?workspace=hotspots');
 			await expect(page.getByRole('group', { name: /Hotspot Analysis Controls/i })).toBeVisible();
 			await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
-			await page.evaluate(
-				() =>
-					new Promise<void>((resolve) =>
-						requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
-					)
-			);
+			await page.screenshot({
+				path: test.info().outputPath(`hotspot-controls-${theme}.png`),
+				fullPage: true
+			});
 			axe = await new AxeBuilder({ page })
 				.withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
 				.analyze();
