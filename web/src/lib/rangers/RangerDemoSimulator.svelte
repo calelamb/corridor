@@ -226,7 +226,9 @@
 	let { initialScenarioId = 'yellowstone', class: className = '' }: Props = $props();
 
 	// Active states
-	let selectedScenarioId = $state<'yellowstone' | 'grand-teton' | 'glacier' | 'yosemite'>('yellowstone');
+	let selectedScenarioId = $state<'yellowstone' | 'grand-teton' | 'glacier' | 'yosemite'>(
+		'yellowstone'
+	);
 
 	$effect(() => {
 		if (initialScenarioId) {
