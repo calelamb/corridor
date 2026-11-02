@@ -11,7 +11,7 @@ import onnx
 from onnx import helper, TensorProto
 from onnxruntime.quantization import QuantType, quantize_dynamic
 
-# Standard 8 target wildlife species for North American roadkill monitoring
+# Standard 11 target wildlife species for North American and Sierra Nevada roadkill monitoring
 DEFAULT_TARGET_SPECIES: list[str] = [
     "mule_deer",
     "white_tailed_deer",
@@ -21,6 +21,9 @@ DEFAULT_TARGET_SPECIES: list[str] = [
     "black_bear",
     "raccoon",
     "coyote",
+    "sierra_bighorn_sheep",
+    "pacific_fisher",
+    "mountain_lion",
 ]
 
 
