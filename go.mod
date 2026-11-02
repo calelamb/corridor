@@ -14,7 +14,7 @@ require (
 	github.com/akhenakh/goh3 v0.0.0-20260315153541-02d99f35fd29
 	github.com/andybalholm/brotli v1.2.4
 	github.com/dmitryikh/leaves v0.0.0-20230708180554-25d19a787328
-	github.com/getkin/kin-openapi v0.142.0
+	github.com/getkin/kin-openapi v0.149.0
 	github.com/go-chi/chi/v5 v5.3.2
 	github.com/go-pdf/fpdf v0.9.0
 	github.com/google/uuid v1.6.0
@@ -23,7 +23,7 @@ require (
 	github.com/kardianos/h3geo v1.0.0
 	github.com/minio/madmin-go/v3 v3.0.110
 	github.com/minio/minio-go/v7 v7.3.0
-	github.com/oapi-codegen/runtime v1.6.0
+	github.com/oapi-codegen/runtime v1.7.0
 	github.com/paulmach/orb v0.13.0
 	github.com/pressly/goose/v3 v3.28.0
 	github.com/testcontainers/testcontainers-go v0.44.0
@@ -73,7 +73,7 @@ require (
 	github.com/go-sql-driver/mysql v1.10.0 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
-	github.com/google/cel-go v0.28.0 // indirect
+	github.com/google/cel-go v0.29.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.20 // indirect
@@ -98,12 +98,12 @@ require (
 	github.com/minio/crc64nvme v1.1.1 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
-	github.com/moby/go-archive v0.2.0 // indirect
+	github.com/moby/go-archive v0.3.0 // indirect
 	github.com/moby/moby/api v1.55.0 // indirect
 	github.com/moby/moby/client v0.5.1 // indirect
 	github.com/moby/patternmatcher v0.6.1 // indirect
 	github.com/moby/sys/sequential v0.7.0 // indirect
-	github.com/moby/sys/user v0.4.0 // indirect
+	github.com/moby/sys/user v0.4.1 // indirect
 	github.com/moby/sys/userns v0.1.0 // indirect
 	github.com/moby/term v0.5.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect

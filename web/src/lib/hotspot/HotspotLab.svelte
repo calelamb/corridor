@@ -49,7 +49,12 @@
 			method = urlMethod;
 		}
 		const urlBandwidth = Number(searchParams.get('bandwidth'));
-		if (urlBandwidth && Number.isFinite(urlBandwidth) && urlBandwidth >= 250 && urlBandwidth <= 2000) {
+		if (
+			urlBandwidth &&
+			Number.isFinite(urlBandwidth) &&
+			urlBandwidth >= 250 &&
+			urlBandwidth <= 2000
+		) {
 			bandwidth = urlBandwidth;
 		}
 		fetchHotspots(method, bandwidth);
@@ -221,8 +226,6 @@
 		font-size: 1rem;
 		color: var(--muted);
 	}
-
-
 
 	.significance-reference {
 		display: grid;

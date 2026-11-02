@@ -31,7 +31,7 @@ jobs:
           cache: true
 
       - name: Set up Node.js 20+
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: "24.x"
           cache: npm
@@ -71,7 +71,7 @@ jobs:
           cat SHA256SUMS
 
       - name: Upload binaries as workflow artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: corridor-release-binaries
           path: release-artifacts/

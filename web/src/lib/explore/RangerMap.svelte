@@ -35,13 +35,13 @@
 			id: 'rocky-mountain',
 			name: 'Rocky Mountain National Park',
 			shortName: 'Rocky Mountain',
-			bounds: [-105.90, 40.15, -105.45, 40.55]
+			bounds: [-105.9, 40.15, -105.45, 40.55]
 		},
 		{
 			id: 'olympic',
 			name: 'Olympic National Park',
 			shortName: 'Olympic',
-			bounds: [-124.65, 47.45, -123.10, 48.15]
+			bounds: [-124.65, 47.45, -123.1, 48.15]
 		}
 	];
 </script>
@@ -97,12 +97,8 @@
 	let layerErrors = $state<string[]>([]);
 	let ready = $state(false);
 
-	let activePark = $state('');
+	let activePark = $derived(selectedPark);
 	let pillElements: (HTMLButtonElement | null)[] = $state([]);
-
-	$effect(() => {
-		activePark = selectedPark;
-	});
 
 	function selectPark(park: NationalPark) {
 		activePark = park.id;
@@ -279,11 +275,7 @@
 	</div>
 
 	<!-- Accessible Pill Group with Roving Tabindex & Arrow Key Navigation -->
-	<div
-		class="park-pills"
-		role="radiogroup"
-		aria-label="National park quick extents"
-	>
+	<div class="park-pills" role="radiogroup" aria-label="National park quick extents">
 		{#each NATIONAL_PARKS as park, i (park.id)}
 			<button
 				type="button"
@@ -314,9 +306,7 @@
 			activePark = '';
 			handle?.fit([-117, 42, -112, 44]);
 		}}>⌖</button
-	><button
-		aria-label="Fit Yosemite corridor"
-		onclick={() => selectPark(NATIONAL_PARKS[0])}
+	><button aria-label="Fit Yosemite corridor" onclick={() => selectPark(NATIONAL_PARKS[0])}
 		>🏔</button
 	>
 </div>
@@ -381,13 +371,28 @@
 	}
 
 	.park-select-container {
+		position: relative;
 		width: 100%;
 	}
 
+	.park-select-container::after {
+		content: '';
+		position: absolute;
+		top: 18px;
+		right: 16px;
+		width: 8px;
+		height: 8px;
+		border-right: 2px solid var(--ink);
+		border-bottom: 2px solid var(--ink);
+		transform: rotate(45deg);
+		pointer-events: none;
+	}
+
 	.park-select {
+		appearance: none;
 		width: 100%;
 		min-height: 48px;
-		padding: 8px 12px;
+		padding: 8px 36px 8px 12px;
 		border: 1px solid var(--line);
 		border-radius: 6px;
 		background: var(--surface);
@@ -412,15 +417,9 @@
 		padding-bottom: 2px;
 	}
 
-	@media (min-width: 641px) {
-		.park-pills {
-			flex-wrap: wrap;
-			overflow-x: visible;
-		}
-	}
-
 	.park-pill {
 		flex-shrink: 0;
+		width: auto;
 		min-height: 48px;
 		min-width: 48px;
 		padding: 8px 14px;

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { render, screen, cleanup, fireEvent } from '@testing-library/svelte';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import HotspotControls, { METHODS, BANDWIDTH_PRESETS } from './HotspotControls.svelte';
+import HotspotControls from './HotspotControls.svelte';
 
 afterEach(cleanup);
 
@@ -25,7 +25,9 @@ describe('HotspotControls Component', () => {
 		expect(getisBtn.getAttribute('aria-pressed')).toBe('false');
 
 		// Check algorithm dropdown
-		const select = screen.getByRole('combobox', { name: /statistical algorithm/i }) as HTMLSelectElement;
+		const select = screen.getByRole('combobox', {
+			name: /statistical algorithm/i
+		}) as HTMLSelectElement;
 		expect(select).toBeTruthy();
 		expect(select.value).toBe('nkde');
 	});
@@ -126,7 +128,9 @@ describe('HotspotControls Component', () => {
 			disabled: true
 		});
 
-		const select = screen.getByRole('combobox', { name: /statistical algorithm/i }) as HTMLSelectElement;
+		const select = screen.getByRole('combobox', {
+			name: /statistical algorithm/i
+		}) as HTMLSelectElement;
 		expect(select.disabled).toBe(true);
 
 		const slider = screen.getByRole('slider', { name: /bandwidth/i }) as HTMLInputElement;

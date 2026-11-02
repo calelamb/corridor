@@ -78,7 +78,12 @@ test.describe('Desktop App Install Flow & GFE Guidance', () => {
 			}, theme);
 			await page.goto('/');
 			await expect(page.locator('aside[data-testid="desktop-install-banner"]')).toBeVisible();
+			await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
 
+			await page.screenshot({
+				path: test.info().outputPath(`desktop-install-${theme}.png`),
+				fullPage: true
+			});
 			const axe = await new AxeBuilder({ page }).analyze();
 			expect(axe.violations).toEqual([]);
 		}

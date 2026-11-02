@@ -124,7 +124,9 @@
 			</div>
 			<div class="bandwidth-value-display" aria-live="polite">
 				<strong>{bandwidth} m</strong>
-				<span class="bandwidth-unit">({(bandwidth / 1000).toFixed(bandwidth % 1000 === 0 ? 0 : 2)} km)</span>
+				<span class="bandwidth-unit"
+					>({(bandwidth / 1000).toFixed(bandwidth % 1000 === 0 ? 0 : 2)} km)</span
+				>
 			</div>
 		</div>
 

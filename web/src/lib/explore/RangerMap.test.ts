@@ -32,8 +32,8 @@ describe('RangerMap Multi-Park Navigator', () => {
 		expect(parkMap['yellowstone']).toEqual([-111.15, 44.12, -109.82, 45.12]);
 		expect(parkMap['grand-teton']).toEqual([-110.88, 43.48, -110.45, 44.02]);
 		expect(parkMap['glacier']).toEqual([-114.45, 48.25, -113.15, 49.02]);
-		expect(parkMap['rocky-mountain']).toEqual([-105.90, 40.15, -105.45, 40.55]);
-		expect(parkMap['olympic']).toEqual([-124.65, 47.45, -123.10, 48.15]);
+		expect(parkMap['rocky-mountain']).toEqual([-105.9, 40.15, -105.45, 40.55]);
+		expect(parkMap['olympic']).toEqual([-124.65, 47.45, -123.1, 48.15]);
 	});
 
 	it('renders accessible dropdown switcher with all 6 national parks', () => {
@@ -180,26 +180,18 @@ describe('RangerMap Multi-Park Navigator', () => {
 
 		// Yosemite is index 0. ArrowRight moves to index 1 (Yellowstone)
 		await fireEvent.keyDown(pills[0], { key: 'ArrowRight' });
-		expect(onparkselect).toHaveBeenCalledWith(
-			expect.objectContaining({ id: 'yellowstone' })
-		);
+		expect(onparkselect).toHaveBeenCalledWith(expect.objectContaining({ id: 'yellowstone' }));
 
 		// ArrowLeft moves back to index 0 (Yosemite)
 		await fireEvent.keyDown(pills[1], { key: 'ArrowLeft' });
-		expect(onparkselect).toHaveBeenCalledWith(
-			expect.objectContaining({ id: 'yosemite' })
-		);
+		expect(onparkselect).toHaveBeenCalledWith(expect.objectContaining({ id: 'yosemite' }));
 
 		// End key moves to last park (Olympic)
 		await fireEvent.keyDown(pills[0], { key: 'End' });
-		expect(onparkselect).toHaveBeenCalledWith(
-			expect.objectContaining({ id: 'olympic' })
-		);
+		expect(onparkselect).toHaveBeenCalledWith(expect.objectContaining({ id: 'olympic' }));
 
 		// Home key moves to first park (Yosemite)
 		await fireEvent.keyDown(pills[5], { key: 'Home' });
-		expect(onparkselect).toHaveBeenCalledWith(
-			expect.objectContaining({ id: 'yosemite' })
-		);
+		expect(onparkselect).toHaveBeenCalledWith(expect.objectContaining({ id: 'yosemite' }));
 	});
 });
