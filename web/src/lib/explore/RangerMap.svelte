@@ -143,6 +143,8 @@
 	><button aria-label="Reset north" onclick={() => handle?.north()}>N ↑</button>
 	<button aria-label="Fit pilot coverage" onclick={() => handle?.fit([-117, 42, -112, 44])}
 		>⌖</button
+	><button aria-label="Fit Yosemite corridor" onclick={() => handle?.fit([-120.0, 37.4, -119.1, 38.3])}
+		>🏔</button
 	>
 </div>
 <div class="map-legend">

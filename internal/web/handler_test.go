@@ -13,6 +13,7 @@ func TestStaticRouting(t *testing.T) {
 		"data/index.html":        {Data: []byte("<html>Data</html>")},
 		"methodology/index.html": {Data: []byte("<html>Methodology</html>")},
 		"report/index.html":      {Data: []byte("<html>Report</html>")},
+		"rangers/index.html":     {Data: []byte("<html>Rangers</html>")},
 		"_app/immutable/test.js": {Data: []byte("export default 1")},
 		"robots.txt":             {Data: []byte("User-agent: *")},
 	}
@@ -30,6 +31,8 @@ func TestStaticRouting(t *testing.T) {
 		{"/methodology/", "GET", 200, ""},
 		{"/report", "GET", 301, "/report/"},
 		{"/report/", "GET", 200, ""},
+		{"/rangers", "GET", 301, "/rangers/"},
+		{"/rangers/", "GET", 200, ""},
 		{"/data?tab=summary", "GET", 301, "/data/?tab=summary"},
 		{"/nonexistent", "GET", 404, ""},
 		{"/_app/immutable/test.js", "GET", 200, ""},
@@ -81,7 +84,7 @@ func TestEmbeddedAssets(t *testing.T) {
 		t.Fatal("missing embedded application")
 	}
 
-	for _, p := range []string{"/methodology", "/report", "/data"} {
+	for _, p := range []string{"/methodology", "/report", "/data", "/rangers"} {
 		// Clean URL without trailing slash redirects with 301
 		rec := httptest.NewRecorder()
 		Handler(assets).ServeHTTP(rec, httptest.NewRequest("GET", p, nil))

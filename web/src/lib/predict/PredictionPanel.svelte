@@ -258,7 +258,7 @@
 		padding: 13px 8px;
 		font-size: 0.875rem;
 		font-weight: 600;
-		min-height: 44px;
+		min-height: 48px;
 	}
 	.run:disabled {
 		opacity: 0.65;
@@ -279,7 +279,7 @@
 	.back-to-map {
 		display: flex;
 		align-items: center;
-		min-height: 44px;
+		min-height: 48px;
 		margin-top: 12px;
 		color: var(--model-ink);
 		font-weight: 600;
@@ -377,7 +377,9 @@
 	}
 	summary {
 		cursor: pointer;
-		min-height: 36px;
+		min-height: 48px;
+		display: flex;
+		align-items: center;
 	}
 	code {
 		display: block;

@@ -470,6 +470,8 @@ components:
         p_value: { type: number, format: double }
         fdr_p_value: { type: number, format: double }
         significance: { type: string }
+        significance_tier: { type: string }
+        method: { type: string }
     HotspotsEnvelope:
       type: object
       additionalProperties: false
