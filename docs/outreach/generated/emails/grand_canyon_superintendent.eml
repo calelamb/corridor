@@ -1,0 +1,38 @@
+From: Corridor Wildlife Project <adoption@corridorwildlife.org>
+To: Ed Keable <ed_keable@nps.gov>
+Subject: FHWA Wildlife Crossings Pilot Program (WCPP) grant intelligence for Grand Canyon National Park (AZ-64)
+Date: Fri, 16 Oct 2026 19:41:59 +0000
+Message-ID: <grand_canyon-superintendent-1792179719@corridorwildlife.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
+X-Unsent: 1
+
+Dear Superintendent Keable,
+
+With the Federal Highway Administration’s (FHWA) $350 million Wildlife Crossings Pilot Program (23 U.S.C. § 171) providing unprecedented funding for wildlife overpasses, underpasses, and exclusion fencing, National Park Service units have a historic opportunity to eliminate collision hotspots along park boundary highways like AZ-64 through Grand Canyon National Park.
+
+However, assembling competitive federal grant proposals with validated Benefit-Cost Ratios (BCRs) and engineering justification often requires substantial time and outside consulting budgets.
+
+To support your park's capital planning, Corridor (https://corridorwildlife.org) has built an automated mitigation prioritization engine and grant brief generator, provided completely free of charge under the Apache-2.0 open-source license:
+
+1. Statutory FHWA Scoring Alignment: Corridor evaluates Grand Canyon National Park's highway segments against statutory criteria under 23 U.S.C. § 171—measuring severe crash risk, ecological connectivity for elk, desert bighorn sheep, mule deer, and economic return.
+
+2. Rigorous Economic & Engineering Modeling: The platform applies peer-reviewed mitigation efficacy (86% crash reduction for crossing structures paired with exclusion fencing; Rytwinski et al. 2016) against USDOT comprehensive collision valuations ($14,000 per deer, $45,000 per elk, $83,000 per moose) to determine empirical benefit-cost ratios across custom budget limits.
+
+3. 1-Click 2-Page Grant PDF Generator: Corridor instantly generates publication-grade, two-page FHWA WCPP Project Briefs (/v1/mitigation/{id}/brief.pdf) containing project boundary maps, collision history histograms, ecological benefit matrices, and engineering cost breakdowns—ready for inclusion in grant submissions or joint planning meetings with ADOT.
+
+Corridor is already in use to model priority highway segments across western national parks. We would be honored to provide your executive and planning staff with a tailored demonstration of the FHWA grant generation tool for Grand Canyon National Park.
+
+You can inspect the platform and methodology at:
+- National Park Service Ranger Hub: https://corridorwildlife.org/rangers/
+- Peer-Reviewed Scientific Methodology: https://corridorwildlife.org/methodology/
+
+Thank you for your continuing leadership in protecting the natural heritage of Grand Canyon National Park.
+
+Warm regards,
+
+Federal Agency Outreach Lead
+Corridor Wildlife Intelligence Initiative
+adoption@corridorwildlife.org
+https://corridorwildlife.org

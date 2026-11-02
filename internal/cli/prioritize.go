@@ -218,6 +218,41 @@ func (p *defaultReferenceSegmentProvider) GetSegments(ctx context.Context, state
 				"deer":      0.3,
 			},
 		},
+		// CA CA-120 - Yosemite Crane Flat / Tioga Road corridor
+		{
+			ID:             uuid.MustParse("00000000-0000-0000-0000-000000000006"),
+			HighwayRef:     "CA-120",
+			State:          "CA",
+			MilepostStart:  42.0,
+			MilepostEnd:    42.1,
+			LengthM:        160.9344,
+			RiskScore:      16.8,
+			PercentileRank: 95.0,
+			P10:            11.0,
+			P90:            22.5,
+			SpeciesBreakdown: map[string]float64{
+				"deer":  0.40,
+				"bear":  0.45,
+				"sheep": 0.15,
+			},
+		},
+		// CA CA-140 - Yosemite Merced River Canyon corridor
+		{
+			ID:             uuid.MustParse("00000000-0000-0000-0000-000000000007"),
+			HighwayRef:     "CA-140",
+			State:          "CA",
+			MilepostStart:  8.5,
+			MilepostEnd:    8.6,
+			LengthM:        160.9344,
+			RiskScore:      13.5,
+			PercentileRank: 92.0,
+			P10:            9.0,
+			P90:            17.5,
+			SpeciesBreakdown: map[string]float64{
+				"deer": 0.65,
+				"bear": 0.35,
+			},
+		},
 	}
 
 	var filtered []prioritize.SegmentRecord

@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <defs>
+    <linearGradient id="bgGrad192" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#163d31" />
+      <stop offset="100%" stop-color="#0e241d" />
+    </linearGradient>
+    <linearGradient id="markGrad192" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#dcfce7" />
+      <stop offset="100%" stop-color="#4ade80" />
+    </linearGradient>
+  </defs>
+
+  <!-- Full bleed background for any / maskable contexts -->
+  <rect width="192" height="192" fill="url(#bgGrad192)" />
+
+  <!-- Outer protective emblem ring within safe zone -->
+  <circle cx="96" cy="96" r="64" fill="#102b23" stroke="#4ade80" stroke-width="3" stroke-opacity="0.85" />
+
+  <!-- Highway transit axis with centerline -->
+  <line x1="48" y1="96" x2="144" y2="96" stroke="#4ade80" stroke-width="2" stroke-dasharray="5 4" stroke-opacity="0.5" />
+
+  <!-- Wildlife overpass canopy arch (sage/light green) -->
+  <path d="M 60 74 Q 96 56 132 74" fill="none" stroke="#dcfce7" stroke-width="2.5" stroke-linecap="round" stroke-opacity="0.75" />
+
+  <!-- Crossing foundation arch -->
+  <path d="M 60 118 Q 96 136 132 118" fill="none" stroke="#dcfce7" stroke-width="2.5" stroke-linecap="round" stroke-opacity="0.75" />
+
+  <!-- Corridor brand mark ⋈ (hourglass / bowtie corridor symbol) -->
+  <path d="M 68 76 L 96 96 L 68 116 Z M 124 76 L 96 96 L 124 116 Z" fill="url(#markGrad192)" stroke="#4ade80" stroke-width="2.5" stroke-linejoin="round" />
+
+  <!-- Center crossing pivot node -->
+  <circle cx="96" cy="96" r="3.5" fill="#102b23" stroke="#dcfce7" stroke-width="1.5" />
+</svg>

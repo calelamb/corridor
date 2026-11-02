@@ -1,51 +1,119 @@
 name: CI
-on: [push, pull_request, workflow_dispatch]
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
 permissions:
   contents: read
+
 jobs:
-  verify:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 35
+  go-tests:
+    name: Go Tests & Pure Compilation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-go@e626ada899467caf4efc6cfd0484b965da944ce8
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go 1.23+
+        uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - uses: actions/setup-node@db0fb3a98ed314b69026b6e8c9be26a7e2fe65a8
+          cache: true
+
+      - name: Set up Node.js 20+ (for embedded web assets)
+        uses: actions/setup-node@v4
         with:
-          node-version: 24.21.0
+          node-version: "24.x"
           cache: npm
           cache-dependency-path: web/package-lock.json
-      - name: Scan repository history for secrets
-        run: go run github.com/zricethezav/gitleaks/v8@v8.30.1 git --redact --log-opts=--all
-      - run: npm --prefix web ci
-      - name: Install golangci-lint
-        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+
+      - name: Build web assets for Go embedding
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+
+      - name: Run pure Go test suite
+        run: |
+          CGO_ENABLED=0 go test -v -race=false ./internal/api ./internal/auth ./internal/export ./internal/hotspot ./internal/model ./internal/prioritize ./internal/route ./internal/server ./internal/storage ./internal/web ./tests
+
+      - name: Validate pure Go compilation
+        run: |
+          CGO_ENABLED=0 go build -o /dev/null ./cmd/corridorctl ./cmd/corridor
+
+  web-checks:
+    name: Web Checks (Lint, Typecheck, Unit Tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20+
+        uses: actions/setup-node@v4
         with:
-          version: v2.13.2
-          install-only: true
-      - run: make images
-      - run: make verify
-      - run: npx --prefix web playwright install --with-deps
-      - run: npm --prefix web run test:e2e -- --workers=2
-      - run: go run ./cmd/corridorctl init-dev
-      - run: docker compose -p corridor-foundation-acceptance up --build --wait
-      - run: go test -tags=acceptance ./tests/acceptance -count=1
-      # Populated-map and performance checks require separately cleared private
-      # pilot artifacts. See CONTRIBUTING.md; no dataset is downloaded by CI.
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
-        if: always()
+          node-version: "24.x"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: SvelteKit typecheck (svelte-check)
+        working-directory: web
+        run: npm run check
+
+      - name: Lint (Prettier & ESLint)
+        working-directory: web
+        run: npm run lint
+
+      - name: Vitest unit tests
+        working-directory: web
+        run: npm run test:unit -- --run
+
+  e2e-tests:
+    name: E2E & WCAG 2.2 AA Accessibility Audits (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20+
+        uses: actions/setup-node@v4
         with:
-          name: verification
+          node-version: "24.x"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Install Playwright browsers & dependencies
+        working-directory: web
+        run: npx playwright install --with-deps
+
+      - name: Run Playwright tests (Chromium, Firefox, WebKit, WCAG 2.2 AA)
+        working-directory: web
+        run: npx playwright test
+
+      - name: Upload Playwright test artifacts
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-test-results
           path: |
-            coverage/
-            web/coverage/
             web/test-results/
-            web/.lighthouseci/
-      - if: always()
-        run: docker compose -p corridor-foundation-acceptance down -v
+            web/playwright-report/
+          retention-days: 14

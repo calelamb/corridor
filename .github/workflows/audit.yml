@@ -1,0 +1,99 @@
+name: Security & Documentation Audit
+
+on:
+  schedule:
+    # Run every Monday at 06:00 UTC
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: audit-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  doc-and-citation-audit:
+    name: Documentation Links & Statutory Citations
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go 1.23+
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Set up Node.js 20+
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+
+      - name: Documentation link check
+        run: |
+          node scripts/check-doc-links.mjs
+
+      - name: Statutory citation and USDOT valuation validation
+        run: |
+          go test -v ./tests/... -run 'TestStatutory|TestOutreach|TestAdoptionPlaybook|TestEmailTemplate|TestNPS|TestNPSRanger'
+
+  vulnerability-scan:
+    name: Dependency Vulnerability Scans
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go 1.23+
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Set up Node.js 20+
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Go vulnerability scan (govulncheck)
+        id: govulncheck
+        continue-on-error: true
+        run: |
+          go tool govulncheck ./... || go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+      - name: NPM dependency vulnerability scan (npm audit)
+        id: npmaudit
+        if: always()
+        continue-on-error: true
+        working-directory: web
+        run: |
+          npm audit
+
+      - name: Generate audit step summary
+        if: always()
+        run: |
+          echo "## Dependency Vulnerability Audit Summary" >> $GITHUB_STEP_SUMMARY
+          echo "| Scanner | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.govulncheck.outcome }}" = "success" ]; then
+            echo "| govulncheck (Go) | ✅ Clean (no vulnerabilities found) |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| govulncheck (Go) | ⚠️ Vulnerabilities detected |" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ "${{ steps.npmaudit.outcome }}" = "success" ]; then
+            echo "| npm audit (Node) | ✅ Clean (no vulnerabilities found) |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| npm audit (Node) | ⚠️ Vulnerabilities detected |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ steps.govulncheck.outcome }}" != "success" ] || [ "${{ steps.npmaudit.outcome }}" != "success" ]; then
+            echo "::warning::One or more dependency vulnerability scanners identified security advisories. Inspect job logs for details."
+            exit 1
+          fi
