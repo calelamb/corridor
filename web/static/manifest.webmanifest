@@ -1,0 +1,80 @@
+{
+	"name": "Corridor — Wildlife Highway Intelligence & Ranger Dispatch",
+	"short_name": "Corridor",
+	"description": "Open wildlife-vehicle collision analytics, 0.1-mile highway risk modeling, and FHWA mitigation grant prioritization for park rangers and transportation planners.",
+	"start_url": "/",
+	"scope": "/",
+	"display": "standalone",
+	"orientation": "any",
+	"background_color": "#102b23",
+	"theme_color": "#163d31",
+	"categories": ["government", "productivity", "utilities", "navigation"],
+	"icons": [
+		{
+			"src": "/icons/icon-192.svg",
+			"sizes": "192x192",
+			"type": "image/svg+xml",
+			"purpose": "any maskable"
+		},
+		{
+			"src": "/icons/icon-512.svg",
+			"sizes": "512x512",
+			"type": "image/svg+xml",
+			"purpose": "any maskable"
+		}
+	],
+	"shortcuts": [
+		{
+			"name": "Field Carcass Report",
+			"short_name": "Report",
+			"description": "Log wildlife carcass or collision incident with offline GPS",
+			"url": "/report/",
+			"icons": [
+				{
+					"src": "/icons/icon-192.svg",
+					"sizes": "192x192",
+					"type": "image/svg+xml"
+				}
+			]
+		},
+		{
+			"name": "Mitigation Planner",
+			"short_name": "Mitigate",
+			"description": "FHWA WCPP benefit-cost ratio mitigation optimization",
+			"url": "/?workspace=mitigate",
+			"icons": [
+				{
+					"src": "/icons/icon-192.svg",
+					"sizes": "192x192",
+					"type": "image/svg+xml"
+				}
+			]
+		},
+		{
+			"name": "Hotspot Lab",
+			"short_name": "Hotspots",
+			"description": "Highway collision risk clustering and 0.1-mile analysis",
+			"url": "/?workspace=hotspot",
+			"icons": [
+				{
+					"src": "/icons/icon-192.svg",
+					"sizes": "192x192",
+					"type": "image/svg+xml"
+				}
+			]
+		},
+		{
+			"name": "NPS Ranger Hub",
+			"short_name": "Rangers",
+			"description": "National Park Service operations, dispatch, and grant briefs",
+			"url": "/rangers/",
+			"icons": [
+				{
+					"src": "/icons/icon-192.svg",
+					"sizes": "192x192",
+					"type": "image/svg+xml"
+				}
+			]
+		}
+	]
+}

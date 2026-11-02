@@ -17,7 +17,7 @@ uv add <package>
 ```
 
 ## Covariates
-The spatial covariate extraction engine (`FeatureExtractor` in `corridor_ml.features.extractor`) computes 10 standardized ecological, topographic, hydrological, and traffic covariates:
+The spatial covariate extraction engine (`FeatureExtractor` in `corridor_ml.features.extractor`) computes 12 standardized ecological, topographic, hydrological, and traffic covariates:
 1. `aadt`: Annual Average Daily Traffic.
 2. `speed_limit`: Posted highway speed limit (mph).
 3. `canopy_pct_250m`: NLCD tree canopy coverage % within 250m buffer.
@@ -28,3 +28,5 @@ The spatial covariate extraction engine (`FeatureExtractor` in `corridor_ml.feat
 8. `dist_to_migration_corridor_m`: Distance in meters to nearest USGS ungulate migration corridor.
 9. `winter_range_overlap`: Binary indicator (1.0 or 0.0) of overlap with seasonal winter range polygons.
 10. `patrol_effort_score`: Observer effort / patrol density score to correct for observer reporting bias.
+11. `snow_depth_cm`: Mean winter snow depth in cm (or derived from snowpack raster/SWE).
+12. `seasonal_pass_closed`: High-elevation seasonal highway pass closure indicator (1.0 = closed, 0.0 = open).

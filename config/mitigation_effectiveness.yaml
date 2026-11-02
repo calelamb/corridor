@@ -38,3 +38,12 @@ structures:
     annual_maintenance_pct: 0.05
     lifespan_years: 10
     citation: "Huijser, M.P., et al. (2009). Cost-Benefit Analyses of Mitigation Measures Aimed at Reducing Large Ungulate Collisions."
+
+  small_carnivore_culvert_retrofit:
+    name: "Dry Culvert Retrofit with Small Carnivore Shelving"
+    effectiveness: 0.70
+    base_cost_usd: 45000.0
+    fencing_cost_per_meter: 40.0
+    annual_maintenance_pct: 0.02
+    lifespan_years: 15
+    citation: "Clevenger & Huijser (2011)"

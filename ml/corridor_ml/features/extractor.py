@@ -1,7 +1,7 @@
 """Spatial covariate extraction engine for road segments."""
 
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Sequence, Union
 import numpy as np
 import pandas as pd
 import geopandas as gpd
@@ -21,6 +21,8 @@ COVARIATE_COLUMNS = [
     "dist_to_migration_corridor_m",
     "winter_range_overlap",
     "patrol_effort_score",
+    "snow_depth_cm",
+    "seasonal_pass_closed",
 ]
 
 
@@ -78,20 +80,24 @@ class FeatureExtractor:
         self,
         canopy_raster: Optional[Union[str, Path]] = None,
         elevation_raster: Optional[Union[str, Path]] = None,
+        snow_raster: Optional[Union[str, Path]] = None,
         streams: Optional[Union[gpd.GeoDataFrame, str, Path]] = None,
         corridors: Optional[Union[gpd.GeoDataFrame, str, Path]] = None,
         winter_ranges: Optional[Union[gpd.GeoDataFrame, str, Path]] = None,
         patrol_layer: Optional[Union[gpd.GeoDataFrame, str, Path]] = None,
+        seasonal_closures: Optional[Union[gpd.GeoDataFrame, str, Path]] = None,
         default_metric_crs: str = "EPSG:5070",
     ):
         self.canopy_raster_path = str(canopy_raster) if canopy_raster is not None else None
         self.elevation_raster_path = str(elevation_raster) if elevation_raster is not None else None
+        self.snow_raster_path = str(snow_raster) if snow_raster is not None else None
         self.default_metric_crs = default_metric_crs
 
         self.streams_gdf = self._load_gdf(streams)
         self.corridors_gdf = self._load_gdf(corridors)
         self.winter_ranges_gdf = self._load_gdf(winter_ranges)
         self.patrol_gdf = self._load_gdf(patrol_layer)
+        self.seasonal_closures_gdf = self._load_gdf(seasonal_closures)
 
     @staticmethod
     def _load_gdf(
@@ -114,8 +120,128 @@ class FeatureExtractor:
             return gdf.to_crs(target_metric_crs)
         return gdf
 
-    def extract_covariates(self, segments_df: gpd.GeoDataFrame) -> pd.DataFrame:
-        """Extract all 10 spatial and traffic covariates for each segment in segments_df.
+    def compute_seasonal_pass_closure(
+        self,
+        segments_df: gpd.GeoDataFrame,
+        elevation_threshold_m: float = 2500.0,
+        is_winter: bool = True,
+        elevation_values: Optional[np.ndarray] = None,
+    ) -> np.ndarray:
+        """Determines binary seasonal pass closure state (1.0 = closed, 0.0 = open) for road segments.
+
+        Criteria for closure:
+          1. Explicit flag in `segments_df`: 'seasonal_pass_closed', 'seasonal_closure', or 'pass_closed'.
+          2. Spatial intersection with high-elevation seasonal closure corridors (`self.seasonal_closures_gdf`).
+          3. High-elevation alpine terrain: segment elevation >= `elevation_threshold_m` (default: 2500m)
+             during winter conditions (`is_winter=True`). Elevation is obtained from `elevation_values`,
+             sampled from `self.elevation_raster_path`, or read from `segments_df` ('elevation_m' / 'elevation').
+          4. Known seasonal mountain pass nomenclature (e.g. Tioga Pass, Sonora Pass, Ebbetts Pass, Monitor Pass).
+
+        Returns:
+            np.ndarray: Array of shape (len(segments_df),) with values 1.0 (closed) or 0.0 (open).
+        """
+        n_rows = len(segments_df)
+        if n_rows == 0:
+            return np.zeros(0, dtype=np.float64)
+
+        closure_state = np.zeros(n_rows, dtype=np.float64)
+
+        # 1. Check explicit closure columns in segments_df
+        for col in ("seasonal_pass_closed", "seasonal_closure", "pass_closed"):
+            if col in segments_df.columns:
+                vals = segments_df[col]
+                if pd.api.types.is_numeric_dtype(vals) or pd.api.types.is_bool_dtype(vals):
+                    col_closed = pd.to_numeric(vals, errors="coerce").fillna(0.0).to_numpy()
+                    closure_state = np.where(col_closed > 0.0, 1.0, closure_state)
+                else:
+                    str_vals = vals.astype(str).str.strip().str.lower()
+                    col_closed = str_vals.isin(["1", "1.0", "true", "yes", "closed"]).to_numpy()
+                    closure_state = np.where(col_closed, 1.0, closure_state)
+
+        # 2. Check spatial intersection with seasonal closure layer
+        if self.seasonal_closures_gdf is not None and len(self.seasonal_closures_gdf) > 0:
+            metric_crs = self.default_metric_crs if segments_df.crs is None or segments_df.crs.is_geographic else str(segments_df.crs)
+            metric_segments = self._ensure_metric(segments_df, metric_crs)
+            metric_closures = self._ensure_metric(self.seasonal_closures_gdf, metric_crs)
+            for i, geom in enumerate(metric_segments.geometry):
+                if geom is not None and not geom.is_empty:
+                    if metric_closures.geometry.intersects(geom).any():
+                        closure_state[i] = 1.0
+
+        # 3. Check highway name / description attributes
+        name_cols = [c for c in ("name", "highway_name", "pass_name", "description") if c in segments_df.columns]
+        pass_keywords = ("tioga", "sonora", "ebbetts", "monitor", "carson pass", "pass closed", "seasonal closure")
+        for col in name_cols:
+            names = segments_df[col].astype(str).str.lower()
+            for kw in pass_keywords:
+                matched = names.str.contains(kw, na=False).to_numpy()
+                closure_state = np.where(matched, 1.0, closure_state)
+
+        # 4. Elevation-based closure during winter conditions
+        if is_winter:
+            elevs = np.zeros(n_rows, dtype=np.float64)
+            if elevation_values is not None:
+                elevs = np.asarray(elevation_values, dtype=np.float64)
+            elif "elevation_m" in segments_df.columns:
+                elevs = pd.to_numeric(segments_df["elevation_m"], errors="coerce").fillna(0.0).to_numpy()
+            elif "elevation" in segments_df.columns:
+                elevs = pd.to_numeric(segments_df["elevation"], errors="coerce").fillna(0.0).to_numpy()
+            elif self.elevation_raster_path and Path(self.elevation_raster_path).exists():
+                metric_crs = self.default_metric_crs if segments_df.crs is None or segments_df.crs.is_geographic else str(segments_df.crs)
+                metric_segments = self._ensure_metric(segments_df, metric_crs)
+                with rasterio.open(self.elevation_raster_path) as ds:
+                    raster_segments = metric_segments.to_crs(ds.crs)
+                    for i, geom in enumerate(raster_segments.geometry):
+                        if geom is not None and not geom.is_empty:
+                            elevs[i], _, _ = self._extract_elevation_slope_and_tri(ds, geom.buffer(50.0))
+
+            alpine_mask = elevs >= elevation_threshold_m
+            closure_state = np.where(alpine_mask, 1.0, closure_state)
+
+        return closure_state
+
+    def apply_seasonal_traffic_adjustment(
+        self,
+        df_or_aadt: Union[pd.DataFrame, np.ndarray, Sequence[float]],
+        pass_closed: Optional[np.ndarray] = None,
+        closure_traffic_factor: float = 0.0,
+    ) -> Union[pd.DataFrame, np.ndarray]:
+        """Adjusts traffic volumes for seasonal mountain pass closures.
+
+        When a pass is closed (`pass_closed == 1.0`), traffic volume (AADT) is multiplied by
+        `closure_traffic_factor` (default: 0.0, zeroing out winter traffic).
+        """
+        if isinstance(df_or_aadt, pd.DataFrame):
+            df_out = df_or_aadt.copy()
+            if pass_closed is None:
+                if "seasonal_pass_closed" in df_out.columns:
+                    closure = df_out["seasonal_pass_closed"].to_numpy()
+                else:
+                    closure = np.zeros(len(df_out), dtype=np.float64)
+            else:
+                closure = np.asarray(pass_closed, dtype=np.float64)
+
+            mask_closed = closure > 0.5
+            if "aadt" in df_out.columns:
+                df_out["aadt"] = np.where(mask_closed, df_out["aadt"] * closure_traffic_factor, df_out["aadt"])
+            return df_out
+
+        arr = np.asarray(df_or_aadt, dtype=np.float64).copy()
+        if pass_closed is not None:
+            closure = np.asarray(pass_closed, dtype=np.float64)
+            mask_closed = closure > 0.5
+            return np.where(mask_closed, arr * closure_traffic_factor, arr)
+        return arr
+
+    def extract_covariates(
+        self,
+        segments_df: gpd.GeoDataFrame,
+        adjust_closed_traffic: bool = False,
+        closure_traffic_factor: float = 0.0,
+        elevation_threshold_m: float = 2500.0,
+        is_winter: bool = True,
+    ) -> pd.DataFrame:
+        """Extract all 12 spatial and traffic covariates for each segment in segments_df.
 
         Returns a pandas DataFrame indexed by segments_df.index containing:
         - aadt
@@ -128,6 +254,8 @@ class FeatureExtractor:
         - dist_to_migration_corridor_m
         - winter_range_overlap
         - patrol_effort_score
+        - snow_depth_cm
+        - seasonal_pass_closed
         """
         if not isinstance(segments_df, gpd.GeoDataFrame):
             raise TypeError("segments_df must be a GeoDataFrame")
@@ -185,9 +313,10 @@ class FeatureExtractor:
         canopy_250 = np.clip(canopy_250, 0.0, 100.0)
         canopy_1k = np.clip(canopy_1k, 0.0, 100.0)
 
-        # 3. Elevation derived slope and TRI
+        # 3. Elevation derived slope, TRI, and elevation
         slope_deg = np.zeros(n_rows, dtype=np.float64)
         tri = np.zeros(n_rows, dtype=np.float64)
+        elev_vals = np.zeros(n_rows, dtype=np.float64)
 
         if self.elevation_raster_path and Path(self.elevation_raster_path).exists():
             with rasterio.open(self.elevation_raster_path) as ds:
@@ -196,10 +325,15 @@ class FeatureExtractor:
                     if geom is None or geom.is_empty:
                         continue
                     buf = geom.buffer(50.0)
-                    s, r = self._extract_slope_and_tri(ds, buf)
+                    elev, s, r = self._extract_elevation_slope_and_tri(ds, buf)
+                    elev_vals[i] = elev
                     slope_deg[i] = s
                     tri[i] = r
         else:
+            if "elevation_m" in segments_df.columns:
+                elev_vals = pd.to_numeric(segments_df["elevation_m"], errors="coerce").fillna(0.0).to_numpy()
+            elif "elevation" in segments_df.columns:
+                elev_vals = pd.to_numeric(segments_df["elevation"], errors="coerce").fillna(0.0).to_numpy()
             if "slope_deg" in segments_df.columns:
                 slope_deg = pd.to_numeric(segments_df["slope_deg"], errors="coerce").fillna(0.0).to_numpy()
             if "ruggedness_tri" in segments_df.columns:
@@ -277,6 +411,42 @@ class FeatureExtractor:
             )
             patrol_score = np.maximum(patrol_score, 0.0)
 
+        # 8. Snow depth in cm (snow_depth_cm)
+        snow_depth = np.zeros(n_rows, dtype=np.float64)
+        if self.snow_raster_path and Path(self.snow_raster_path).exists():
+            with rasterio.open(self.snow_raster_path) as ds:
+                raster_segments = metric_segments.to_crs(ds.crs)
+                for i, geom in enumerate(raster_segments.geometry):
+                    if geom is None or geom.is_empty:
+                        continue
+                    buf = geom.buffer(50.0)
+                    snow_depth[i] = self._extract_raster_mean(ds, buf, default=0.0)
+        elif "snow_depth_cm" in segments_df.columns or "swe_mm" in segments_df.columns:
+            snow_series = None
+            if "snow_depth_cm" in segments_df.columns:
+                snow_series = pd.to_numeric(segments_df["snow_depth_cm"], errors="coerce")
+            if "swe_mm" in segments_df.columns:
+                swe_series = pd.to_numeric(segments_df["swe_mm"], errors="coerce")
+                if snow_series is not None:
+                    snow_series = snow_series.fillna(swe_series)
+                else:
+                    snow_series = swe_series
+            snow_depth = snow_series.fillna(0.0).to_numpy() if snow_series is not None else np.zeros(n_rows)
+        snow_depth = np.maximum(snow_depth, 0.0)
+
+        # 9. Seasonal pass closure (seasonal_pass_closed)
+        elev_for_closure = elev_vals if np.any(elev_vals > 0) else None
+        pass_closed = self.compute_seasonal_pass_closure(
+            segments_df,
+            elevation_threshold_m=elevation_threshold_m,
+            is_winter=is_winter,
+            elevation_values=elev_for_closure,
+        )
+
+        # Optional seasonal traffic adjustment for closed passes
+        if adjust_closed_traffic:
+            aadt_vals = np.where(pass_closed > 0.5, aadt_vals * closure_traffic_factor, aadt_vals)
+
         result = pd.DataFrame(
             {
                 "aadt": aadt_vals,
@@ -289,11 +459,30 @@ class FeatureExtractor:
                 "dist_to_migration_corridor_m": dist_corridor,
                 "winter_range_overlap": winter_overlap,
                 "patrol_effort_score": patrol_score,
+                "snow_depth_cm": snow_depth,
+                "seasonal_pass_closed": pass_closed,
             },
             index=index,
         )
 
         return result
+
+    def extract_features(
+        self,
+        segments_df: gpd.GeoDataFrame,
+        adjust_closed_traffic: bool = False,
+        closure_traffic_factor: float = 0.0,
+        elevation_threshold_m: float = 2500.0,
+        is_winter: bool = True,
+    ) -> pd.DataFrame:
+        """Alias for extract_covariates."""
+        return self.extract_covariates(
+            segments_df,
+            adjust_closed_traffic=adjust_closed_traffic,
+            closure_traffic_factor=closure_traffic_factor,
+            elevation_threshold_m=elevation_threshold_m,
+            is_winter=is_winter,
+        )
 
     @staticmethod
     def _extract_raster_mean(ds, geom: base.BaseGeometry, default: float = 0.0) -> float:
@@ -316,7 +505,7 @@ class FeatureExtractor:
             return default
 
     @staticmethod
-    def _extract_slope_and_tri(ds, geom: base.BaseGeometry) -> tuple[float, float]:
+    def _extract_elevation_slope_and_tri(ds, geom: base.BaseGeometry) -> tuple[float, float, float]:
         try:
             out_img, out_transform = mask(ds, [geom], crop=True, all_touched=True, filled=False)
             if hasattr(out_img, "mask"):
@@ -333,7 +522,7 @@ class FeatureExtractor:
                 valid_mask = in_geom & ~np.isnan(raw_data)
 
             if not np.any(valid_mask):
-                return 0.0, 0.0
+                return 0.0, 0.0, 0.0
 
             dx = abs(out_transform.a)
             dy = abs(out_transform.e)
@@ -348,6 +537,52 @@ class FeatureExtractor:
             slope_val = float(np.mean(slope_grid[valid_mask]))
             tri_val = float(np.mean(tri_grid[valid_mask]))
 
-            return slope_val, tri_val
+            return mean_elev, slope_val, tri_val
         except Exception:
-            return 0.0, 0.0
+            return 0.0, 0.0, 0.0
+
+    @staticmethod
+    def _extract_slope_and_tri(ds, geom: base.BaseGeometry) -> tuple[float, float]:
+        _, s, r = FeatureExtractor._extract_elevation_slope_and_tri(ds, geom)
+        return s, r
+
+
+def extract_features(
+    segments_df: gpd.GeoDataFrame,
+    canopy_raster: Optional[Union[str, Path]] = None,
+    elevation_raster: Optional[Union[str, Path]] = None,
+    snow_raster: Optional[Union[str, Path]] = None,
+    streams: Optional[Union[gpd.GeoDataFrame, str, Path]] = None,
+    corridors: Optional[Union[gpd.GeoDataFrame, str, Path]] = None,
+    winter_ranges: Optional[Union[gpd.GeoDataFrame, str, Path]] = None,
+    patrol_layer: Optional[Union[gpd.GeoDataFrame, str, Path]] = None,
+    seasonal_closures: Optional[Union[gpd.GeoDataFrame, str, Path]] = None,
+    adjust_closed_traffic: bool = False,
+    closure_traffic_factor: float = 0.0,
+    elevation_threshold_m: float = 2500.0,
+    is_winter: bool = True,
+    default_metric_crs: str = "EPSG:5070",
+) -> pd.DataFrame:
+    """Module-level convenience function to extract all spatial covariates."""
+    extractor = FeatureExtractor(
+        canopy_raster=canopy_raster,
+        elevation_raster=elevation_raster,
+        snow_raster=snow_raster,
+        streams=streams,
+        corridors=corridors,
+        winter_ranges=winter_ranges,
+        patrol_layer=patrol_layer,
+        seasonal_closures=seasonal_closures,
+        default_metric_crs=default_metric_crs,
+    )
+    return extractor.extract_covariates(
+        segments_df,
+        adjust_closed_traffic=adjust_closed_traffic,
+        closure_traffic_factor=closure_traffic_factor,
+        elevation_threshold_m=elevation_threshold_m,
+        is_winter=is_winter,
+    )
+
+
+extract_covariates = extract_features
+
