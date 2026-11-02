@@ -371,13 +371,28 @@
 	}
 
 	.park-select-container {
+		position: relative;
 		width: 100%;
 	}
 
+	.park-select-container::after {
+		content: '';
+		position: absolute;
+		top: 18px;
+		right: 16px;
+		width: 8px;
+		height: 8px;
+		border-right: 2px solid var(--ink);
+		border-bottom: 2px solid var(--ink);
+		transform: rotate(45deg);
+		pointer-events: none;
+	}
+
 	.park-select {
+		appearance: none;
 		width: 100%;
 		min-height: 48px;
-		padding: 8px 12px;
+		padding: 8px 36px 8px 12px;
 		border: 1px solid var(--line);
 		border-radius: 6px;
 		background: var(--surface);
@@ -402,15 +417,9 @@
 		padding-bottom: 2px;
 	}
 
-	@media (min-width: 641px) {
-		.park-pills {
-			flex-wrap: wrap;
-			overflow-x: visible;
-		}
-	}
-
 	.park-pill {
 		flex-shrink: 0;
+		width: auto;
 		min-height: 48px;
 		min-width: 48px;
 		padding: 8px 14px;

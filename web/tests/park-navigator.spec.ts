@@ -152,6 +152,13 @@ test.describe('Multi-Park Navigator & Hotspot Controls', () => {
 			// Check Workbench with Park Extent Switcher
 			await page.goto('/');
 			await expect(page.getByRole('region', { name: /National Park navigation/i })).toBeVisible();
+			await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+			await page.evaluate(
+				() =>
+					new Promise<void>((resolve) =>
+						requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+					)
+			);
 			let axe = await new AxeBuilder({ page })
 				.withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
 				.analyze();
@@ -160,6 +167,13 @@ test.describe('Multi-Park Navigator & Hotspot Controls', () => {
 			// Check Hotspot Lab with HotspotControls
 			await page.goto('/?workspace=hotspots');
 			await expect(page.getByRole('group', { name: /Hotspot Analysis Controls/i })).toBeVisible();
+			await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+			await page.evaluate(
+				() =>
+					new Promise<void>((resolve) =>
+						requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+					)
+			);
 			axe = await new AxeBuilder({ page })
 				.withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
 				.analyze();

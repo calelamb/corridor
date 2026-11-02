@@ -224,12 +224,26 @@ test.describe('Hotspot Lab & Mitigation Prioritization Workspace', () => {
 			// Mitigation workspace
 			await page.goto('/?workspace=mitigation');
 			await expect(page.getByRole('heading', { name: /Mitigation Prioritization/i })).toBeVisible();
+			await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+			await page.evaluate(
+				() =>
+					new Promise<void>((resolve) =>
+						requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+					)
+			);
 			let axe = await new AxeBuilder({ page }).analyze();
 			expect(axe.violations).toEqual([]);
 
 			// Hotspot Lab workspace
 			await page.goto('/?workspace=hotspots');
 			await expect(page.getByRole('heading', { name: /Hotspot Analysis Lab/i })).toBeVisible();
+			await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+			await page.evaluate(
+				() =>
+					new Promise<void>((resolve) =>
+						requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+					)
+			);
 			axe = await new AxeBuilder({ page }).analyze();
 			expect(axe.violations).toEqual([]);
 		}
