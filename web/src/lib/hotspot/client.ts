@@ -7,9 +7,11 @@ export interface HotspotItem {
 	fdr_p_value?: number;
 	z_score?: number;
 	significance?: string;
+	significance_tier?: string;
 	raw_count?: number;
 	highway_ref?: string;
 	state?: string;
+	method?: string;
 }
 
 export interface HotspotsEnvelope {

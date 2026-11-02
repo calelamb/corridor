@@ -87,6 +87,32 @@ func ParseRoadkill(input io.Reader) (Dataset, error) {
 	}
 	return result, nil
 }
+
+// ParseRoadkillRow parses a single CSV row given as a slice of string columns matching
+// the standard header columns: occurrenceID, countryCode, scientificName, decimalLongitude,
+// decimalLatitude, coordinateUncertaintyInMeters, numberOfRoadkill, year, month, day,
+// roadID, surveyType, associatedReferences.
+func ParseRoadkillRow(fields []string) (Record, error) {
+	if len(fields) < len(columns) {
+		return Record{}, fmt.Errorf("insufficient fields: got %d, expected at least %d", len(fields), len(columns))
+	}
+	get := func(key string) string {
+		for i, c := range columns {
+			if c == key {
+				if i < len(fields) {
+					return strings.TrimSpace(fields[i])
+				}
+				break
+			}
+		}
+		return ""
+	}
+	if get("countryCode") != "US" {
+		return Record{}, errors.New("outside scope: non-US country code")
+	}
+	return parseRecord(get)
+}
+
 func parseRecord(get func(string) string) (Record, error) {
 	r := Record{ID: get("occurrenceID"), Species: get("scientificName"), Road: get("roadID"), Survey: get("surveyType"), Reference: get("associatedReferences")}
 	if r.ID == "" || r.Species == "" || len(r.ID) > 200 || len(r.Species) > 200 || len(r.Road) > 300 || len(r.Reference) > 10000 {

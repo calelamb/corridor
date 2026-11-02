@@ -56,6 +56,7 @@
 	width: 100%;
 	background: var(--surface);
 	min-height: calc(100svh - 120px);
+	overflow-y: auto;
 }
 .workbench {
 	display: grid;
@@ -387,7 +388,7 @@
 	background: var(--panel);
 	border-radius: 7px;
 	padding: 10px;
-	min-height: 44px;
+	min-height: 48px;
 }
 .workbench button {
 	font-size: 0.875rem;
@@ -413,7 +414,7 @@
 	max-height: 100dvh;
 	overflow-y: auto;
 	scrollbar-width: thin;
-	overscroll-behavior-y: contain;
+	overscroll-behavior-y: auto;
 }
 .workbench .mobile-tools {
 	display: none;
@@ -506,7 +507,9 @@
 .workbench .source-note summary {
 	font-size: 0.875rem;
 	font-weight: 600;
-	min-height: 32px;
+	min-height: 48px;
+	display: flex;
+	align-items: center;
 }
 .workbench .migration-toggle {
 	display: flex;

@@ -11,11 +11,15 @@ from PIL import Image
 import onnxruntime as ort
 
 from corridor_ml.vision.classifier import (
+    Classifier,
     SpeciesClassifier,
     TARGET_SPECIES,
     preprocess_image,
 )
-from corridor_ml.vision.export_onnx import export_species_model
+from corridor_ml.vision.export_onnx import (
+    build_species_onnx_model,
+    export_species_model,
+)
 
 
 def _create_sample_image_bytes(format: str = "JPEG", size: tuple[int, int] = (300, 200), color=(180, 120, 60)) -> bytes:
@@ -87,7 +91,7 @@ class TestSpeciesClassifier:
     """Tests for SpeciesClassifier inference and predictions."""
 
     def test_target_species_classes(self):
-        assert len(TARGET_SPECIES) == 8
+        assert len(TARGET_SPECIES) == 11
         expected = [
             "mule_deer",
             "white_tailed_deer",
@@ -97,8 +101,16 @@ class TestSpeciesClassifier:
             "black_bear",
             "raccoon",
             "coyote",
+            "sierra_bighorn_sheep",
+            "pacific_fisher",
+            "mountain_lion",
         ]
         assert TARGET_SPECIES == expected
+
+    def test_classifier_alias(self):
+        assert Classifier is SpeciesClassifier
+        clf = Classifier()
+        assert len(clf.classes) == 11
 
     def test_predict_top_k_default(self):
         classifier = SpeciesClassifier()
@@ -125,10 +137,52 @@ class TestSpeciesClassifier:
         top_1 = classifier.predict_top_k(img_bytes, k=1)
         assert len(top_1) == 1
 
-        top_8 = classifier.predict_top_k(img_bytes, k=8)
-        assert len(top_8) == 8
-        total_prob = sum(p for _, p in top_8)
+        top_11 = classifier.predict_top_k(img_bytes, k=11)
+        assert len(top_11) == 11
+        total_prob = sum(p for _, p in top_11)
         assert np.isclose(total_prob, 1.0, atol=1e-4)
+
+    def test_predict_scores_and_sierra_species(self):
+        classifier = Classifier()
+        img_bytes = _create_sample_image_bytes(format="JPEG")
+
+        scores = classifier.predict_scores(img_bytes)
+        assert isinstance(scores, dict)
+        assert len(scores) == 11
+
+        sierra_targets = ["sierra_bighorn_sheep", "pacific_fisher", "mountain_lion"]
+        for target in sierra_targets:
+            assert target in scores
+            assert 0.0 <= scores[target] <= 1.0
+
+        total_score = sum(scores.values())
+        assert np.isclose(total_score, 1.0, atol=1e-4)
+
+    def test_sierra_species_class_mapping(self, tmp_path: Path):
+        """Verifies that weights targeting Sierra Nevada fauna correctly map to class indices."""
+        sierra_species = ["sierra_bighorn_sheep", "pacific_fisher", "mountain_lion"]
+        img_bytes = _create_sample_image_bytes(format="JPEG")
+
+        for target in sierra_species:
+            target_idx = TARGET_SPECIES.index(target)
+            # Create synthetic bias putting highest score on target class
+            fc2_b = np.full(len(TARGET_SPECIES), -10.0, dtype=np.float32)
+            fc2_b[target_idx] = 10.0
+            weights = {"fc2_b": fc2_b}
+
+            model_proto = build_species_onnx_model(weights=weights, classes=TARGET_SPECIES)
+            model_file = tmp_path / f"model_{target}.onnx"
+            export_species_model(model_file, quantize_int8=False, model=model_proto)
+
+            clf = Classifier(model_path=model_file)
+            top_prediction = clf.predict_top_k(img_bytes, k=1)
+            assert len(top_prediction) == 1
+            pred_species, pred_confidence = top_prediction[0]
+            assert pred_species == target, f"Expected {target}, got {pred_species}"
+            assert pred_confidence > 0.9
+
+            scores = clf.predict_scores(img_bytes)
+            assert scores[target] > 0.9
 
     def test_predict_top_k_invalid_image_raises_value_error(self):
         classifier = SpeciesClassifier()
