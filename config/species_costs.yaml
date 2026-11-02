@@ -4,9 +4,16 @@
 
 costs:
   deer: 14000.0
+  mule_deer: 14000.0
   elk: 45000.0
   moose: 83000.0
   pronghorn: 16000.0
+  bighorn_sheep: 25000.0
+  sierra_bighorn_sheep: 25000.0
+  black_bear: 20000.0
+  mountain_lion: 18000.0
+  fisher: 15000.0
+  pacific_fisher: 15000.0
 
 default: 15000.0
 

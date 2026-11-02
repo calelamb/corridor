@@ -125,7 +125,7 @@
 	}
 	button,
 	select {
-		min-height: 40px;
+		min-height: 48px;
 		background: var(--surface);
 		border: 1px solid var(--line);
 		border-radius: 7px;
@@ -144,7 +144,7 @@
 	}
 	.bars button {
 		flex: 1;
-		min-width: 44px;
+		min-width: 48px;
 		background: transparent;
 		border: 0;
 		display: flex;

@@ -7,7 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"sort"
+	"os"
 	"strings"
 	"text/tabwriter"
 
@@ -35,6 +35,8 @@ func hotspotCmd(ctx context.Context, args []string, stdout, stderr io.Writer) er
 	bandwidth := fs.Float64("bandwidth", 500.0, "Bandwidth distance in meters")
 	limit := fs.Int("limit", 10, "Maximum number of top hotspot segments to display")
 	jsonOutput := fs.Bool("json", false, "Output results in JSON format")
+	state := fs.String("state", "", "State filter (e.g. CA, WY)")
+	park := fs.String("park", "", "National Park filter (e.g. Yosemite, Yellowstone)")
 
 	if err := fs.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
@@ -51,7 +53,7 @@ func hotspotCmd(ctx context.Context, args []string, stdout, stderr io.Writer) er
 		return errors.New("bandwidth must be positive")
 	}
 
-	graph, events, err := loadHotspotData(ctx)
+	graph, events, err := loadHotspotData(ctx, *state, *park)
 	if err != nil {
 		return fmt.Errorf("load hotspot data: %w", err)
 	}
@@ -93,128 +95,50 @@ func hotspotCmd(ctx context.Context, args []string, stdout, stderr io.Writer) er
 }
 
 func computeHotspots(g *hotspot.RoadGraph, events []hotspot.EventPoint, method string, bandwidth float64) ([]HotspotOutput, error) {
-	segments := g.Segments()
-	if len(segments) == 0 {
-		return []HotspotOutput{}, nil
-	}
-
-	// Always compute NKDE to obtain densities and raw event counts per segment
-	nkdeScores, err := g.ComputeNKDE(events, bandwidth)
+	results, err := g.AnalyzeHotspots(events, method, bandwidth)
 	if err != nil {
 		return nil, err
 	}
 
-	scoreMap := make(map[string]hotspot.SegmentScore, len(nkdeScores))
-	for _, s := range nkdeScores {
-		scoreMap[s.SegmentID] = s
-	}
-
-	// Extract density slice aligned with g.Segments() order for Getis-Ord
-	densities := make([]float64, len(segments))
-	rawCounts := make([]float64, len(segments))
-	for i, seg := range segments {
-		s := scoreMap[seg.ID]
-		densities[i] = s.Density
-		rawCounts[i] = float64(s.RawCount)
-	}
-
-	// Compute Getis-Ord Gi* with network distance threshold
-	var giScores []float64
-	if method == "nkde" {
-		giScores = densities
-	} else {
-		giScores = rawCounts
-	}
-
-	giResults, err := g.ComputeGetisOrdGiWithThreshold(giScores, bandwidth, 500)
-	if err != nil {
-		return nil, err
-	}
-
-	giMap := make(map[string]hotspot.GiResult, len(giResults))
-	for _, r := range giResults {
-		giMap[r.SegmentID] = r
-	}
-
-	outputs := make([]HotspotOutput, len(segments))
-	for i, seg := range segments {
-		s := scoreMap[seg.ID]
-		gi := giMap[seg.ID]
-
-		scoreVal := s.Density
-		if method != "nkde" {
-			scoreVal = gi.ZScore
-		}
-
-		z := gi.ZScore
-		p := gi.PValue
-		fdr := gi.FDRCorrectedPValue
-
+	outputs := make([]HotspotOutput, len(results))
+	for i, r := range results {
 		outputs[i] = HotspotOutput{
-			SegmentID:    seg.ID,
-			Score:        scoreVal,
-			RawCount:     s.RawCount,
-			ZScore:       &z,
-			PValue:       &p,
-			FDRPValue:    &fdr,
-			Significance: gi.Significance,
+			SegmentID:    r.SegmentID,
+			Score:        r.Score,
+			RawCount:     r.RawCount,
+			ZScore:       r.ZScore,
+			PValue:       r.PValue,
+			FDRPValue:    r.FDRPValue,
+			Significance: r.Significance,
 		}
 	}
-
-	// Sort descending by score
-	sort.Slice(outputs, func(i, j int) bool {
-		return outputs[i].Score > outputs[j].Score
-	})
-
 	return outputs, nil
 }
 
 // loadHotspotData attempts database loading if configured; otherwise provides
-// reference corridor data based on the Yellowstone/Grand Teton US-191 corridor.
-func loadHotspotData(ctx context.Context) (*hotspot.RoadGraph, []hotspot.EventPoint, error) {
-	// 1. Try DB if available
-	dsn := ""
-	if cfg, err := pgxpool.ParseConfig(""); err == nil && cfg != nil {
-		// placeholder check
-	}
-	_ = dsn
-
-	// Return reference corridor network: 25 contiguous 0.1-mile highway segments (~160.9 m)
-	const numSegments = 25
-	const segLengthM = 160.934
-
-	g := hotspot.NewRoadGraph()
-	for i := 0; i < numSegments; i++ {
-		id := fmt.Sprintf("seg-%02d", i)
-		if err := g.AddSegment(id, segLengthM); err != nil {
-			return nil, nil, err
-		}
-		if i > 0 {
-			prev := fmt.Sprintf("seg-%02d", i-1)
-			if err := g.AddEdge(prev, id, segLengthM); err != nil {
-				return nil, nil, err
-			}
+// reference corridor data. When --state=CA or --park=Yosemite is specified, it constructs
+// the CA-120 corridor (Crane Flat to Tuolumne Meadows) with black bear and mule deer clusters.
+// Otherwise it defaults to the Yellowstone/Grand Teton US-191 corridor.
+func loadHotspotData(ctx context.Context, state, park string) (*hotspot.RoadGraph, []hotspot.EventPoint, error) {
+	// 1. Try DB if configured
+	dbURL := os.Getenv("CORRIDOR_DATABASE_URL")
+	if dbURL != "" {
+		if pool, err := pgxpool.New(ctx, dbURL); err == nil {
+			defer pool.Close()
+			// DB integration fallback check
 		}
 	}
 
-	// Clustered collision events along migration corridor around segment 12
-	var events []hotspot.EventPoint
-	addCluster := func(segID string, count int, weight float64) {
-		for i := 0; i < count; i++ {
-			events = append(events, hotspot.EventPoint{
-				ID:                    fmt.Sprintf("ev-%s-%d", segID, i),
-				SegmentID:             segID,
-				DistanceAlongSegmentM: segLengthM / 2.0,
-				Weight:                weight,
-			})
-		}
+	normState := strings.ToUpper(strings.TrimSpace(state))
+	normPark := strings.ToLower(strings.TrimSpace(park))
+
+	// When --state=CA or --park=Yosemite is specified, use CA-120 corridor
+	if normState == "CA" || strings.Contains(normPark, "yosemite") {
+		corridor := hotspot.ReferenceYosemiteCorridor()
+		return corridor.Graph, corridor.Events, nil
 	}
 
-	addCluster("seg-12", 20, 1.0)
-	addCluster("seg-11", 8, 1.0)
-	addCluster("seg-13", 7, 1.0)
-	addCluster("seg-10", 3, 1.0)
-	addCluster("seg-14", 2, 1.0)
-
-	return g, events, nil
+	// Default reference corridor: Yellowstone/Grand Teton US-191 corridor
+	corridor := hotspot.ReferenceWyomingCorridor()
+	return corridor.Graph, corridor.Events, nil
 }

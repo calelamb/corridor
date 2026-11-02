@@ -4,13 +4,20 @@
 
 <svelte:head>
 	<title>Scientific Evidence & Methodology Library · Corridor</title>
+	<link rel="canonical" href="https://corridorwildlife.org/methodology/" />
 	<meta
 		name="description"
 		content="Peer-reviewed research and empirical literature justifying Corridor's wildlife collision risk models, hotspot clustering, and mitigation optimization."
 	/>
+	<meta property="og:url" content="https://corridorwildlife.org/methodology/" />
 	<meta property="og:title" content="Scientific Evidence & Methodology Library · Corridor" />
 	<meta
 		property="og:description"
+		content="Peer-reviewed research and empirical literature justifying Corridor's wildlife collision risk models, hotspot clustering, and mitigation optimization."
+	/>
+	<meta name="twitter:title" content="Scientific Evidence & Methodology Library · Corridor" />
+	<meta
+		name="twitter:description"
 		content="Peer-reviewed research and empirical literature justifying Corridor's wildlife collision risk models, hotspot clustering, and mitigation optimization."
 	/>
 </svelte:head>
@@ -39,6 +46,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 32px;
+		min-width: 0;
 	}
 
 	.methodology-header {
@@ -47,6 +55,7 @@
 		gap: 12px;
 		border-bottom: 1px solid var(--line, #e2e8f0);
 		padding-bottom: 24px;
+		min-width: 0;
 	}
 
 	.eyebrow {
@@ -63,6 +72,7 @@
 		color: var(--ink, #0f172a);
 		margin: 0;
 		line-height: 1.25;
+		word-break: break-word;
 	}
 
 	.lead {
@@ -76,5 +86,23 @@
 	.library-section {
 		display: flex;
 		flex-direction: column;
+		min-width: 0;
+	}
+
+	@media (max-width: 640px) {
+		.methodology-container {
+			padding: 20px 12px 48px;
+			gap: 20px;
+		}
+	}
+
+	@media (max-width: 375px) {
+		.methodology-container {
+			padding: 16px 8px 40px;
+			gap: 16px;
+		}
+		h1 {
+			font-size: 1.65rem;
+		}
 	}
 </style>
