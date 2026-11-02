@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"text/tabwriter"
 
 	"corridor/internal/prioritize"
@@ -39,7 +40,8 @@ func prioritizeCmd(ctx context.Context, args []string, stdout, stderr io.Writer)
 
 	budget := fs.Float64("budget", 5000000.0, "Budget constraint in USD")
 	minBCR := fs.Float64("min-bcr", 1.0, "Minimum Benefit-Cost Ratio filter")
-	state := fs.String("state", "WY", "Two-letter state filter (e.g. WY, NV, UT, ID)")
+	state := fs.String("state", "WY", "Two-letter state filter (e.g. WY, NV, UT, ID, CA, MT, CO)")
+	park := fs.String("park", "", "Park filter (e.g. YOSE, YELL, GRTE, GLAC, ROMO)")
 	jsonOutput := fs.Bool("json", false, "Output results in JSON format")
 
 	if err := fs.Parse(args); err != nil {
@@ -47,6 +49,18 @@ func prioritizeCmd(ctx context.Context, args []string, stdout, stderr io.Writer)
 			return nil
 		}
 		return err
+	}
+
+	statePassed := false
+	fs.Visit(func(f *flag.Flag) {
+		if f.Name == "state" {
+			statePassed = true
+		}
+	})
+
+	resolvedState, resolvedHighway := resolveParkFilter(*park, *state)
+	if *park != "" && !statePassed && resolvedState != "" {
+		*state = resolvedState
 	}
 
 	if *budget < 0 {
@@ -86,6 +100,17 @@ func prioritizeCmd(ctx context.Context, args []string, stdout, stderr io.Writer)
 			return fmt.Errorf("load candidate segments: %w", err)
 		}
 		candidates = prioritize.GenerateCandidatesFromSegmentsWithOptions(segments, opts, cfg)
+	}
+
+	// Apply park highway filter if park was specified
+	if *park != "" && resolvedHighway != "" {
+		filtered := make([]prioritize.CandidateSite, 0, len(candidates))
+		for _, c := range candidates {
+			if strings.EqualFold(c.HighwayRef, resolvedHighway) || strings.HasPrefix(strings.ToUpper(c.HighwayRef), strings.ToUpper(resolvedHighway)) {
+				filtered = append(filtered, c)
+			}
+		}
+		candidates = filtered
 	}
 
 	if *jsonOutput {
@@ -130,11 +155,41 @@ func loadPrioritizeConfig() prioritize.PrioritizeConfig {
 	return prioritize.DefaultConfig()
 }
 
+func resolveParkFilter(park, state string) (string, string) {
+	normPark := strings.ToLower(strings.TrimSpace(park))
+	normPark = strings.ReplaceAll(normPark, "-", " ")
+	normPark = strings.ReplaceAll(normPark, "_", " ")
+	normState := strings.ToUpper(strings.TrimSpace(state))
+
+	switch {
+	case normPark == "yose" || strings.Contains(normPark, "yosemite"):
+		return "CA", "CA-120"
+	case normPark == "yell" || strings.Contains(normPark, "yellowstone"):
+		return "WY", "US-191"
+	case normPark == "grte" || strings.Contains(normPark, "grand teton") || strings.Contains(normPark, "teton"):
+		return "WY", "US-89"
+	case normPark == "glac" || strings.Contains(normPark, "glacier"):
+		return "MT", "US-2"
+	case normPark == "romo" || strings.Contains(normPark, "rocky"):
+		return "CO", "US-34"
+	case normState == "CA":
+		return "CA", "CA-120"
+	case normState == "MT":
+		return "MT", "US-2"
+	case normState == "CO":
+		return "CO", "US-34"
+	case normState == "WY":
+		return "WY", ""
+	default:
+		return normState, ""
+	}
+}
+
 type defaultReferenceSegmentProvider struct{}
 
 func (p *defaultReferenceSegmentProvider) GetSegments(ctx context.Context, state string) ([]prioritize.SegmentRecord, error) {
 	allSegments := []prioritize.SegmentRecord{
-		// WY US-191 - Major Overpass project (milepost 12.0 - 12.4)
+		// WY US-191 - Yellowstone Gallatin Canyon Overpass project (milepost 12.0 - 12.4)
 		{
 			ID:             uuid.MustParse("00000000-0000-0000-0000-000000000001"),
 			HighwayRef:     "US-191",
@@ -147,8 +202,9 @@ func (p *defaultReferenceSegmentProvider) GetSegments(ctx context.Context, state
 			P10:            3.0,
 			P90:            7.0,
 			SpeciesBreakdown: map[string]float64{
-				"elk":  0.7,
-				"deer": 0.3,
+				"elk":          0.55,
+				"moose":        0.30,
+				"grizzly_bear": 0.15,
 			},
 		},
 		{
@@ -163,11 +219,12 @@ func (p *defaultReferenceSegmentProvider) GetSegments(ctx context.Context, state
 			P10:            2.8,
 			P90:            6.2,
 			SpeciesBreakdown: map[string]float64{
-				"elk":  0.7,
-				"deer": 0.3,
+				"elk":          0.55,
+				"moose":        0.30,
+				"grizzly_bear": 0.15,
 			},
 		},
-		// WY US-191 - Lower cost fencing project (milepost 25.0 - 25.2, cost < $1M)
+		// WY US-191 - Yellowstone lower cost fencing project (milepost 25.0 - 25.2, cost < $1M)
 		{
 			ID:             uuid.MustParse("00000000-0000-0000-0000-000000000003"),
 			HighwayRef:     "US-191",
@@ -182,6 +239,111 @@ func (p *defaultReferenceSegmentProvider) GetSegments(ctx context.Context, state
 			SpeciesBreakdown: map[string]float64{
 				"elk":  0.20,
 				"deer": 0.80,
+			},
+		},
+		// WY US-89 - Grand Teton Jackson Hole corridor (milepost 18.0 - 18.4)
+		{
+			ID:             uuid.MustParse("00000000-0000-0000-0002-000000000001"),
+			HighwayRef:     "US-89",
+			State:          "WY",
+			MilepostStart:  18.0,
+			MilepostEnd:    18.2,
+			LengthM:        100.0,
+			RiskScore:      5.2,
+			PercentileRank: 98.0,
+			P10:            3.2,
+			P90:            7.2,
+			SpeciesBreakdown: map[string]float64{
+				"mule_deer": 0.50,
+				"pronghorn": 0.30,
+				"elk":       0.20,
+			},
+		},
+		{
+			ID:             uuid.MustParse("00000000-0000-0000-0002-000000000002"),
+			HighwayRef:     "US-89",
+			State:          "WY",
+			MilepostStart:  18.2,
+			MilepostEnd:    18.4,
+			LengthM:        100.0,
+			RiskScore:      4.8,
+			PercentileRank: 97.0,
+			P10:            2.9,
+			P90:            6.6,
+			SpeciesBreakdown: map[string]float64{
+				"mule_deer": 0.50,
+				"pronghorn": 0.30,
+				"elk":       0.20,
+			},
+		},
+		// MT US-2 - Glacier National Park Marias Pass / Southern Boundary corridor (milepost 152.0 - 152.4)
+		{
+			ID:             uuid.MustParse("00000000-0000-0000-0003-000000000001"),
+			HighwayRef:     "US-2",
+			State:          "MT",
+			MilepostStart:  152.0,
+			MilepostEnd:    152.2,
+			LengthM:        100.0,
+			RiskScore:      5.5,
+			PercentileRank: 98.5,
+			P10:            3.5,
+			P90:            7.5,
+			SpeciesBreakdown: map[string]float64{
+				"grizzly_bear":  0.40,
+				"bighorn_sheep": 0.35,
+				"canada_lynx":   0.25,
+			},
+		},
+		{
+			ID:             uuid.MustParse("00000000-0000-0000-0003-000000000002"),
+			HighwayRef:     "US-2",
+			State:          "MT",
+			MilepostStart:  152.2,
+			MilepostEnd:    152.4,
+			LengthM:        100.0,
+			RiskScore:      4.6,
+			PercentileRank: 97.5,
+			P10:            3.0,
+			P90:            6.8,
+			SpeciesBreakdown: map[string]float64{
+				"grizzly_bear":  0.40,
+				"bighorn_sheep": 0.35,
+				"canada_lynx":   0.25,
+			},
+		},
+		// CO US-34 - Rocky Mountain Trail Ridge Road corridor (milepost 58.0 - 58.4)
+		{
+			ID:             uuid.MustParse("00000000-0000-0000-0004-000000000001"),
+			HighwayRef:     "US-34",
+			State:          "CO",
+			MilepostStart:  58.0,
+			MilepostEnd:    58.2,
+			LengthM:        100.0,
+			RiskScore:      4.9,
+			PercentileRank: 97.5,
+			P10:            2.9,
+			P90:            6.8,
+			SpeciesBreakdown: map[string]float64{
+				"elk":           0.55,
+				"mule_deer":     0.30,
+				"bighorn_sheep": 0.15,
+			},
+		},
+		{
+			ID:             uuid.MustParse("00000000-0000-0000-0004-000000000002"),
+			HighwayRef:     "US-34",
+			State:          "CO",
+			MilepostStart:  58.2,
+			MilepostEnd:    58.4,
+			LengthM:        100.0,
+			RiskScore:      4.2,
+			PercentileRank: 96.5,
+			P10:            2.5,
+			P90:            6.0,
+			SpeciesBreakdown: map[string]float64{
+				"elk":           0.55,
+				"mule_deer":     0.30,
+				"bighorn_sheep": 0.15,
 			},
 		},
 		// NV I-80 - Pequop Pass mule deer corridor

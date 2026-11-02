@@ -13,8 +13,14 @@ import pytest
 from corridor_ml.features.extractor import (
     COVARIATE_COLUMNS,
     FeatureExtractor,
+    adjust_traffic_for_snow,
+    estimate_snow_depth,
+    estimate_swe,
     extract_covariates,
     extract_features,
+    get_alpine_elevation_threshold,
+    get_mountain_region,
+    is_pass_seasonally_closed,
 )
 
 EXPECTED_COVARIATES = [
@@ -515,6 +521,128 @@ def test_extract_features_alias_and_module_function(synthetic_segments):
     pd.testing.assert_frame_equal(res_covariates, res_module)
     pd.testing.assert_frame_equal(res_covariates, res_module_alias)
     assert list(res_features.columns) == COVARIATE_COLUMNS
+
+
+def test_multipark_alpine_pass_elevation_and_snow_handling():
+    """Verify multi-park alpine pass elevation handling across Western US mountain systems.
+
+    Tests Yosemite (Tioga Pass), Rocky Mountain (Trail Ridge Road), Glacier (Logan Pass),
+    Yellowstone (Beartooth Highway), and valley floor roads (Yosemite Valley, Jackson Hole).
+    """
+    segments = [
+        # Tioga Pass (Yosemite NP, Sierra Nevada) - 3031m
+        LineString([(-119.260, 37.910), (-119.258, 37.912)]),
+        # Trail Ridge Road (Rocky Mountain NP, Central Rockies) - 3713m
+        LineString([(-105.750, 40.440), (-105.748, 40.442)]),
+        # Logan Pass (Glacier NP, Northern Rockies) - 2026m
+        LineString([(-113.720, 48.690), (-113.718, 48.692)]),
+        # Beartooth Highway (Yellowstone / Custer Gallatin) - 3336m
+        LineString([(-109.470, 45.000), (-109.468, 45.002)]),
+        # Yosemite Valley Floor (CA-140) - 1200m
+        LineString([(-119.580, 37.740), (-119.578, 37.742)]),
+        # Jackson Hole Valley Floor (US-89) - 1900m
+        LineString([(-110.760, 43.480), (-110.758, 43.482)]),
+    ]
+
+    gdf = gpd.GeoDataFrame(
+        {
+            "segment_id": ["tioga_pass", "trail_ridge", "logan_pass", "beartooth", "yosemite_val", "jackson_hole"],
+            "name": [
+                "CA-120 Tioga Pass",
+                "US-34 Trail Ridge Road",
+                "Going-to-the-Sun Road Logan Pass",
+                "US-212 Beartooth Highway",
+                "CA-140 El Portal / Yosemite Valley",
+                "US-89 Jackson Hole Highway",
+            ],
+            "elevation_m": [3031.0, 3713.0, 2026.0, 3336.0, 1200.0, 1900.0],
+            "aadt": [3500.0, 4500.0, 2800.0, 2200.0, 8000.0, 12000.0],
+            "speed_limit": [45.0, 45.0, 35.0, 45.0, 35.0, 55.0],
+            "geometry": segments,
+        },
+        crs="EPSG:4326",
+    )
+
+    extractor = FeatureExtractor()
+
+    # 1. Winter conditions (January)
+    res_winter = extractor.extract_covariates(gdf, adjust_closed_traffic=True, month=1)
+
+    # Passes must be closed; valley floors must remain open
+    assert res_winter.loc[0, "seasonal_pass_closed"] == 1.0, "Tioga Pass must be closed in winter"
+    assert res_winter.loc[1, "seasonal_pass_closed"] == 1.0, "Trail Ridge Road must be closed in winter"
+    assert res_winter.loc[2, "seasonal_pass_closed"] == 1.0, "Logan Pass must be closed in winter (Northern Rockies threshold)"
+    assert res_winter.loc[3, "seasonal_pass_closed"] == 1.0, "Beartooth Highway must be closed in winter"
+    assert res_winter.loc[4, "seasonal_pass_closed"] == 0.0, "Yosemite Valley floor road must remain open"
+    assert res_winter.loc[5, "seasonal_pass_closed"] == 0.0, "Jackson Hole valley floor road must remain open"
+
+    # Traffic adjustments: Closed passes zeroed out, valley floors preserved
+    assert res_winter.loc[0, "aadt"] == 0.0
+    assert res_winter.loc[1, "aadt"] == 0.0
+    assert res_winter.loc[2, "aadt"] == 0.0
+    assert res_winter.loc[3, "aadt"] == 0.0
+    assert res_winter.loc[4, "aadt"] == 8000.0
+    assert res_winter.loc[5, "aadt"] == 12000.0
+
+    # Snow depth estimation: Alpine passes have deep snowpack; valley floor is below snowline
+    assert res_winter.loc[0, "snow_depth_cm"] > 180.0
+    assert res_winter.loc[1, "snow_depth_cm"] > 200.0
+    assert res_winter.loc[2, "snow_depth_cm"] > 120.0
+    assert res_winter.loc[3, "snow_depth_cm"] > 180.0
+    assert res_winter.loc[4, "snow_depth_cm"] == 0.0  # Below 1400m snowline in Sierra
+    assert res_winter.loc[5, "snow_depth_cm"] > 40.0   # Winter snow cover in Jackson Hole
+
+    # 2. Summer conditions (July)
+    res_summer = extractor.extract_covariates(gdf, adjust_closed_traffic=True, month=7)
+
+    # All roads open in summer
+    assert (res_summer["seasonal_pass_closed"] == 0.0).all()
+    # Baseline traffic volume preserved for all roads
+    assert res_summer.loc[0, "aadt"] == 3500.0
+    assert res_summer.loc[1, "aadt"] == 4500.0
+    assert res_summer.loc[2, "aadt"] == 2800.0
+    assert res_summer.loc[3, "aadt"] == 2200.0
+    assert res_summer.loc[4, "aadt"] == 8000.0
+    assert res_summer.loc[5, "aadt"] == 12000.0
+    # Snow depth zeroed out in summer
+    assert (res_summer["snow_depth_cm"] == 0.0).all()
+
+
+def test_snow_depth_and_closure_parity_with_go_covariates():
+    """Verify numerical parity of snow calculations with Go internal/covariates."""
+    # Tioga Pass (37.91, -119.26, 3031m)
+    tioga_jan = estimate_snow_depth(37.91, -119.26, 3031.0, 1)
+    assert math.isclose(tioga_jan, 217.5, abs_tol=0.2)
+    tioga_jul = estimate_snow_depth(37.91, -119.26, 3031.0, 7)
+    assert tioga_jul == 0.0
+
+    # Trail Ridge Road (40.44, -105.75, 3713m)
+    trail_jan = estimate_snow_depth(40.44, -105.75, 3713.0, 1)
+    assert math.isclose(trail_jan, 246.7, abs_tol=0.2)
+
+    # Logan Pass (48.69, -113.72, 2026m)
+    logan_jan = estimate_snow_depth(48.69, -113.72, 2026.0, 1)
+    assert math.isclose(logan_jan, 157.9, abs_tol=0.2)
+
+    # Yosemite Valley (37.74, -119.58, 1200m)
+    yosemite_jan = estimate_snow_depth(37.74, -119.58, 1200.0, 1)
+    assert yosemite_jan == 0.0
+
+    # Pass closure parity
+    assert is_pass_seasonally_closed(3031.0, 1, lat=37.91) is True
+    assert is_pass_seasonally_closed(3713.0, 1, lat=40.44) is True
+    assert is_pass_seasonally_closed(2026.0, 1, lat=48.69) is True
+    assert is_pass_seasonally_closed(1200.0, 1, lat=37.74) is False
+    assert is_pass_seasonally_closed(1900.0, 1, lat=43.48) is False
+    assert is_pass_seasonally_closed(3031.0, 7, lat=37.91) is False
+
+    # Traffic adjustment parity
+    assert adjust_traffic_for_snow(3500.0, 3031.0, 1) == 0.0
+    assert adjust_traffic_for_snow(3500.0, 3031.0, 6) == 1750.0
+    assert adjust_traffic_for_snow(3500.0, 3031.0, 7) == 3500.0
+    assert adjust_traffic_for_snow(3500.0, 3031.0, 10) == 2100.0
+    assert adjust_traffic_for_snow(8000.0, 1200.0, 1) == 8000.0
+
 
 
 

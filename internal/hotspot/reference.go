@@ -140,15 +140,15 @@ func CorridorOverlapsBBox(a, b [4]float64) bool {
 	return a[0] <= b[2] && a[2] >= b[0] && a[1] <= b[3] && a[3] >= b[1]
 }
 
-// ReferenceWyomingCorridor returns the Yellowstone / Grand Teton US-191 reference corridor.
-func ReferenceWyomingCorridor() ReferenceCorridor {
+// ReferenceYellowstoneCorridor returns the Yellowstone US-191 Gallatin Canyon reference corridor.
+func ReferenceYellowstoneCorridor() ReferenceCorridor {
 	const numSegments = 25
 	const segLengthM = 160.934
 
 	g := NewRoadGraph()
 	geos := make(map[string][][2]float64, numSegments)
 
-	// US-191 corridor coordinates around MP 10 (Yellowstone / Grand Teton)
+	// US-191 corridor coordinates around MP 10 (Yellowstone Gallatin Canyon)
 	baseLon := -110.7000
 	baseLat := 44.4000
 	dLat := 0.00145 // ~161 meters per step in latitude
@@ -169,10 +169,10 @@ func ReferenceWyomingCorridor() ReferenceCorridor {
 	}
 
 	var events []EventPoint
-	addCluster := func(segID string, count int, weight float64) {
+	addCluster := func(segID string, count int, weight float64, species string) {
 		for i := 0; i < count; i++ {
 			events = append(events, EventPoint{
-				ID:                    fmt.Sprintf("ev-%s-%d", segID, i),
+				ID:                    fmt.Sprintf("ev-%s-%s-%d", species, segID, i),
 				SegmentID:             segID,
 				DistanceAlongSegmentM: segLengthM / 2.0,
 				Weight:                weight,
@@ -180,11 +180,11 @@ func ReferenceWyomingCorridor() ReferenceCorridor {
 		}
 	}
 
-	addCluster("seg-12", 20, 1.0)
-	addCluster("seg-11", 8, 1.0)
-	addCluster("seg-13", 7, 1.0)
-	addCluster("seg-10", 3, 1.0)
-	addCluster("seg-14", 2, 1.0)
+	addCluster("seg-12", 20, 1.0, "elk")
+	addCluster("seg-11", 8, 1.0, "moose")
+	addCluster("seg-13", 7, 1.0, "grizzly_bear")
+	addCluster("seg-10", 3, 1.0, "elk")
+	addCluster("seg-14", 2, 1.0, "moose")
 
 	return ReferenceCorridor{
 		ID:          "wy-us191",
@@ -193,6 +193,191 @@ func ReferenceWyomingCorridor() ReferenceCorridor {
 		State:       "WY",
 		Park:        "Yellowstone",
 		BBox:        [4]float64{-110.75, 44.38, -110.65, 44.46},
+		Graph:       g,
+		Events:      events,
+		SegmentGeos: geos,
+	}
+}
+
+// ReferenceWyomingCorridor returns the Yellowstone US-191 reference corridor (alias for backward compatibility).
+func ReferenceWyomingCorridor() ReferenceCorridor {
+	return ReferenceYellowstoneCorridor()
+}
+
+// ReferenceGrandTetonCorridor returns the Grand Teton US-89 Jackson Hole corridor with mule deer and pronghorn clusters.
+func ReferenceGrandTetonCorridor() ReferenceCorridor {
+	const numSegments = 25
+	const segLengthM = 160.934
+
+	g := NewRoadGraph()
+	geos := make(map[string][][2]float64, numSegments)
+
+	baseLon := -110.6600
+	baseLat := 43.7000
+	dLat := 0.00145
+
+	for i := 0; i < numSegments; i++ {
+		id := fmt.Sprintf("grte-seg-%02d", i)
+		_ = g.AddSegment(id, segLengthM)
+		if i > 0 {
+			prev := fmt.Sprintf("grte-seg-%02d", i-1)
+			_ = g.AddEdge(prev, id, segLengthM)
+		}
+		lat0 := baseLat + float64(i)*dLat
+		lat1 := baseLat + float64(i+1)*dLat
+		geos[id] = [][2]float64{
+			{baseLon, lat0},
+			{baseLon, lat1},
+		}
+	}
+
+	var events []EventPoint
+	addCluster := func(segID string, count int, weight float64, species string) {
+		for i := 0; i < count; i++ {
+			events = append(events, EventPoint{
+				ID:                    fmt.Sprintf("ev-grte-%s-%s-%d", species, segID, i),
+				SegmentID:             segID,
+				DistanceAlongSegmentM: segLengthM / 2.0,
+				Weight:                weight,
+			})
+		}
+	}
+
+	// Blacktail Butte / Moose to Moran corridor cluster
+	addCluster("grte-seg-08", 18, 1.0, "mule_deer")
+	addCluster("grte-seg-09", 10, 1.0, "pronghorn")
+	addCluster("grte-seg-07", 7, 1.0, "elk")
+	addCluster("grte-seg-10", 3, 1.0, "mule_deer")
+
+	return ReferenceCorridor{
+		ID:          "wy-us89-teton",
+		Name:        "Grand Teton US-89 Jackson Hole Corridor",
+		HighwayRef:  "US-89",
+		State:       "WY",
+		Park:        "Grand Teton",
+		BBox:        [4]float64{-110.75, 43.65, -110.55, 43.85},
+		Graph:       g,
+		Events:      events,
+		SegmentGeos: geos,
+	}
+}
+
+// ReferenceGlacierCorridor returns the Glacier US-2 Southern Boundary corridor with grizzly bear and lynx clusters.
+func ReferenceGlacierCorridor() ReferenceCorridor {
+	const numSegments = 30
+	const segLengthM = 160.934
+
+	g := NewRoadGraph()
+	geos := make(map[string][][2]float64, numSegments)
+
+	startLon, startLat := -113.9800, 48.5000
+	endLon, endLat := -113.3500, 48.3100
+	dLon := (endLon - startLon) / float64(numSegments)
+	dLat := (endLat - startLat) / float64(numSegments)
+
+	for i := 0; i < numSegments; i++ {
+		id := fmt.Sprintf("glac-seg-%02d", i)
+		_ = g.AddSegment(id, segLengthM)
+		if i > 0 {
+			prev := fmt.Sprintf("glac-seg-%02d", i-1)
+			_ = g.AddEdge(prev, id, segLengthM)
+		}
+		lon0 := startLon + float64(i)*dLon
+		lat0 := startLat + float64(i)*dLat
+		lon1 := startLon + float64(i+1)*dLon
+		lat1 := startLat + float64(i+1)*dLat
+		geos[id] = [][2]float64{
+			{lon0, lat0},
+			{lon1, lat1},
+		}
+	}
+
+	var events []EventPoint
+	addCluster := func(segID string, count int, weight float64, species string) {
+		for i := 0; i < count; i++ {
+			events = append(events, EventPoint{
+				ID:                    fmt.Sprintf("ev-glac-%s-%s-%d", species, segID, i),
+				SegmentID:             segID,
+				DistanceAlongSegmentM: segLengthM / 2.0,
+				Weight:                weight,
+			})
+		}
+	}
+
+	// Goat Lick / Marias Pass crossing hotspot
+	addCluster("glac-seg-12", 20, 1.0, "grizzly_bear")
+	addCluster("glac-seg-13", 10, 1.0, "bighorn_sheep")
+	addCluster("glac-seg-11", 8, 1.0, "canada_lynx")
+	addCluster("glac-seg-14", 4, 1.0, "grizzly_bear")
+
+	return ReferenceCorridor{
+		ID:          "mt-us2-glacier",
+		Name:        "Glacier US-2 Southern Boundary Corridor",
+		HighwayRef:  "US-2",
+		State:       "MT",
+		Park:        "Glacier",
+		BBox:        [4]float64{-114.00, 48.25, -113.20, 48.55},
+		Graph:       g,
+		Events:      events,
+		SegmentGeos: geos,
+	}
+}
+
+// ReferenceRockyMountainCorridor returns the Rocky Mountain US-34 Trail Ridge Road corridor with elk and bighorn clusters.
+func ReferenceRockyMountainCorridor() ReferenceCorridor {
+	const numSegments = 25
+	const segLengthM = 160.934
+
+	g := NewRoadGraph()
+	geos := make(map[string][][2]float64, numSegments)
+
+	startLon, startLat := -105.8600, 40.3500
+	endLon, endLat := -105.7400, 40.4300
+	dLon := (endLon - startLon) / float64(numSegments)
+	dLat := (endLat - startLat) / float64(numSegments)
+
+	for i := 0; i < numSegments; i++ {
+		id := fmt.Sprintf("romo-seg-%02d", i)
+		_ = g.AddSegment(id, segLengthM)
+		if i > 0 {
+			prev := fmt.Sprintf("romo-seg-%02d", i-1)
+			_ = g.AddEdge(prev, id, segLengthM)
+		}
+		lon0 := startLon + float64(i)*dLon
+		lat0 := startLat + float64(i)*dLat
+		lon1 := startLon + float64(i+1)*dLon
+		lat1 := startLat + float64(i+1)*dLat
+		geos[id] = [][2]float64{
+			{lon0, lat0},
+			{lon1, lat1},
+		}
+	}
+
+	var events []EventPoint
+	addCluster := func(segID string, count int, weight float64, species string) {
+		for i := 0; i < count; i++ {
+			events = append(events, EventPoint{
+				ID:                    fmt.Sprintf("ev-romo-%s-%s-%d", species, segID, i),
+				SegmentID:             segID,
+				DistanceAlongSegmentM: segLengthM / 2.0,
+				Weight:                weight,
+			})
+		}
+	}
+
+	// Milner Pass / Trail Ridge crossing hotspot
+	addCluster("romo-seg-10", 19, 1.0, "elk")
+	addCluster("romo-seg-11", 9, 1.0, "mule_deer")
+	addCluster("romo-seg-09", 7, 1.0, "bighorn_sheep")
+	addCluster("romo-seg-12", 3, 1.0, "elk")
+
+	return ReferenceCorridor{
+		ID:          "co-us34-romo",
+		Name:        "Rocky Mountain US-34 Trail Ridge Road Corridor",
+		HighwayRef:  "US-34",
+		State:       "CO",
+		Park:        "Rocky Mountain",
+		BBox:        [4]float64{-105.90, 40.30, -105.65, 40.48},
 		Graph:       g,
 		Events:      events,
 		SegmentGeos: geos,
@@ -271,25 +456,47 @@ func ReferenceYosemiteCorridor() ReferenceCorridor {
 	}
 }
 
-// AllReferenceCorridors returns both reference highway corridors.
+// AllReferenceCorridors returns all 5 reference national park highway corridors.
 func AllReferenceCorridors() []ReferenceCorridor {
 	return []ReferenceCorridor{
-		ReferenceWyomingCorridor(),
+		ReferenceYellowstoneCorridor(),
+		ReferenceGrandTetonCorridor(),
+		ReferenceGlacierCorridor(),
+		ReferenceRockyMountainCorridor(),
 		ReferenceYosemiteCorridor(),
 	}
 }
 
-// FindReferenceCorridor locates the reference corridor matching state or park name.
+// FindReferenceCorridor locates the reference corridor matching state or park name/code.
 func FindReferenceCorridor(state, park string) *ReferenceCorridor {
 	normState := strings.ToUpper(strings.TrimSpace(state))
 	normPark := strings.ToLower(strings.TrimSpace(park))
+	normPark = strings.ReplaceAll(normPark, "-", " ")
+	normPark = strings.ReplaceAll(normPark, "_", " ")
 
-	if normState == "CA" || strings.Contains(normPark, "yosemite") {
+	// Yosemite (CA)
+	if normPark == "yose" || strings.Contains(normPark, "yosemite") || (normState == "CA" && normPark == "") {
 		c := ReferenceYosemiteCorridor()
 		return &c
 	}
-	if normState == "WY" || strings.Contains(normPark, "yellowstone") || strings.Contains(normPark, "teton") {
-		c := ReferenceWyomingCorridor()
+	// Grand Teton (WY)
+	if normPark == "grte" || strings.Contains(normPark, "grand teton") || strings.Contains(normPark, "teton") {
+		c := ReferenceGrandTetonCorridor()
+		return &c
+	}
+	// Glacier (MT)
+	if normPark == "glac" || strings.Contains(normPark, "glacier") || (normState == "MT" && normPark == "") {
+		c := ReferenceGlacierCorridor()
+		return &c
+	}
+	// Rocky Mountain (CO)
+	if normPark == "romo" || strings.Contains(normPark, "rocky") || (normState == "CO" && normPark == "") {
+		c := ReferenceRockyMountainCorridor()
+		return &c
+	}
+	// Yellowstone (WY)
+	if normPark == "yell" || strings.Contains(normPark, "yellowstone") || (normState == "WY" && normPark == "") {
+		c := ReferenceYellowstoneCorridor()
 		return &c
 	}
 	return nil

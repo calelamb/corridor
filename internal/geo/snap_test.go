@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/paulmach/orb"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
@@ -43,6 +44,14 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		panic("failed to get connection string: " + err.Error())
 	}
+
+	initConn, err := pgx.Connect(ctx, dsn)
+	if err != nil {
+		panic("failed to connect for role init: " + err.Error())
+	}
+	_, _ = initConn.Exec(ctx, "DO $$ BEGIN CREATE ROLE corridor_public; EXCEPTION WHEN duplicate_object THEN END $$;")
+	_, _ = initConn.Exec(ctx, "DO $$ BEGIN CREATE ROLE corridor_app; EXCEPTION WHEN duplicate_object THEN END $$;")
+	_ = initConn.Close(ctx)
 
 	if err := db.Migrate(ctx, dsn); err != nil {
 		panic("failed to migrate db: " + err.Error())

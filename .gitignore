@@ -9,6 +9,8 @@
 
 /.worktrees/
 /.superpowers/
+# Node / Web
+node_modules/
 /internal/web/dist/
 /web/coverage/
 /web/.lighthouseci/

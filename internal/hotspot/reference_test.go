@@ -102,24 +102,82 @@ func TestReferenceWyomingCorridor(t *testing.T) {
 }
 
 func TestFindReferenceCorridor(t *testing.T) {
-	yose := hotspot.FindReferenceCorridor("CA", "")
-	if yose == nil || yose.State != "CA" {
-		t.Fatalf("expected CA corridor")
+	tests := []struct {
+		name       string
+		state      string
+		park       string
+		wantState  string
+		wantPark   string
+		wantHwy    string
+		shouldFind bool
+	}{
+		{"YOSE by code", "", "YOSE", "CA", "Yosemite", "CA-120", true},
+		{"YOSE by name", "", "Yosemite National Park", "CA", "Yosemite", "CA-120", true},
+		{"YOSE by state", "CA", "", "CA", "Yosemite", "CA-120", true},
+		{"YELL by code", "", "YELL", "WY", "Yellowstone", "US-191", true},
+		{"YELL by name", "", "Yellowstone", "WY", "Yellowstone", "US-191", true},
+		{"YELL by state", "WY", "", "WY", "Yellowstone", "US-191", true},
+		{"GRTE by code", "", "GRTE", "WY", "Grand Teton", "US-89", true},
+		{"GRTE by name", "", "Grand Teton", "WY", "Grand Teton", "US-89", true},
+		{"GLAC by code", "", "GLAC", "MT", "Glacier", "US-2", true},
+		{"GLAC by name", "", "Glacier National Park", "MT", "Glacier", "US-2", true},
+		{"GLAC by state", "MT", "", "MT", "Glacier", "US-2", true},
+		{"ROMO by code", "", "ROMO", "CO", "Rocky Mountain", "US-34", true},
+		{"ROMO by name", "", "Rocky Mountain", "CO", "Rocky Mountain", "US-34", true},
+		{"ROMO by state", "CO", "", "CO", "Rocky Mountain", "US-34", true},
+		{"Unknown", "FL", "Everglades", "", "", "", false},
 	}
 
-	yosePark := hotspot.FindReferenceCorridor("", "Yosemite National Park")
-	if yosePark == nil || yosePark.HighwayRef != "CA-120" {
-		t.Fatalf("expected Yosemite corridor")
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			c := hotspot.FindReferenceCorridor(tc.state, tc.park)
+			if !tc.shouldFind {
+				if c != nil {
+					t.Fatalf("expected nil for %s/%s, got %+v", tc.state, tc.park, c)
+				}
+				return
+			}
+			if c == nil {
+				t.Fatalf("expected corridor for %s/%s, got nil", tc.state, tc.park)
+			}
+			if c.State != tc.wantState {
+				t.Errorf("expected state %s, got %s", tc.wantState, c.State)
+			}
+			if c.Park != tc.wantPark {
+				t.Errorf("expected park %s, got %s", tc.wantPark, c.Park)
+			}
+			if c.HighwayRef != tc.wantHwy {
+				t.Errorf("expected highway %s, got %s", tc.wantHwy, c.HighwayRef)
+			}
+		})
 	}
+}
 
-	wy := hotspot.FindReferenceCorridor("WY", "")
-	if wy == nil || wy.State != "WY" {
-		t.Fatalf("expected WY corridor")
+func TestAllReferenceCorridors(t *testing.T) {
+	corridors := hotspot.AllReferenceCorridors()
+	if len(corridors) != 5 {
+		t.Fatalf("expected 5 corridors, got %d", len(corridors))
 	}
-
-	unknown := hotspot.FindReferenceCorridor("FL", "Everglades")
-	if unknown != nil {
-		t.Fatalf("expected nil for unknown corridor")
+	expectedParks := map[string]bool{
+		"Yellowstone":    false,
+		"Grand Teton":    false,
+		"Glacier":        false,
+		"Rocky Mountain": false,
+		"Yosemite":       false,
+	}
+	for _, c := range corridors {
+		expectedParks[c.Park] = true
+		if len(c.Graph.Segments()) == 0 {
+			t.Errorf("corridor %s has empty graph", c.Name)
+		}
+		if len(c.Events) == 0 {
+			t.Errorf("corridor %s has no events", c.Name)
+		}
+	}
+	for park, found := range expectedParks {
+		if !found {
+			t.Errorf("expected corridor for park %s", park)
+		}
 	}
 }
 
