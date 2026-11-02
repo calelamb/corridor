@@ -34,8 +34,8 @@ func SnapToSegment(
 	if pool == nil {
 		return uuid.Nil, 0, orb.Point{}, errors.New("database pool is required")
 	}
-	if maxDistanceMeters <= 0 {
-		return uuid.Nil, 0, orb.Point{}, errors.New("maxDistanceMeters must be positive")
+	if maxDistanceMeters <= 0 || math.IsNaN(maxDistanceMeters) || math.IsInf(maxDistanceMeters, 0) {
+		return uuid.Nil, 0, orb.Point{}, errors.New("maxDistanceMeters must be positive finite number")
 	}
 	if math.IsNaN(point[0]) || math.IsInf(point[0], 0) || math.IsNaN(point[1]) || math.IsInf(point[1], 0) {
 		return uuid.Nil, 0, orb.Point{}, errors.New("point coordinates must be finite numbers")

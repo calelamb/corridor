@@ -1,0 +1,147 @@
+#!/usr/bin/env bash
+set -eo pipefail
+
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO_DIR"
+
+REMOTE_HOST="ubuntu"
+REMOTE_DIR="/home/calelamb/corridor"
+
+# ANSI color codes
+BOLD='\033[1m'
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+YELLOW='\033[0;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+echo -e "${BOLD}${CYAN}=== Corridor Wildlife Intelligence Platform ===${NC}"
+echo -e "${CYAN}Remote Linux Dev Box Target: ${BOLD}${REMOTE_HOST}${NC} (${REMOTE_DIR})"
+
+# Helper to check/kill local SSH tunnel on port 8080
+kill_tunnel() {
+  local pids
+  pids=$(lsof -ti :8080 || true)
+  if [ -n "$pids" ]; then
+    echo -e "${YELLOW}Closing existing port 8080 tunnel (PID: $pids)...${NC}"
+    kill $pids 2>/dev/null || true
+  fi
+}
+
+start_tunnel() {
+  if ! lsof -i :8080 >/dev/null 2>&1; then
+    echo -e "${CYAN}[*] Establishing SSH port forward (8080 -> ${REMOTE_HOST}:8080)...${NC}"
+    ssh -f -N -L 8080:localhost:8080 "$REMOTE_HOST"
+  fi
+}
+
+# Remote compose file flag detection
+get_compose_cmd() {
+  local has_maps
+  has_maps=$(ssh "$REMOTE_HOST" "[ -f '$REMOTE_DIR/data/raw/exploration/region.pmtiles' ] && echo 'yes' || echo 'no'")
+  if [ "$has_maps" = "yes" ]; then
+    echo "docker compose -f compose.yaml -f compose.maps.yaml"
+  else
+    echo "docker compose -f compose.yaml"
+  fi
+}
+
+# Handle subcommands
+case "$1" in
+  stop|down)
+    echo -e "${YELLOW}Stopping Corridor containers on ${REMOTE_HOST}...${NC}"
+    COMPOSE_CMD=$(get_compose_cmd)
+    ssh "$REMOTE_HOST" "cd $REMOTE_DIR && $COMPOSE_CMD down"
+    kill_tunnel
+    echo -e "${GREEN}Corridor stopped.${NC}"
+    exit 0
+    ;;
+  restart)
+    echo -e "${YELLOW}Restarting Corridor on ${REMOTE_HOST}...${NC}"
+    COMPOSE_CMD=$(get_compose_cmd)
+    ssh "$REMOTE_HOST" "cd $REMOTE_DIR && $COMPOSE_CMD restart"
+    start_tunnel
+    ;;
+  logs)
+    shift
+    COMPOSE_CMD=$(get_compose_cmd)
+    ssh -t "$REMOTE_HOST" "cd $REMOTE_DIR && $COMPOSE_CMD logs -f $*"
+    exit 0
+    ;;
+  status)
+    echo -e "${BOLD}Remote Docker Services:${NC}"
+    COMPOSE_CMD=$(get_compose_cmd)
+    ssh "$REMOTE_HOST" "cd $REMOTE_DIR && $COMPOSE_CMD ps"
+    echo ""
+    echo -e "${BOLD}Local Port Forward (8080):${NC}"
+    if lsof -i :8080 >/dev/null 2>&1; then
+      echo -e "  ${GREEN}Active (localhost:8080 -> ${REMOTE_HOST}:8080)${NC}"
+    else
+      echo -e "  ${YELLOW}Inactive${NC}"
+    fi
+    exit 0
+    ;;
+esac
+
+# 1. Sync local codebase to Linux dev box
+echo -e "${CYAN}[*] Synchronizing workspace to ${REMOTE_HOST}:${REMOTE_DIR}...${NC}"
+rsync -avz --exclude='.worktrees' --exclude='node_modules' --exclude='.venv' --exclude='.git/objects' \
+  "$REPO_DIR/" "${REMOTE_HOST}:${REMOTE_DIR}/" >/dev/null
+
+# 2. Check remote Docker daemon
+if ! ssh "$REMOTE_HOST" "docker info >/dev/null 2>&1"; then
+  echo -e "${RED}[ERROR] Remote Docker daemon unreachable on ${REMOTE_HOST}.${NC}"
+  exit 1
+fi
+
+# 3. Launch Docker Compose on remote dev box
+COMPOSE_CMD=$(get_compose_cmd)
+echo -e "${CYAN}[*] Launching containers on ${REMOTE_HOST} (${COMPOSE_CMD})...${NC}"
+ssh "$REMOTE_HOST" "cd $REMOTE_DIR && $COMPOSE_CMD up -d --build --wait"
+
+# 4. Start local SSH port tunnel if needed
+start_tunnel
+
+# 5. Verify readiness
+echo -n "Verifying service readiness at http://localhost:8080/readyz..."
+READY=false
+for i in {1..30}; do
+  if curl -sf http://localhost:8080/readyz >/dev/null 2>&1; then
+    READY=true
+    echo -e " ${GREEN}OK!${NC}"
+    break
+  fi
+  echo -n "."
+  sleep 1
+done
+
+if [ "$READY" != "true" ]; then
+  echo -e " ${RED}Failed to verify readyz endpoint.${NC}"
+  echo "Checking remote container logs:"
+  ssh "$REMOTE_HOST" "cd $REMOTE_DIR && $COMPOSE_CMD logs --tail 20 corridor"
+  exit 1
+fi
+
+# 6. Display operational status and URLs
+echo ""
+echo -e "${GREEN}${BOLD}✔ Corridor is up and running on ${REMOTE_HOST}!${NC}"
+echo ""
+echo -e "  ${BOLD}Main Explorer:${NC}         ${CYAN}http://localhost:8080${NC}"
+echo -e "  ${BOLD}Hotspot Analysis Lab:${NC}  ${CYAN}http://localhost:8080/?workspace=hotspots${NC}"
+echo -e "  ${BOLD}Mitigation Planner:${NC}    ${CYAN}http://localhost:8080/?workspace=mitigation${NC}"
+echo -e "  ${BOLD}Methodology Library:${NC}   ${CYAN}http://localhost:8080/methodology/${NC}"
+echo -e "  ${BOLD}Ranger Field Reporting:${NC} ${CYAN}http://localhost:8080/report/${NC}"
+echo -e "  ${BOLD}API Readiness Endpoint:${NC} ${CYAN}http://localhost:8080/readyz${NC}"
+echo ""
+echo -e "${BOLD}Helpful Commands:${NC}"
+echo -e "  ${CYAN}corridorrun stop${NC}     - Stop remote containers & tunnel"
+echo -e "  ${CYAN}corridorrun logs${NC}     - View real-time container logs"
+echo -e "  ${CYAN}corridorrun restart${NC}  - Restart containers"
+echo -e "  ${CYAN}corridorrun status${NC}   - View services & tunnel status"
+echo ""
+
+# 7. Open in browser (if on macOS and not disabled)
+if [[ "$OSTYPE" == "darwin"* && "$1" != "--no-open" ]]; then
+  echo -e "${CYAN}[*] Opening Corridor in default browser...${NC}"
+  open "http://localhost:8080"
+fi

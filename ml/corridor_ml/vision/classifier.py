@@ -75,7 +75,7 @@ def preprocess_image(image_bytes: bytes) -> np.ndarray:
 class SpeciesClassifier:
     """Roadkill wildlife carcass classifier for field reporting and verification.
 
-    Targets 8 primary ungulate and predator species:
+    Targets 11 primary ungulate, predator, and alpine species:
       - mule_deer
       - white_tailed_deer
       - elk
@@ -84,6 +84,9 @@ class SpeciesClassifier:
       - black_bear
       - raccoon
       - coyote
+      - sierra_bighorn_sheep
+      - pacific_fisher
+      - mountain_lion
     """
 
     TARGET_SPECIES = TARGET_SPECIES
@@ -175,6 +178,22 @@ class SpeciesClassifier:
         k_clamped = max(0, min(k, len(pairs)))
         return pairs[:k_clamped]
 
+    def predict_scores(self, image_input: bytes | np.ndarray) -> dict[str, float]:
+        """Calculates normalized class probability scores for all target species.
+
+        Args:
+            image_input: Raw bytes of JPEG/PNG field photo, or preprocessed [1, 3, 224, 224] tensor.
+
+        Returns:
+            dict[str, float]: Dictionary mapping each species name to its predicted probability score.
+        """
+        if isinstance(image_input, (bytes, bytearray)):
+            tensor = self.preprocess(image_input)
+        else:
+            tensor = image_input
+        probs = self.predict_proba(tensor)[0]
+        return {species: float(probs[i]) for i, species in enumerate(self.classes)}
+
     def export_onnx(self, out_path: str | Path, quantize_int8: bool = True) -> Path:
         """Exports the classifier model to an optimized ONNX file on disk.
 
@@ -207,3 +226,17 @@ class SpeciesClassifier:
             model=self._model_proto,
             classes=self.classes,
         )
+
+
+Classifier = SpeciesClassifier
+
+__all__ = [
+    "Classifier",
+    "SpeciesClassifier",
+    "TARGET_SPECIES",
+    "DEFAULT_TARGET_SPECIES",
+    "IMAGENET_MEAN",
+    "IMAGENET_STD",
+    "preprocess_image",
+]
+

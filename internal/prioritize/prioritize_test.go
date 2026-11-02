@@ -3,12 +3,15 @@ package prioritize_test
 import (
 	"context"
 	"math"
+	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"corridor/internal/prioritize"
 
 	"github.com/google/uuid"
+	"gopkg.in/yaml.v3"
 )
 
 func TestBCR_OverpassFencing_Calculations(t *testing.T) {
@@ -411,18 +414,47 @@ func TestLoadConfigurationFiles(t *testing.T) {
 		t.Fatalf("expected academic citation for overpass")
 	}
 
+	retro, ok := cfg.Structures["small_carnivore_culvert_retrofit"]
+	if !ok {
+		t.Fatalf("missing small_carnivore_culvert_retrofit")
+	}
+	if math.Abs(retro.Effectiveness-0.70) > 1e-4 {
+		t.Fatalf("expected retrofit effectiveness 0.70, got %.2f", retro.Effectiveness)
+	}
+	if math.Abs(retro.BaseCostUSD-45000.0) > 1e-2 {
+		t.Fatalf("expected retrofit base cost 45000, got %.2f", retro.BaseCostUSD)
+	}
+	if math.Abs(retro.FencingCostPerMeter-40.0) > 1e-2 {
+		t.Fatalf("expected retrofit fencing cost 40, got %.2f", retro.FencingCostPerMeter)
+	}
+	if math.Abs(retro.AnnualMaintenancePct-0.02) > 1e-4 {
+		t.Fatalf("expected retrofit maintenance 0.02, got %.2f", retro.AnnualMaintenancePct)
+	}
+	if retro.LifespanYears != 15 {
+		t.Fatalf("expected retrofit lifespan 15, got %d", retro.LifespanYears)
+	}
+	if !strings.Contains(retro.Citation, "Clevenger & Huijser") {
+		t.Fatalf("expected citation with Clevenger & Huijser, got %s", retro.Citation)
+	}
+
 	// Check species costs
-	if math.Abs(cfg.SpeciesCosts["deer"]-14000.0) > 1e-2 {
-		t.Fatalf("expected deer cost 14000, got %.2f", cfg.SpeciesCosts["deer"])
+	expectedCosts := map[string]float64{
+		"deer":                 14000.0,
+		"mule_deer":            14000.0,
+		"elk":                  45000.0,
+		"moose":                83000.0,
+		"pronghorn":            16000.0,
+		"bighorn_sheep":        25000.0,
+		"sierra_bighorn_sheep": 25000.0,
+		"black_bear":           20000.0,
+		"mountain_lion":        18000.0,
+		"fisher":               15000.0,
+		"pacific_fisher":       15000.0,
 	}
-	if math.Abs(cfg.SpeciesCosts["elk"]-45000.0) > 1e-2 {
-		t.Fatalf("expected elk cost 45000, got %.2f", cfg.SpeciesCosts["elk"])
-	}
-	if math.Abs(cfg.SpeciesCosts["moose"]-83000.0) > 1e-2 {
-		t.Fatalf("expected moose cost 83000, got %.2f", cfg.SpeciesCosts["moose"])
-	}
-	if math.Abs(cfg.SpeciesCosts["pronghorn"]-16000.0) > 1e-2 {
-		t.Fatalf("expected pronghorn cost 16000, got %.2f", cfg.SpeciesCosts["pronghorn"])
+	for sp, expCost := range expectedCosts {
+		if math.Abs(cfg.SpeciesCosts[sp]-expCost) > 1e-2 {
+			t.Fatalf("expected %s cost %.2f, got %.2f", sp, expCost, cfg.SpeciesCosts[sp])
+		}
 	}
 	if math.Abs(cfg.DefaultSpeciesCost-15000.0) > 1e-2 {
 		t.Fatalf("expected default species cost 15000, got %.2f", cfg.DefaultSpeciesCost)
@@ -524,4 +556,289 @@ func TestCoordinateClusteringAndOptions(t *testing.T) {
 		t.Fatalf("expected 0 candidates with very high MinBCR, got %d", len(candsHighBCR))
 	}
 }
+
+func TestSpeciesCostNormalizationAndAliases(t *testing.T) {
+	cfg := prioritize.DefaultConfig()
+
+	testCases := []struct {
+		inputSpecies string
+		expectedCost float64
+	}{
+		{"mule_deer", 14000.0},
+		{"Mule deer", 14000.0},
+		{"MULE_DEER", 14000.0},
+		{"  mule-deer  ", 14000.0},
+		{"deer", 14000.0},
+		{"Deer", 14000.0},
+		{"bighorn_sheep", 25000.0},
+		{"Bighorn Sheep", 25000.0},
+		{"sierra_bighorn_sheep", 25000.0},
+		{"Sierra Nevada bighorn sheep", 25000.0},
+		{"black_bear", 20000.0},
+		{"California black bear", 20000.0},
+		{"fisher", 15000.0},
+		{"pacific_fisher", 15000.0},
+		{"Pacific Fisher", 15000.0},
+		{"mountain_lion", 18000.0},
+		{"Mountain Lion", 18000.0},
+		{"elk", 45000.0},
+		{"moose", 83000.0},
+		{"pronghorn", 16000.0},
+		{"unknown_species", 15000.0}, // Default cost
+	}
+
+	for _, tc := range testCases {
+		seg := prioritize.SegmentRecord{
+			ID:             uuid.New(),
+			HighwayRef:     "US-395",
+			State:          "CA",
+			MilepostStart:  10.0,
+			MilepostEnd:    10.1,
+			LengthM:        160.0,
+			RiskScore:      1.0,
+			PercentileRank: 95.0,
+			P10:            0.5,
+			P90:            1.5,
+			SpeciesBreakdown: map[string]float64{
+				tc.inputSpecies: 1.0,
+			},
+		}
+
+		cands := prioritize.GenerateCandidatesFromSegments([]prioritize.SegmentRecord{seg}, -1.0, cfg)
+		if len(cands) != 1 {
+			t.Fatalf("expected 1 candidate for species %s, got %d", tc.inputSpecies, len(cands))
+		}
+
+		cand := cands[0]
+		// Avoided collisions = 1.0 * structure.Effectiveness * structure.LifespanYears
+		// ExpectedSavingsUSD = avoided * cost
+		expectedSavings := cand.ExpectedAvoidedCollisions * tc.expectedCost
+		if math.Abs(cand.ExpectedSavingsUSD-expectedSavings) > 1e-2 {
+			t.Errorf("for species %q: expected savings %.2f (based on cost %.2f), got %.2f",
+				tc.inputSpecies, expectedSavings, tc.expectedCost, cand.ExpectedSavingsUSD)
+		}
+	}
+
+	// Verify fallback mapping when mule_deer is not directly in SpeciesCosts map but deer is
+	cfgWithoutMuleDeer := cfg
+	delete(cfgWithoutMuleDeer.SpeciesCosts, "mule_deer")
+	segMule := prioritize.SegmentRecord{
+		ID:             uuid.New(),
+		HighwayRef:     "US-395",
+		State:          "CA",
+		MilepostStart:  10.0,
+		MilepostEnd:    10.1,
+		LengthM:        160.0,
+		RiskScore:      1.0,
+		PercentileRank: 95.0,
+		SpeciesBreakdown: map[string]float64{
+			"mule_deer": 1.0,
+		},
+	}
+	candsMule := prioritize.GenerateCandidatesFromSegments([]prioritize.SegmentRecord{segMule}, -1.0, cfgWithoutMuleDeer)
+	if len(candsMule) != 1 {
+		t.Fatalf("expected 1 candidate for mule_deer fallback")
+	}
+	expectedSavingsMule := candsMule[0].ExpectedAvoidedCollisions * 14000.0
+	if math.Abs(candsMule[0].ExpectedSavingsUSD-expectedSavingsMule) > 1e-2 {
+		t.Errorf("expected mule_deer to fallback to deer cost (14000), got savings %.2f", candsMule[0].ExpectedSavingsUSD)
+	}
+}
+
+func TestRecommendStructureType_LargeMammals(t *testing.T) {
+	cfg := prioritize.DefaultConfig()
+
+	// High collision rate (risk 1.6, length 200m).
+	// For deer (not in large mammal list), largeMammalFrac is 0.0, risk < 2.5, length < 1200m -> recommends underpass.
+	segDeer := prioritize.SegmentRecord{
+		ID:             uuid.New(),
+		HighwayRef:     "CA-120",
+		State:          "CA",
+		MilepostStart:  20.0,
+		MilepostEnd:    20.2,
+		LengthM:        200.0,
+		RiskScore:      1.6,
+		PercentileRank: 95.0,
+		SpeciesBreakdown: map[string]float64{
+			"deer": 1.0,
+		},
+	}
+	candsDeer := prioritize.GenerateCandidatesFromSegments([]prioritize.SegmentRecord{segDeer}, -1.0, cfg)
+	if len(candsDeer) != 1 {
+		t.Fatalf("expected 1 candidate for deer")
+	}
+	if candsDeer[0].RecommendedType != "underpass_with_fencing" {
+		t.Errorf("expected underpass_with_fencing for deer with risk 1.6, got %s", candsDeer[0].RecommendedType)
+	}
+
+	// For bighorn sheep, largeMammalFrac >= 0.25 and risk >= 1.5 -> recommends overpass_with_fencing!
+	largeMammals := []string{"bighorn_sheep", "sierra_bighorn_sheep", "black_bear"}
+	for _, sp := range largeMammals {
+		seg := prioritize.SegmentRecord{
+			ID:             uuid.New(),
+			HighwayRef:     "CA-120",
+			State:          "CA",
+			MilepostStart:  20.0,
+			MilepostEnd:    20.2,
+			LengthM:        200.0,
+			RiskScore:      1.6,
+			PercentileRank: 95.0,
+			SpeciesBreakdown: map[string]float64{
+				sp: 1.0,
+			},
+		}
+		cands := prioritize.GenerateCandidatesFromSegments([]prioritize.SegmentRecord{seg}, -1.0, cfg)
+		if len(cands) != 1 {
+			t.Fatalf("expected 1 candidate for %s", sp)
+		}
+		if cands[0].RecommendedType != "overpass_with_fencing" {
+			t.Errorf("for large mammal %s: expected overpass_with_fencing, got %s", sp, cands[0].RecommendedType)
+		}
+	}
+}
+
+func TestRecommendStructureType_SmallCarnivoreRetrofit(t *testing.T) {
+	cfg := prioritize.DefaultConfig()
+
+	// 1. Dominant small carnivore species should recommend small_carnivore_culvert_retrofit
+	smallCarnivores := []string{"fisher", "pacific_fisher", "raccoon"}
+	for _, sp := range smallCarnivores {
+		seg := prioritize.SegmentRecord{
+			ID:             uuid.New(),
+			HighwayRef:     "CA-41",
+			State:          "CA",
+			MilepostStart:  5.0,
+			MilepostEnd:    5.2,
+			LengthM:        200.0,
+			RiskScore:      1.5,
+			PercentileRank: 95.0,
+			SpeciesBreakdown: map[string]float64{
+				sp:     0.8,
+				"deer": 0.2,
+			},
+		}
+		cands := prioritize.GenerateCandidatesFromSegments([]prioritize.SegmentRecord{seg}, -1.0, cfg)
+		if len(cands) != 1 {
+			t.Fatalf("expected 1 candidate for %s", sp)
+		}
+		if cands[0].RecommendedType != "small_carnivore_culvert_retrofit" {
+			t.Errorf("for dominant species %s: expected small_carnivore_culvert_retrofit, got %s",
+				sp, cands[0].RecommendedType)
+		}
+	}
+
+	// 2. Non-dominant small carnivore should NOT recommend culvert retrofit
+	segNonDominant := prioritize.SegmentRecord{
+		ID:             uuid.New(),
+		HighwayRef:     "CA-41",
+		State:          "CA",
+		MilepostStart:  5.0,
+		MilepostEnd:    5.2,
+		LengthM:        200.0,
+		RiskScore:      1.5,
+		PercentileRank: 95.0,
+		SpeciesBreakdown: map[string]float64{
+			"deer":   0.8,
+			"fisher": 0.2,
+		},
+	}
+	candsNonDom := prioritize.GenerateCandidatesFromSegments([]prioritize.SegmentRecord{segNonDominant}, -1.0, cfg)
+	if len(candsNonDom) != 1 {
+		t.Fatalf("expected 1 candidate for non-dominant")
+	}
+	if candsNonDom[0].RecommendedType == "small_carnivore_culvert_retrofit" {
+		t.Errorf("expected non-dominant fisher to not trigger retrofit, got %s", candsNonDom[0].RecommendedType)
+	}
+
+	// 3. If small_carnivore_culvert_retrofit is NOT available in config, should fall back
+	cfgWithoutRetro := cfg
+	delete(cfgWithoutRetro.Structures, "small_carnivore_culvert_retrofit")
+	segFisher := prioritize.SegmentRecord{
+		ID:             uuid.New(),
+		HighwayRef:     "CA-41",
+		State:          "CA",
+		MilepostStart:  5.0,
+		MilepostEnd:    5.2,
+		LengthM:        200.0,
+		RiskScore:      1.5,
+		PercentileRank: 95.0,
+		SpeciesBreakdown: map[string]float64{
+			"fisher": 1.0,
+		},
+	}
+	candsFallback := prioritize.GenerateCandidatesFromSegments([]prioritize.SegmentRecord{segFisher}, -1.0, cfgWithoutRetro)
+	if len(candsFallback) != 1 {
+		t.Fatalf("expected 1 candidate for fallback")
+	}
+	if candsFallback[0].RecommendedType == "small_carnivore_culvert_retrofit" {
+		t.Errorf("expected fallback when retrofit structure is not configured")
+	}
+}
+
+func TestSensitiveSpeciesConfigFile(t *testing.T) {
+	path := filepath.Join("..", "..", "config", "sensitive_species.yaml")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("failed to read sensitive_species.yaml: %v", err)
+	}
+
+	var doc struct {
+		Privacy struct {
+			Generalization struct {
+				System     string `yaml:"system"`
+				Resolution int    `yaml:"resolution"`
+			} `yaml:"generalization"`
+			Quarantine struct {
+				DelayDays int `yaml:"delay_days"`
+			} `yaml:"quarantine"`
+		} `yaml:"privacy"`
+		Species []struct {
+			CommonName     string   `yaml:"common_name"`
+			ScientificName string   `yaml:"scientific_name"`
+			Status         string   `yaml:"status"`
+			Aliases        []string `yaml:"aliases"`
+		} `yaml:"species"`
+	}
+
+	if err := yaml.Unmarshal(data, &doc); err != nil {
+		t.Fatalf("failed to unmarshal sensitive_species.yaml: %v", err)
+	}
+
+	// Verify Uber H3 resolution 6 and 30-day quarantine delay
+	if doc.Privacy.Generalization.System != "Uber H3" {
+		t.Errorf("expected Uber H3, got %s", doc.Privacy.Generalization.System)
+	}
+	if doc.Privacy.Generalization.Resolution != 6 {
+		t.Errorf("expected H3 resolution 6, got %d", doc.Privacy.Generalization.Resolution)
+	}
+	if doc.Privacy.Quarantine.DelayDays != 30 {
+		t.Errorf("expected 30 day quarantine delay, got %d", doc.Privacy.Quarantine.DelayDays)
+	}
+
+	// Verify required species
+	requiredSpecies := map[string]bool{
+		"Sierra Nevada bighorn sheep": false,
+		"Pacific fisher":              false,
+		"California black bear":       false,
+		"Grizzly bear":                false,
+		"Canada lynx":                 false,
+		"Gray wolf":                   false,
+		"Wolverine":                   false,
+	}
+
+	for _, s := range doc.Species {
+		for req := range requiredSpecies {
+			if strings.EqualFold(s.CommonName, req) {
+				requiredSpecies[req] = true
+			}
+		}
+	}
+
+	for req, found := range requiredSpecies {
+		if !found {
+			t.Errorf("missing required sensitive species %q in config/sensitive_species.yaml", req)
+		}
+	}
+}
+
 

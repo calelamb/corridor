@@ -193,11 +193,11 @@ test.describe('Hotspot Lab & Mitigation Prioritization Workspace', () => {
 
 		// Switch method to Getis-Ord
 		await getisBtn.click();
-		expect(requestedUrl).toContain('method=getis_ord');
+		await expect.poll(() => requestedUrl).toContain('method=getis_ord');
 
 		// Switch bandwidth to 250m
 		await bw250.click();
-		expect(requestedUrl).toContain('bandwidth=250');
+		await expect.poll(() => requestedUrl).toContain('bandwidth=250');
 	});
 
 	test('unavailable dataset displays error and never shows zero risk', async ({ page }) => {
@@ -223,11 +223,13 @@ test.describe('Hotspot Lab & Mitigation Prioritization Workspace', () => {
 
 			// Mitigation workspace
 			await page.goto('/?workspace=mitigation');
+			await expect(page.getByRole('heading', { name: /Mitigation Prioritization/i })).toBeVisible();
 			let axe = await new AxeBuilder({ page }).analyze();
 			expect(axe.violations).toEqual([]);
 
 			// Hotspot Lab workspace
 			await page.goto('/?workspace=hotspots');
+			await expect(page.getByRole('heading', { name: /Hotspot Analysis Lab/i })).toBeVisible();
 			axe = await new AxeBuilder({ page }).analyze();
 			expect(axe.violations).toEqual([]);
 		}
