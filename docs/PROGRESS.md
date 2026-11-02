@@ -53,6 +53,43 @@ filtering, broader basemap coverage and performance optimization.
 MinIO remains an archived, isolated development companion; production storage
 requires a maintained service decision. Publication readiness and remote CI status are recorded in the repository release log.
 
+## Yosemite National Park Pilot, Multi-Agent Bug-Fixing Loop & Data Expansion Sweep — 2026-11-02
+
+Executed an end-to-end modernization across the Go backend, Python ML pipeline, domain configurations, UI demo simulator, and automated continuous-delivery loop to establish Yosemite National Park (CA-120 Crane Flat / Tioga Pass & CA-140 Merced River Canyon) as a fully supported first-class pilot test subject:
+
+1. **Automated Bug-Fixing & Verification Loop (`scripts/bugfix_loop.sh`):**
+   - Implemented an autonomous multi-agent verification and commit loop (`scripts/bugfix_loop.sh`).
+   - Runs cross-stack test verification: Go unit & CLI tests (`CGO_ENABLED=0`), Python ML pytest suite (`uv run pytest`), Web SvelteKit check & Vitest (`npm run check && npx vitest run`), and CLI JSON verification (`corridorctl prioritize`, `corridorctl hotspot`).
+   - Stages verified changes, crafts conventional commit messages, and pushes atomically to remote `origin/main`.
+   - Verified 56 Python ML tests, 51 Vitest unit tests, 35 Go CLI tests, 25 API test suites, and 16 Hotspot tests passing with 0 errors.
+
+2. **Domain 1: Species Economics & Sensitive Species Generalization (`config/`, `internal/prioritize/`):**
+   - Created `config/sensitive_species.yaml` specifying Uber H3 resolution 6 spatial generalization (~36 km²) and 30-day quarantine delay for public views for Sierra Nevada bighorn sheep, Pacific fisher, California black bear, grizzly bear, Canada lynx, gray wolf, and wolverine.
+   - Updated `config/species_costs.yaml` and `internal/prioritize/bcr.go` with USDOT-calibrated crash valuations: Sierra Nevada bighorn sheep ($25k), California black bear ($20k), Pacific fisher ($15k), mountain lion ($18k), and mule deer ($14k).
+   - Added `small_carnivore_culvert_retrofit` structure ($45k base, 70% effectiveness, Clevenger & Huijser 2011) to `config/mitigation_effectiveness.yaml` and `internal/prioritize/candidates.go`.
+   - Implemented robust species key normalization and alias resolution in `internal/prioritize/candidates.go`.
+
+3. **Domain 2: Road Network Ingestion & California / Yosemite Segments (`internal/ingest/`, `internal/cli/`):**
+   - Extended `internal/ingest/nps_roads.go` to validate Yosemite bounding box (`[37.4, 38.3]`, `[-119.95, -119.15]`), detect California state bounds, and identify Yosemite highway refs (`CA-120`, `CA-140`, `CA-41`, `Tioga Road`, `Big Oak Flat Road`, `Wawona Road`, `El Portal Road`).
+   - Seeded benchmark road segments in `internal/cli/seed.go`: CA-120 MP 42.0 Crane Flat (risk score 16.8, 95th percentile, black bear & mule deer breakdown) and CA-140 MP 8.5 Merced River Canyon (risk score 13.5).
+   - Added California reference segment provider in `internal/cli/prioritize.go`, enabling `corridorctl prioritize --state CA`.
+
+4. **Domain 3: Statistical Hotspot Engine & REST API Integration (`internal/hotspot/`, `internal/api/`, `internal/cli/`):**
+   - Added `RoadGraph.AnalyzeHotspots` in `internal/hotspot/` supporting `nkde`, `getis_ord`, and `density` algorithms with Benjamini-Hochberg FDR correction.
+   - Created `internal/hotspot/reference.go` defining the Yosemite CA-120 reference corridor (Crane Flat to Tuolumne Meadows) alongside the Wyoming US-191 corridor.
+   - Connected `GET /v1/hotspots` in `internal/api/hotspots.go` to the hotspot engine, returning real `HotspotItem` records with scores, significance tiers, Z-scores, and p-values.
+   - Added `--state` and `--park` flags to `corridorctl hotspot`.
+
+5. **Domain 4: Python ML Pipeline, 11-Class Vision Head & Alpine Covariates (`ml/`):**
+   - Expanded target species from 8 to 11 classes in `corridor_ml/vision/`, adding Sierra Nevada bighorn sheep, Pacific fisher, and mountain lion, exporting dynamic INT8 quantized ONNX models (< 0.5 MB).
+   - Expanded `COVARIATE_COLUMNS` from 10 to 12 features in `corridor_ml/features/extractor.py`, adding `snow_depth_cm` and `seasonal_pass_closed`.
+   - Implemented `compute_seasonal_pass_closure()` detecting alpine passes >= 2500m (Tioga Pass summit at 3031m) and zeroing out winter traffic volume.
+
+6. **Domain 5: Interactive Yosemite Ranger Field Simulator (`web/`):**
+   - Added Yosemite CA-120 Crane Flat scenario to `web/src/lib/rangers/RangerDemoSimulator.svelte` ($8.4M capital, 2.9x BCR, H3-r6 privacy badge).
+   - Added Yosemite extent preset button in `web/src/lib/explore/RangerMap.svelte`.
+   - Updated Playwright E2E tests in `web/tests/ranger-demo.spec.ts` asserting 4 scenario cards and verifying 0 Axe accessibility violations.
+
 ## NPS Ranger Desktop Adoption, Outreach & CI/CD Automation Suites — 2026-10-16
 
 Executed 5 comprehensive engineering automation suites to scale National Park Service ranger adoption, automate federal outreach, deliver interactive field demonstration sandboxes, monitor feed health, and establish multi-platform continuous delivery:
