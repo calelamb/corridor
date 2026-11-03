@@ -419,6 +419,6 @@ describe('RangerMap Multi-Park Navigator', () => {
 			const drawn = segments.mock.calls.at(-1)?.[0] as { id: string }[];
 			expect(drawn.map((segment) => segment.id)).toEqual(['olympic-extent-line']);
 		});
-		expect(screen.getByText(/TEST-YS/)).toBeFalsy;
+		expect(screen.queryByText(/^0(\.0+)?$/)).toBeNull();
 	});
 });
