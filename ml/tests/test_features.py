@@ -644,6 +644,45 @@ def test_snow_depth_and_closure_parity_with_go_covariates():
     assert adjust_traffic_for_snow(8000.0, 1200.0, 1) == 8000.0
 
 
+def test_snow_rounding_matches_go_half_away_from_zero():
+    """SWE and depth rounding must mirror Go math.Round (half away from zero).
+
+    Python's built-in round() is half-to-even, so an exact .5 tie such as
+    150 m * 0.45 * 0.35 = 23.625 mm rounds to 23.62 in Python but 23.63 in Go,
+    which then shifts the depth from 9.4 cm to 9.5 cm. Values below are taken
+    from running internal/covariates.EstimateSnowDepth directly.
+    """
+    # Central Rockies, November: base snowline 2000 m, effective 150 m
+    assert estimate_swe(36.2, -105.75, 2150.0, 11) == 23.63
+    assert estimate_snow_depth(36.2, -105.75, 2150.0, 11) == 9.5
+    # Sierra, March: 2313 m effective * 0.55 * 1.0 = 1272.15 mm -> 385.5 cm
+    assert estimate_snow_depth(37.91, -113.72, 3713.0, 3) == 294.5
+    # Northern Rockies, October, just below 2000 m
+    assert estimate_snow_depth(43.48, -113.72, 1999.9, 10) == 10.3
+
+
+def test_alpine_threshold_exact_latitude_breakpoints():
+    """Lock the latitude-adjusted closure threshold at its exact breakpoints.
+
+    Sierra Nevada and Central Rockies stay at 2500 m up to (not including)
+    45 degrees north; 48 degrees north lands exactly on 2000 m; the floor is
+    1950 m at the Canadian border. These match Go GetAlpineElevationThreshold.
+    """
+    assert get_alpine_elevation_threshold(37.91) == 2500.0
+    assert get_alpine_elevation_threshold(44.999) == 2500.0
+    assert get_alpine_elevation_threshold(45.0) == 2150.0
+    assert get_alpine_elevation_threshold(48.0) == 2000.0
+    assert get_alpine_elevation_threshold(49.0) == 1950.0
+    assert get_alpine_elevation_threshold(49.5) == 1950.0
+    # No latitude falls back to the Go DefaultAlpineClosureThresholdMeters
+    assert get_alpine_elevation_threshold(None) == 2000.0
+    # Exact-threshold elevations: >= closes, just below stays open
+    assert is_pass_seasonally_closed(2000.0, 1, lat=48.0) is True
+    assert is_pass_seasonally_closed(1999.9, 1, lat=48.0) is False
+    assert is_pass_seasonally_closed(2500.0, 1, lat=37.91) is True
+    assert is_pass_seasonally_closed(2499.9, 1, lat=37.91) is False
+
+
 def test_extract_matches_latitude_aware_snow_traffic_edges():
     """Feature rows must follow the same snow traffic rules as the scalar helpers.
 
@@ -693,3 +732,56 @@ def test_extract_matches_latitude_aware_snow_traffic_edges():
 
 
 
+
+
+def test_unknown_latitude_uses_one_threshold_for_flag_and_traffic():
+    """With no latitude, the closure flag and traffic must share one threshold.
+
+    A frame without a CRS or lat/lon columns cannot place a segment in the
+    Sierra or the Northern Rockies, so the extractor's 2500 m default applies to
+    both outputs. Previously traffic used 2000 m while the flag used 2500 m, so a
+    2200 m road in January was reported open yet carried zero traffic.
+    """
+    gdf = gpd.GeoDataFrame(
+        {
+            "elevation_m": [2200.0, 2500.0, 2600.0],
+            "aadt": [1000.0, 1000.0, 1000.0],
+            "geometry": [LineString([(0, 0), (10, 0)])] * 3,
+        }
+    )
+    extractor = FeatureExtractor()
+
+    winter = extractor.extract_covariates(gdf, adjust_closed_traffic=True, month=1)
+    assert winter["seasonal_pass_closed"].tolist() == [0.0, 1.0, 1.0]
+    assert winter["aadt"].tolist() == [1000.0, 0.0, 0.0]
+
+    june = extractor.extract_covariates(gdf, adjust_closed_traffic=True, month=6)
+    assert june["seasonal_pass_closed"].tolist() == [0.0, 0.0, 0.0]
+    assert june["aadt"].tolist() == [1000.0, 500.0, 500.0]
+
+    october = extractor.extract_covariates(gdf, adjust_closed_traffic=True, month=10)
+    assert october["aadt"].tolist() == [1000.0, 600.0, 600.0]
+
+    # A caller-supplied threshold moves both outputs together.
+    low = extractor.extract_covariates(
+        gdf, adjust_closed_traffic=True, month=1, elevation_threshold_m=2000.0
+    )
+    assert low["seasonal_pass_closed"].tolist() == [1.0, 1.0, 1.0]
+    assert low["aadt"].tolist() == [0.0, 0.0, 0.0]
+
+
+def test_central_rockies_threshold_and_shoulder_factors_are_literal():
+    """Central Rockies stay at 2500 m; June is x0.50, October x0.60, winter zero."""
+    lat = 40.44  # Trail Ridge Road, Central Rockies
+    assert get_alpine_elevation_threshold(lat) == 2500.0
+    for month in (11, 12, 1, 2, 3, 4, 5):
+        assert adjust_traffic_for_snow(2000.0, 2500.0, month, lat=lat) == 0.0
+        assert adjust_traffic_for_snow(2000.0, 2499.9, month, lat=lat) == 2000.0
+    assert adjust_traffic_for_snow(2000.0, 2500.0, 6, lat=lat) == 1000.0
+    assert adjust_traffic_for_snow(2000.0, 2500.0, 10, lat=lat) == 1200.0
+    assert adjust_traffic_for_snow(2000.0, 2499.9, 6, lat=lat) == 2000.0
+    assert adjust_traffic_for_snow(2000.0, 2500.0, 8, lat=lat) == 2000.0
+    # Go AdjustTrafficForSnowAt: non-positive AADT stays zero, bad month is a no-op
+    assert adjust_traffic_for_snow(0.0, 3000.0, 6, lat=lat) == 0.0
+    assert adjust_traffic_for_snow(2000.0, 3000.0, 13, lat=lat) == 2000.0
+    assert adjust_traffic_for_snow(2000.0, 3000.0, 0, lat=lat) == 2000.0

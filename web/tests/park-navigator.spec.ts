@@ -19,7 +19,7 @@ test.describe('Multi-Park Navigator & Hotspot Controls', () => {
 		await expect(switcher).toBeVisible();
 
 		// Check dropdown
-		const dropdown = page.getByRole('combobox', { name: /National Park Extent Switcher/i });
+		const dropdown = page.getByRole('combobox', { name: /^National Park Extent$/i });
 		await expect(dropdown).toBeVisible();
 		const dropdownBox = await dropdown.boundingBox();
 		expect(dropdownBox?.height).toBeGreaterThanOrEqual(48);
@@ -51,7 +51,7 @@ test.describe('Multi-Park Navigator & Hotspot Controls', () => {
 	}) => {
 		await page.goto('/');
 
-		const dropdown = page.getByRole('combobox', { name: /National Park Extent Switcher/i });
+		const dropdown = page.getByRole('combobox', { name: /^National Park Extent$/i });
 		const yellowstonePill = page.getByRole('radio', { name: 'Yellowstone National Park' });
 		const glacierPill = page.getByRole('radio', { name: 'Glacier National Park' });
 

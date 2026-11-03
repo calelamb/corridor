@@ -44,6 +44,29 @@
 			bounds: [-124.65, 47.45, -123.1, 48.15]
 		}
 	];
+
+	export const PARK_SELECTION_KEY = 'corridor:selected-park';
+	export const PARK_SELECTION_EVENT = 'corridor:park-selected';
+
+	/** Park id last shown on the map, or '' when none. Shared with other workspaces. */
+	export function readSelectedParkId(): string {
+		try {
+			return window.sessionStorage.getItem(PARK_SELECTION_KEY) ?? '';
+		} catch {
+			return '';
+		}
+	}
+
+	export function rememberSelectedPark(parkId: string): void {
+		if (typeof window === 'undefined') return;
+		try {
+			if (parkId) window.sessionStorage.setItem(PARK_SELECTION_KEY, parkId);
+			else window.sessionStorage.removeItem(PARK_SELECTION_KEY);
+		} catch {
+			/* storage unavailable: other workspaces fall back to the unscoped view */
+		}
+		window.dispatchEvent(new CustomEvent(PARK_SELECTION_EVENT, { detail: { parkId } }));
+	}
 </script>
 
 <script lang="ts">
@@ -116,12 +139,46 @@
 		);
 	}
 
+	function lineOverlapsBounds(
+		coordinates: [number, number][] | undefined,
+		bounds: [number, number, number, number]
+	): boolean {
+		if (!coordinates || coordinates.length === 0) return false;
+		const [west, south, east, north] = bounds;
+		let minLng = Infinity;
+		let minLat = Infinity;
+		let maxLng = -Infinity;
+		let maxLat = -Infinity;
+		for (const [lng, lat] of coordinates) {
+			if (!Number.isFinite(lng) || !Number.isFinite(lat)) continue;
+			if (lng < minLng) minLng = lng;
+			if (lat < minLat) minLat = lat;
+			if (lng > maxLng) maxLng = lng;
+			if (lat > maxLat) maxLat = lat;
+		}
+		if (!Number.isFinite(minLng)) return false;
+		return maxLng >= west && minLng <= east && maxLat >= south && minLat <= north;
+	}
+
+	function segmentsInActivePark(
+		data: SegmentSummary[] | null,
+		parkId: string
+	): SegmentSummary[] | null {
+		if (!data) return null;
+		const park = NATIONAL_PARKS.find((item) => item.id === parkId);
+		if (!park) return data;
+		return data.filter((segment) => lineOverlapsBounds(segment.geometry?.coordinates, park.bounds));
+	}
+
 	$effect(() => {
 		activePark = selectedPark;
 	});
 
+	let visibleSegments = $derived(segmentsInActivePark(segmentsData, activePark));
+
 	function showExtent(extent: [number, number, number, number], parkId: string) {
 		activePark = parkId;
+		rememberSelectedPark(parkId);
 		if (handle) {
 			queuedExtent = null;
 			handle.fit(extent);
@@ -145,6 +202,7 @@
 		} else {
 			activePark = '';
 			queuedExtent = null;
+			rememberSelectedPark('');
 		}
 	}
 
@@ -224,7 +282,7 @@
 		handle?.prediction(prediction, predictionCell);
 	});
 	$effect(() => {
-		handle?.segments(segmentsData);
+		handle?.segments(visibleSegments);
 	});
 	$effect(() => {
 		handle?.selectSegment(selectedSegment);
@@ -269,6 +327,7 @@
 					Math.abs(p.bounds[3] - bounds[3]) < 0.01
 			);
 			activePark = matched ? matched.id : '';
+			rememberSelectedPark(activePark);
 		});
 	});
 </script>
@@ -291,6 +350,12 @@
 			>{layerErrors.join(', ')} may be incomplete. Summary counts come from a separate service.</span
 		><button class="retry" onclick={() => handle?.retry()}>Retry map layers</button>
 	</div>{/if}
+{#if ready && !failed && activePark && visibleSegments && visibleSegments.length === 0}
+	<div class="map-message" role="status">
+		<strong>No mapped segments in this park</strong>
+		<span>Segments from other parks stay off this extent. An empty extent is not zero risk.</span>
+	</div>
+{/if}
 
 <!-- Park Extent Switcher (Accessible Dropdown & Pill Group) -->
 <div class="park-switcher" role="region" aria-label="National Park navigation">
@@ -303,13 +368,7 @@
 
 	<!-- Accessible Dropdown -->
 	<div class="park-select-container">
-		<select
-			id="park-select"
-			class="park-select"
-			aria-label="National Park Extent Switcher"
-			value={activePark}
-			onchange={handleDropdownChange}
-		>
+		<select id="park-select" class="park-select" value={activePark} onchange={handleDropdownChange}>
 			<option value="">Select National Park…</option>
 			{#each NATIONAL_PARKS as park (park.id)}
 				<option value={park.id}>{park.name}</option>

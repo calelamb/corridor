@@ -2,21 +2,39 @@
 	import { onMount } from 'svelte';
 	import { loadHotspots, type HotspotItem, type HotspotMethod } from './client';
 	import HotspotControls, { METHODS } from '$lib/explore/HotspotControls.svelte';
+	import {
+		NATIONAL_PARKS,
+		PARK_SELECTION_EVENT,
+		readSelectedParkId,
+		type NationalPark
+	} from '$lib/explore/RangerMap.svelte';
 
 	let method = $state<HotspotMethod>('nkde');
 	let bandwidth = $state<number>(500);
 	let hotspots = $state<HotspotItem[]>([]);
 	let status = $state<'loading' | 'ready' | 'error'>('loading');
 	let errorMessage = $state('');
+	let park = $state<NationalPark | null>(null);
+
+	function parkById(id: string): NationalPark | null {
+		return NATIONAL_PARKS.find((p) => p.id === id) ?? null;
+	}
+
+	// A score of zero or a non-finite score is the absence of a measurement, not a risk value.
+	function formatScore(score: number): string {
+		return Number.isFinite(score) && score > 0 ? score.toFixed(2) : 'Not scored';
+	}
 
 	let activeController: AbortController | undefined;
 
 	async function fetchHotspots(selectedMethod: HotspotMethod, selectedBandwidth: number) {
+		const selectedPark = park;
 		activeController?.abort();
 		const controller = new AbortController();
 		activeController = controller;
 		status = 'loading';
 		errorMessage = '';
+		hotspots = [];
 
 		if (typeof window !== 'undefined') {
 			const url = new URL(window.location.href);
@@ -29,10 +47,12 @@
 			const res = await loadHotspots(
 				{
 					method: selectedMethod,
-					bandwidth: selectedBandwidth
+					bandwidth: selectedBandwidth,
+					bbox: selectedPark ? selectedPark.bounds.join(',') : undefined
 				},
 				controller.signal
 			);
+			if (controller.signal.aborted) return;
 			hotspots = res;
 			status = 'ready';
 		} catch (err: unknown) {
@@ -57,8 +77,20 @@
 		) {
 			bandwidth = urlBandwidth;
 		}
+		park = parkById(readSelectedParkId());
+		const onPark = (event: Event) => {
+			const id = (event as CustomEvent<{ parkId: string }>).detail?.parkId ?? '';
+			const next = parkById(id);
+			if (next?.id === park?.id) return;
+			park = next;
+			fetchHotspots(method, bandwidth);
+		};
+		window.addEventListener(PARK_SELECTION_EVENT, onPark);
 		fetchHotspots(method, bandwidth);
-		return () => activeController?.abort();
+		return () => {
+			window.removeEventListener(PARK_SELECTION_EVENT, onPark);
+			activeController?.abort();
+		};
 	});
 </script>
 
@@ -113,7 +145,7 @@
 	<!-- Results / Segments View -->
 	{#if status === 'error'}
 		<div class="error-banner" role="alert">
-			<h3>Hotspot analysis unavailable</h3>
+			<h3>Hotspot analysis unavailable{park ? ` for ${park.name}` : ''}</h3>
 			<p>{errorMessage}</p>
 			<p class="error-disclaimer">
 				The hotspot data service could not be reached. An absence of hotspot results does not
@@ -128,6 +160,9 @@
 			<div class="section-title-bar">
 				<div>
 					<h2>Identified Hotspot Highway Segments</h2>
+					{#if park}
+						<span class="results-count">Extent: {park.name}</span>
+					{/if}
 					{#if hotspots.length > 0}
 						<span class="results-count">
 							Showing {hotspots.length} significant {hotspots.length === 1 ? 'segment' : 'segments'}
@@ -137,7 +172,15 @@
 				</div>
 			</div>
 
-			{#if hotspots.length === 0}
+			{#if hotspots.length === 0 && park}
+				<div class="empty-state" role="status">
+					<h3>Hotspot analysis unavailable for {park.name}</h3>
+					<p>
+						No hotspot results were returned for this park extent. The analysis is unavailable here,
+						and an empty result is not zero risk. It does not indicate a safe roadway.
+					</p>
+				</div>
+			{:else if hotspots.length === 0}
 				<div class="empty-state" role="status">
 					<h3>No significant clusters found</h3>
 					<p>
@@ -167,7 +210,7 @@
 										<strong>{item.highway_ref || 'Highway Segment'}</strong>
 										<small>{item.segment_id.slice(0, 13)}…</small>
 									</td>
-									<td class="numeric-cell">{item.score.toFixed(2)}</td>
+									<td class="numeric-cell">{formatScore(item.score)}</td>
 									<td class="numeric-cell">
 										{item.z_score !== undefined ? item.z_score.toFixed(2) : '—'}
 									</td>

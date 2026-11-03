@@ -8,6 +8,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 from PIL import Image
+import onnx
 import onnxruntime as ort
 
 from corridor_ml.vision.classifier import (
@@ -17,8 +18,11 @@ from corridor_ml.vision.classifier import (
     preprocess_image,
 )
 from corridor_ml.vision.export_onnx import (
+    CLASS_LABELS_META_KEY,
     build_species_onnx_model,
     export_species_model,
+    read_class_labels,
+    write_class_labels,
 )
 
 
@@ -251,6 +255,29 @@ class TestONNXExport:
         size_mb = os.path.getsize(res_path) / (1024 * 1024)
         assert size_mb < 35.0
 
+    def test_default_export_metadata_has_eleven_labels_in_logit_order(self, tmp_path: Path):
+        """A default export must embed exactly 11 class_labels matching the logit dim.
+
+        Reloading without passing classes must return the identical list, so no
+        logit index is silently renamed between export and inference.
+        """
+        model = build_species_onnx_model()
+        embedded = read_class_labels(model)
+        assert embedded is not None
+        assert len(embedded) == 11
+        assert embedded == TARGET_SPECIES
+        assert model.graph.output[0].type.tensor_type.shape.dim[-1].dim_value == 11
+
+        out_path = tmp_path / "default_export.onnx"
+        export_species_model(out_path, quantize_int8=True)
+        reloaded_meta = read_class_labels(onnx.load(str(out_path)))
+        assert reloaded_meta == TARGET_SPECIES
+
+        reloaded = SpeciesClassifier(model_path=out_path)
+        assert reloaded.classes == TARGET_SPECIES
+        assert reloaded.classes[10] == "mountain_lion"
+        assert len(reloaded.predict_scores(_create_sample_image_bytes())) == 11
+
     def test_export_roundtrip_keeps_eleventh_class_index(self, tmp_path: Path):
         """Reloading an export must keep logit 10 on the label it was built with.
 
@@ -285,3 +312,58 @@ class TestONNXExport:
 
             with pytest.raises(ValueError, match="(?i)class list"):
                 SpeciesClassifier(model_path=path, classes=TARGET_SPECIES)
+
+
+class TestClassLabelsMetadata:
+    """Edge cases for the class_labels ONNX metadata contract."""
+
+    def test_write_is_idempotent_and_round_trips_through_bytes(self):
+        model = build_species_onnx_model()
+        write_class_labels(model, TARGET_SPECIES)
+        write_class_labels(model, TARGET_SPECIES)
+
+        keys = [p.key for p in model.metadata_props]
+        assert keys.count(CLASS_LABELS_META_KEY) == 1
+
+        reparsed = onnx.load_from_string(model.SerializeToString())
+        assert read_class_labels(reparsed) == TARGET_SPECIES
+        assert len(read_class_labels(reparsed)) == 11
+
+    def test_malformed_metadata_is_rejected_not_guessed(self):
+        model = build_species_onnx_model()
+        for bad in ('{"mule_deer": 0}', "[1, 2, 3]", '"mule_deer"'):
+            model.metadata_props[0].value = bad
+            with pytest.raises(ValueError, match="(?i)class_labels"):
+                read_class_labels(model)
+
+    def test_metadata_length_mismatch_blocks_reload(self, tmp_path: Path):
+        """A label list that no longer matches the 11 logits must not load."""
+        model = build_species_onnx_model()
+        write_class_labels(model, TARGET_SPECIES[:10])
+        path = tmp_path / "ten_labels.onnx"
+        onnx.save(model, str(path))
+
+        with pytest.raises(ValueError, match="(?i)class list length"):
+            SpeciesClassifier(model_path=path)
+
+    def test_model_without_metadata_falls_back_to_default_order(self, tmp_path: Path):
+        model = build_species_onnx_model()
+        del model.metadata_props[:]
+        assert read_class_labels(model) is None
+        path = tmp_path / "legacy.onnx"
+        onnx.save(model, str(path))
+
+        reloaded = SpeciesClassifier(model_path=path)
+        assert reloaded.classes == TARGET_SPECIES
+        assert len(reloaded.classes) == 11
+
+    def test_export_rejects_classes_that_rename_embedded_logits(self, tmp_path: Path):
+        model = build_species_onnx_model()
+        renamed = list(TARGET_SPECIES)
+        renamed[10] = "snow_leopard"
+
+        with pytest.raises(ValueError, match="(?i)class list"):
+            export_species_model(
+                tmp_path / "renamed.onnx", quantize_int8=False, model=model, classes=renamed
+            )
+        assert read_class_labels(model) == TARGET_SPECIES

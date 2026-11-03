@@ -95,7 +95,7 @@ func TestIngestSubcommands(t *testing.T) {
 		t.Fatal("expected error for missing --file or --url flag")
 	}
 
-	for _, name := range []string{"wydot", "udot", "idfg"} {
+	for _, name := range []string{"wydot", "udot", "idfg", "banff", "ncdot", "vdot"} {
 		if err := Run(ctx, []string{"ingest", name}, io.Discard, io.Discard); err == nil {
 			t.Fatalf("expected error for missing --file flag on %s", name)
 		}
@@ -121,5 +121,55 @@ func TestIngestStateFeedSummaryOmitsCoordinates(t *testing.T) {
 	}
 	if !strings.Contains(out, `"withheld_sensitive": 1`) {
 		t.Fatalf("recent wolf was not withheld: %s", out)
+	}
+}
+
+func TestIngestStateFeedBanffSummaryOmitsGeometry(t *testing.T) {
+	// Synthetic fixture for this test only: one data row, explicit 0 deer, blank grizzly.
+	csv := "Region,Location,Year images were taken,Date of first image,Date of last image," +
+		"Number of hikers and runners,Number of horse riders,Number of bicyclists,Number of cougars," +
+		"Number of elk,Number of grizzly bears,Number of lynx,Number of wolves,Number of deer\n" +
+		"Synthetic Region,Synthetic Structure,2015,1/6/2015,30/9/2015,1,2,3,4,5,,7,8,0\n"
+	path := filepath.Join(t.TempDir(), "banff.csv")
+	if err := os.WriteFile(path, []byte(csv), 0600); err != nil {
+		t.Fatal(err)
+	}
+	var stdout bytes.Buffer
+	if err := Run(context.Background(), []string{"ingest", "banff", "--file", path, "--json"}, &stdout, io.Discard); err != nil {
+		t.Fatalf("banff ingest: %v", err)
+	}
+	out := stdout.String()
+	for _, banned := range []string{"latitude", "longitude", "geometry"} {
+		if strings.Contains(strings.ToLower(out), banned) {
+			t.Fatalf("banff summary contains %q: %s", banned, out)
+		}
+	}
+	if !strings.Contains(out, `"records_read": 1`) || !strings.Contains(out, "Open Government Licence") {
+		t.Fatalf("unexpected banff summary: %s", out)
+	}
+	if !strings.Contains(out, `"grizzly_counts_known": 0`) {
+		t.Fatalf("blank grizzly count reported as known: %s", out)
+	}
+}
+
+func TestIngestStateFeedVDOTWithholdsRecentBear(t *testing.T) {
+	// Synthetic fixture for this test only; coordinates are not real locations.
+	const inputLongitude = "-100.123456"
+	now := time.Now().UTC().UnixMilli()
+	body := fmt.Sprintf(`{"features":[{"attributes":{"objectid":1,"starttime":%d,"wildlife":"Bear","rtenamedir":"SYNTHETIC-ROUTE","latitude_d":10.123456,"longitude_d":%s}}]}`, now, inputLongitude)
+	path := filepath.Join(t.TempDir(), "vdot.json")
+	if err := os.WriteFile(path, []byte(body), 0600); err != nil {
+		t.Fatal(err)
+	}
+	var stdout bytes.Buffer
+	if err := Run(context.Background(), []string{"ingest", "vdot", "--file", path, "--json"}, &stdout, io.Discard); err != nil {
+		t.Fatalf("vdot ingest: %v", err)
+	}
+	out := stdout.String()
+	if strings.Contains(out, inputLongitude) || strings.Contains(out, "10.123456") || strings.Contains(out, "longitude") {
+		t.Fatalf("vdot summary leaked a coordinate: %s", out)
+	}
+	if !strings.Contains(out, `"withheld_sensitive": 1`) || !strings.Contains(out, `"public_records": 0`) {
+		t.Fatalf("recent bear was not withheld: %s", out)
 	}
 }

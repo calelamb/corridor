@@ -25,7 +25,7 @@ import (
 
 func ingestCmd(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	if len(args) == 0 {
-		return errors.New("usage: corridorctl ingest <all|irma|mdt|caltrans|wydot|udot|idfg> [flags]")
+		return errors.New("usage: corridorctl ingest <all|irma|mdt|caltrans|wydot|udot|idfg|banff|ncdot|vdot> [flags]")
 	}
 
 	switch args[0] {
@@ -46,6 +46,12 @@ func ingestCmd(ctx context.Context, args []string, stdout, stderr io.Writer) err
 		return ingestUDOTCmd(ctx, args[1:], stdout, stderr)
 	case "idfg":
 		return ingestIDFGCmd(ctx, args[1:], stdout, stderr)
+	case "banff":
+		return ingestBanffCmd(ctx, args[1:], stdout, stderr)
+	case "ncdot":
+		return ingestNCDOTCmd(ctx, args[1:], stdout, stderr)
+	case "vdot":
+		return ingestVDOTCmd(ctx, args[1:], stdout, stderr)
 	case "help", "--help", "-h":
 		const ingestHelp = `corridorctl ingest - Run data ingestion pipelines and parsers
 
@@ -62,11 +68,14 @@ Subcommands:
   wydot --file <path> [--json]    Parse a WYDOT Roadkill Reports feature JSON page
   udot --file <path> [--json]     Parse a UDOT Crash Locations feature JSON page
   idfg --file <path> [--json]     Parse an IDFG Roadkill Observations feature JSON page
+  banff --file <path> [--json]    Parse the Banff wildlife crossing structure count CSV
+  ncdot --file <path> [--json]    Parse an NCDOT Reported Animal Crashes feature JSON page
+  vdot --file <path> [--json]     Parse a VDOT Wildlife Carcass Removal feature JSON page
 `
 		_, err := fmt.Fprint(stdout, ingestHelp)
 		return err
 	default:
-		return fmt.Errorf("unsupported ingest command %q; usage: corridorctl ingest <all|irma|mdt|caltrans|wydot|udot|idfg> [flags]", args[0])
+		return fmt.Errorf("unsupported ingest command %q; usage: corridorctl ingest <all|irma|mdt|caltrans|wydot|udot|idfg|banff|ncdot|vdot> [flags]", args[0])
 	}
 }
 
@@ -326,13 +335,83 @@ func ingestIDFGCmd(ctx context.Context, args []string, stdout, stderr io.Writer)
 	})
 }
 
+func ingestBanffCmd(ctx context.Context, args []string, stdout, stderr io.Writer) error {
+	_ = ctx
+	records, err := readFeatureFile(args, stderr, "banff", ingest.ParseBanffCrossingCounts)
+	if err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return nil
+		}
+		return err
+	}
+	known := 0
+	for _, rec := range records {
+		if rec.GrizzlyBears.Known {
+			known++
+		}
+	}
+	return writeFeatureSummary(stdout, argsJSON(args), featureSummary{
+		Source:             ingest.BanffCrossingCountArtifact().Name,
+		License:            ingest.BanffCrossingCountArtifact().License,
+		RecordsRead:        len(records),
+		PublicRecords:      len(records),
+		GrizzlyCountsKnown: &known,
+	})
+}
+
+func ingestNCDOTCmd(ctx context.Context, args []string, stdout, stderr io.Writer) error {
+	_ = ctx
+	records, err := readFeatureFile(args, stderr, "ncdot", ingest.ParseNCDOTAnimalCrashes)
+	if err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return nil
+		}
+		return err
+	}
+	return writeFeatureSummary(stdout, argsJSON(args), featureSummary{
+		Source:        ingest.NCDOTAnimalCrashesArtifact().Name,
+		License:       ingest.NCDOTAnimalCrashesArtifact().License,
+		RecordsRead:   len(records),
+		PublicRecords: len(records),
+	})
+}
+
+func ingestVDOTCmd(ctx context.Context, args []string, stdout, stderr io.Writer) error {
+	_ = ctx
+	records, err := readFeatureFile(args, stderr, "vdot", ingest.ParseVDOTCarcass)
+	if err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return nil
+		}
+		return err
+	}
+	public := 0
+	withheld := 0
+	now := time.Now().UTC()
+	for _, rec := range records {
+		if _, ok := rec.PublicRecord(now); ok {
+			public++
+		} else if rec.IsSensitive {
+			withheld++
+		}
+	}
+	return writeFeatureSummary(stdout, argsJSON(args), featureSummary{
+		Source:            ingest.VDOTCarcassArtifact().Name,
+		License:           ingest.VDOTCarcassArtifact().License,
+		RecordsRead:       len(records),
+		PublicRecords:     public,
+		WithheldSensitive: withheld,
+	})
+}
+
 type featureSummary struct {
-	Source            string `json:"source"`
-	License           string `json:"license"`
-	RecordsRead       int    `json:"records_read"`
-	PublicRecords     int    `json:"public_records"`
-	WithheldSensitive int    `json:"withheld_sensitive,omitempty"`
-	WildAnimal        int    `json:"wild_animal,omitempty"`
+	Source             string `json:"source"`
+	License            string `json:"license"`
+	RecordsRead        int    `json:"records_read"`
+	PublicRecords      int    `json:"public_records"`
+	WithheldSensitive  int    `json:"withheld_sensitive,omitempty"`
+	WildAnimal         int    `json:"wild_animal,omitempty"`
+	GrizzlyCountsKnown *int   `json:"grizzly_counts_known,omitempty"`
 }
 
 func argsJSON(args []string) bool {
@@ -349,6 +428,11 @@ func writeFeatureSummary(stdout io.Writer, jsonOutput bool, summary featureSumma
 		enc := json.NewEncoder(stdout)
 		enc.SetIndent("", "  ")
 		return enc.Encode(summary)
+	}
+	if summary.GrizzlyCountsKnown != nil {
+		_, err := fmt.Fprintf(stdout, "Parsed %d %s records (%s; %d with known grizzly counts).\n",
+			summary.RecordsRead, summary.Source, summary.License, *summary.GrizzlyCountsKnown)
+		return err
 	}
 	_, err := fmt.Fprintf(stdout, "Parsed %d %s records (%d public, %d sensitive withheld).\n",
 		summary.RecordsRead, summary.Source, summary.PublicRecords, summary.WithheldSensitive)

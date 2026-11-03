@@ -1,5 +1,6 @@
 """Spatial covariate extraction engine for road segments."""
 
+import math
 from pathlib import Path
 from typing import Optional, Sequence, Union
 import numpy as np
@@ -128,6 +129,19 @@ def get_alpine_elevation_threshold(lat: Optional[float] = None, base_threshold: 
     return base_threshold
 
 
+def _round_half_away_from_zero(value: float, scale: float) -> float:
+    """Mirror Go's math.Round(value*scale)/scale so Python and Go agree on .5 ties.
+
+    Python's round() is half-to-even; Go rounds half away from zero. Snow
+    products are rounded in both languages, so ties must resolve the same way.
+    """
+    scaled = value * scale
+    truncated = math.trunc(scaled)
+    if abs(scaled - truncated) >= 0.5:
+        truncated += math.copysign(1.0, scaled)
+    return truncated / scale
+
+
 def estimate_swe(lat: float, lon: float, elevation_m: float, month: int) -> float:
     """Models monthly Snow Water Equivalent (SWE) in mm based on lat, lon, elevation, and month."""
     if month < 1 or month > 12:
@@ -163,7 +177,7 @@ def estimate_swe(lat: float, lon: float, elevation_m: float, month: int) -> floa
 
     effective_elev = min(3000.0, elevation_m - base_snowline)
     swe = effective_elev * swe_rate * m_factor
-    return round(swe, 2)
+    return _round_half_away_from_zero(swe, 100.0)
 
 
 def estimate_snow_depth(lat: float, lon: float, elevation_m: float, month: int) -> float:
@@ -183,15 +197,30 @@ def estimate_snow_depth(lat: float, lon: float, elevation_m: float, month: int) 
         density_factor = 3.0
 
     depth = swe / density_factor
-    return round(depth, 1)
+    return _round_half_away_from_zero(depth, 10.0)
 
 
-def is_pass_seasonally_closed(elevation_m: float, month: int, lat: Optional[float] = None) -> bool:
-    """Returns True if alpine pass is closed to vehicular traffic due to snow."""
+def _closure_threshold(lat: Optional[float], unknown_lat_threshold_m: float) -> float:
+    """Latitude-aware threshold, or the caller's fallback when latitude is unknown."""
+    if lat is None:
+        return unknown_lat_threshold_m
+    return get_alpine_elevation_threshold(lat)
+
+
+def is_pass_seasonally_closed(
+    elevation_m: float,
+    month: int,
+    lat: Optional[float] = None,
+    unknown_lat_threshold_m: float = 2000.0,
+) -> bool:
+    """Returns True if alpine pass is closed to vehicular traffic due to snow.
+
+    Without a latitude the threshold is `unknown_lat_threshold_m` (Go's 2000 m
+    default unless the caller supplies the same threshold it used for closure).
+    """
     if not is_winter_month(month):
         return False
-    threshold = get_alpine_elevation_threshold(lat) if lat is not None else 2000.0
-    return elevation_m >= threshold
+    return elevation_m >= _closure_threshold(lat, unknown_lat_threshold_m)
 
 
 def adjust_traffic_for_snow(
@@ -199,6 +228,7 @@ def adjust_traffic_for_snow(
     elevation_m: float,
     month: int,
     lat: Optional[float] = None,
+    unknown_lat_threshold_m: float = 2000.0,
 ) -> float:
     """Scales traffic volume to zero when pass is closed or reduces it during shoulder months."""
     if base_aadt <= 0.0:
@@ -206,10 +236,12 @@ def adjust_traffic_for_snow(
     if month < 1 or month > 12:
         return base_aadt
 
-    if is_pass_seasonally_closed(elevation_m, month, lat=lat):
+    if is_pass_seasonally_closed(
+        elevation_m, month, lat=lat, unknown_lat_threshold_m=unknown_lat_threshold_m
+    ):
         return 0.0
 
-    threshold = get_alpine_elevation_threshold(lat) if lat is not None else 2000.0
+    threshold = _closure_threshold(lat, unknown_lat_threshold_m)
     if elevation_m >= threshold:
         if month == 6:
             return base_aadt * 0.50
@@ -226,13 +258,20 @@ def _traffic_with_snow_adjustment(
     lat: Optional[float],
     pass_closed: bool,
     closure_traffic_factor: float,
+    unknown_lat_threshold_m: float = 2000.0,
 ) -> float:
     """Zero a closed pass; otherwise apply latitude-aware shoulder scaling."""
     if pass_closed:
         if base_aadt <= 0.0:
             return 0.0
         return base_aadt * closure_traffic_factor
-    return adjust_traffic_for_snow(base_aadt, elevation_m, month, lat=lat)
+    return adjust_traffic_for_snow(
+        base_aadt,
+        elevation_m,
+        month,
+        lat=lat,
+        unknown_lat_threshold_m=unknown_lat_threshold_m,
+    )
 
 
 def _extract_lat_lons(segments_df: gpd.GeoDataFrame) -> tuple[np.ndarray, np.ndarray]:
@@ -699,6 +738,7 @@ class FeatureExtractor:
                     segment_lat,
                     bool(pass_closed[i] > 0.5),
                     closure_traffic_factor,
+                    unknown_lat_threshold_m=elevation_threshold_m,
                 )
             aadt_vals = adjusted_aadt
 

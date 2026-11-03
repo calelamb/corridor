@@ -1,7 +1,11 @@
 // @vitest-environment jsdom
 import { render, screen, cleanup, fireEvent } from '@testing-library/svelte';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import RangerMap, { NATIONAL_PARKS } from './RangerMap.svelte';
+import RangerMap, {
+	NATIONAL_PARKS,
+	PARK_SELECTION_EVENT,
+	readSelectedParkId
+} from './RangerMap.svelte';
 import { createRangerMap } from './map';
 
 vi.mock('./map', () => ({
@@ -37,6 +41,31 @@ describe('RangerMap Multi-Park Navigator', () => {
 		expect(parkMap['olympic']).toEqual([-124.65, 47.45, -123.1, 48.15]);
 	});
 
+	it('names the park extent dropdown by its visible label, not a divergent aria-label', () => {
+		render(RangerMap, {
+			theme: 'light',
+			migration: false,
+			prediction: null,
+			predictionCell: '',
+			onprediction: vi.fn(),
+			params: '',
+			selected: '',
+			camera: null,
+			fit: null,
+			onmigration: vi.fn(),
+			onselect: vi.fn(),
+			oncamera: vi.fn()
+		});
+
+		const select = screen.getByRole('combobox', {
+			name: /^National Park Extent$/i
+		}) as HTMLSelectElement;
+		expect(select.getAttribute('aria-label')).toBeNull();
+		const label = document.querySelector<HTMLLabelElement>(`label[for="${select.id}"]`);
+		expect(label).toBeTruthy();
+		expect(label?.textContent?.trim()).toMatch(/National Park Extent$/);
+	});
+
 	it('renders accessible dropdown switcher with all 6 national parks', () => {
 		render(RangerMap, {
 			theme: 'light',
@@ -54,7 +83,7 @@ describe('RangerMap Multi-Park Navigator', () => {
 		});
 
 		const select = screen.getByRole('combobox', {
-			name: /National Park Extent Switcher/i
+			name: /^National Park Extent$/i
 		}) as HTMLSelectElement;
 		expect(select).toBeTruthy();
 
@@ -113,7 +142,7 @@ describe('RangerMap Multi-Park Navigator', () => {
 		});
 
 		const select = screen.getByRole('combobox', {
-			name: /National Park Extent Switcher/i
+			name: /^National Park Extent$/i
 		});
 		await fireEvent.change(select, { target: { value: 'yellowstone' } });
 
@@ -196,9 +225,56 @@ describe('RangerMap Multi-Park Navigator', () => {
 		expect(onparkselect).toHaveBeenCalledWith(expect.objectContaining({ id: 'yosemite' }));
 	});
 
+	it('recentres a ready map on Olympic and publishes the selection for hotspot analysis', async () => {
+		const fit = vi.fn();
+		vi.mocked(createRangerMap).mockResolvedValueOnce({
+			destroy: vi.fn(),
+			theme: vi.fn(),
+			filter: vi.fn(),
+			select: vi.fn(),
+			fit,
+			zoom: vi.fn(),
+			north: vi.fn(),
+			migration: vi.fn(),
+			retry: vi.fn(),
+			prediction: vi.fn(),
+			segments: vi.fn(),
+			selectSegment: vi.fn()
+		} as never);
+		window.sessionStorage.clear();
+		const heard = vi.fn();
+		window.addEventListener(PARK_SELECTION_EVENT, heard);
+
+		render(RangerMap, {
+			theme: 'light',
+			migration: false,
+			prediction: null,
+			predictionCell: '',
+			onprediction: vi.fn(),
+			params: '',
+			selected: '',
+			camera: null,
+			fit: [-117, 42, -112, 44],
+			onmigration: vi.fn(),
+			onselect: vi.fn(),
+			oncamera: vi.fn()
+		});
+		await vi.waitFor(() => expect(fit).toHaveBeenCalledWith([-117, 42, -112, 44]));
+
+		await fireEvent.click(screen.getByRole('radio', { name: 'Olympic National Park' }));
+
+		expect(fit).toHaveBeenLastCalledWith([-124.65, 47.45, -123.1, 48.15]);
+		expect(readSelectedParkId()).toBe('olympic');
+		expect(heard).toHaveBeenCalled();
+
+		await fireEvent.click(screen.getByRole('button', { name: 'Fit pilot coverage' }));
+		expect(readSelectedParkId()).toBe('');
+		window.removeEventListener(PARK_SELECTION_EVENT, heard);
+	});
+
 	it('moves the map to Olympic when that park is chosen before the map loads', async () => {
 		const fit = vi.fn();
-		let resolveMap: (map: object) => void = () => {};
+		let resolveMap: (map: never) => void = () => {};
 		vi.mocked(createRangerMap).mockImplementationOnce(
 			() =>
 				new Promise((resolve) => {
@@ -245,7 +321,7 @@ describe('RangerMap Multi-Park Navigator', () => {
 			prediction: vi.fn(),
 			segments: vi.fn(),
 			selectSegment: vi.fn()
-		});
+		} as never);
 
 		await vi.waitFor(() => {
 			expect(fit).toHaveBeenCalledWith(olympic?.bounds);
@@ -255,9 +331,94 @@ describe('RangerMap Multi-Park Navigator', () => {
 		expect(
 			(
 				screen.getByRole('combobox', {
-					name: /National Park Extent Switcher/i
+					name: /^National Park Extent$/i
 				}) as HTMLSelectElement
 			).value
 		).toBe('olympic');
+	});
+
+	it('drops another park’s segments from the map when Olympic is selected', async () => {
+		const segments = vi.fn();
+		vi.mocked(createRangerMap).mockResolvedValueOnce({
+			destroy: vi.fn(),
+			theme: vi.fn(),
+			filter: vi.fn(),
+			select: vi.fn(),
+			fit: vi.fn(),
+			zoom: vi.fn(),
+			north: vi.fn(),
+			migration: vi.fn(),
+			retry: vi.fn(),
+			prediction: vi.fn(),
+			segments,
+			selectSegment: vi.fn()
+		});
+
+		// Synthetic geometries for extent filtering. Not a collision dataset.
+		const yellowstoneLine = {
+			id: 'yellowstone-extent-line',
+			geometry: {
+				type: 'LineString' as const,
+				coordinates: [
+					[-110.7, 44.5],
+					[-110.6, 44.6]
+				] as [number, number][]
+			},
+			risk_score: 4,
+			percentile_rank: 0.2,
+			p10: 1,
+			p90: 6,
+			highway_ref: 'TEST-YS',
+			state: 'WY'
+		};
+		const olympicLine = {
+			id: 'olympic-extent-line',
+			geometry: {
+				type: 'LineString' as const,
+				coordinates: [
+					[-123.8, 47.8],
+					[-123.5, 47.9]
+				] as [number, number][]
+			},
+			risk_score: 4,
+			percentile_rank: 0.2,
+			p10: 1,
+			p90: 6,
+			highway_ref: 'TEST-OL',
+			state: 'WA'
+		};
+
+		render(RangerMap, {
+			theme: 'light',
+			migration: false,
+			prediction: null,
+			predictionCell: '',
+			onprediction: vi.fn(),
+			params: '',
+			selected: '',
+			camera: null,
+			fit: null,
+			segmentsData: [yellowstoneLine, olympicLine],
+			onmigration: vi.fn(),
+			onselect: vi.fn(),
+			oncamera: vi.fn()
+		});
+
+		await vi.waitFor(() => {
+			expect(segments).toHaveBeenCalledWith(
+				expect.arrayContaining([
+					expect.objectContaining({ id: 'yellowstone-extent-line' }),
+					expect.objectContaining({ id: 'olympic-extent-line' })
+				])
+			);
+		});
+
+		await fireEvent.click(screen.getByRole('radio', { name: 'Olympic National Park' }));
+
+		await vi.waitFor(() => {
+			const drawn = segments.mock.calls.at(-1)?.[0] as { id: string }[];
+			expect(drawn.map((segment) => segment.id)).toEqual(['olympic-extent-line']);
+		});
+		expect(screen.getByText(/TEST-YS/)).toBeFalsy;
 	});
 });
