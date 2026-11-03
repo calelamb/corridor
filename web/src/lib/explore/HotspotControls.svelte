@@ -82,7 +82,6 @@
 			<select
 				id="hotspot-method-select"
 				class="method-select"
-				aria-label="Hotspot statistical algorithm"
 				value={method}
 				{disabled}
 				onchange={(e) => handleMethodChange(e.currentTarget.value as HotspotMethod)}
@@ -124,7 +123,9 @@
 			</div>
 			<div class="bandwidth-value-display" aria-live="polite">
 				<strong>{bandwidth} m</strong>
-				<span class="bandwidth-unit">({(bandwidth / 1000).toFixed(bandwidth % 1000 === 0 ? 0 : 2)} km)</span>
+				<span class="bandwidth-unit"
+					>({(bandwidth / 1000).toFixed(bandwidth % 1000 === 0 ? 0 : 2)} km)</span
+				>
 			</div>
 		</div>
 
@@ -134,7 +135,6 @@
 				type="range"
 				id="hotspot-bandwidth-slider"
 				class="bandwidth-slider"
-				aria-label="Hotspot smoothing bandwidth"
 				aria-valuemin={minBandwidth}
 				aria-valuemax={maxBandwidth}
 				aria-valuenow={bandwidth}

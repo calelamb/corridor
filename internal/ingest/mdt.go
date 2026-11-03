@@ -4,10 +4,12 @@ package ingest
 import (
 	"bytes"
 	"encoding/csv"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"math"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -16,16 +18,21 @@ import (
 )
 
 // MDTCarcassArtifact returns provenance metadata for the Montana Department of
-// Transportation (MDT) Statewide Carcass Collection 2016-2025 dataset.
+// Transportation statewide carcass collection cataloged as S32.
+//
+// SHA256 stays empty until CarcassData2016-2025.xlsx is acquired in this
+// workspace. data/SHA256SUMS does not list that workbook, and the file is not
+// in the repository, so a previously recorded digest cannot be re-verified.
+// RetrievedAt is the retrieval timestamp already recorded in
+// data/sweeps/2026-09-21/artifacts.json. This function does not download the file.
 func MDTCarcassArtifact() Artifact {
-	const sha = "9f43d083c82ba360eb7174815e633f04297153b2ea6c5b88e7b156b557af2561"
 	return Artifact{
 		SourceID:    "9f43d083-c82b-a360-eb71-74815e633f04",
 		Name:        "MDT · Statewide Carcass Collection 2016-2025",
 		URL:         "https://www.mdt.mt.gov/publications/docs/datastats/crashdata/CarcassData2016-2025.xlsx",
 		License:     "State Government Public Record · Montana Department of Transportation",
-		SHA256:      sha,
-		ObjectKey:   "sha256/" + sha + "/CarcassData2016-2025.csv",
+		SHA256:      "",
+		ObjectKey:   "",
 		RetrievedAt: time.Date(2026, 9, 21, 21, 8, 51, 0, time.UTC),
 	}
 }
@@ -40,17 +47,119 @@ type MDTCarcassRecord struct {
 	NormalizedSpecies string    `json:"normalized_species"`
 	Gender            string    `json:"gender"`
 	Quantity          int       `json:"quantity"`
-	SMSX              float64   `json:"sms_x_cord"` // Montana State Plane Easting (meters)
-	SMSY              float64   `json:"sms_y_cord"` // Montana State Plane Northing (meters)
-	SMS_X_CORD        float64   `json:"-"`          // Alias for SMSX
-	SMS_Y_CORD        float64   `json:"-"`          // Alias for SMSY
-	Longitude         float64   `json:"longitude"`  // WGS84 Longitude (generalized to H3-r6 centroid if sensitive)
-	Latitude          float64   `json:"latitude"`   // WGS84 Latitude (generalized to H3-r6 centroid if sensitive)
-	RawLongitude      float64   `json:"raw_longitude,omitempty"`
-	RawLatitude       float64   `json:"raw_latitude,omitempty"`
+	SMSX              float64   `json:"-"` // State-plane easting. JSON would reconstruct a precise point.
+	SMSY              float64   `json:"-"` // State-plane northing. JSON would reconstruct a precise point.
+	SMS_X_CORD        float64   `json:"-"`
+	SMS_Y_CORD        float64   `json:"-"`
+	Longitude         float64   `json:"longitude,omitempty"` // Public WGS84 longitude (H3-r6 centroid when sensitive).
+	Latitude          float64   `json:"latitude,omitempty"`  // Public WGS84 latitude (H3-r6 centroid when sensitive).
+	RawLongitude      float64   `json:"-"`
+	RawLatitude       float64   `json:"-"`
 	IsSensitive       bool      `json:"is_sensitive"`
-	H3R6              string    `json:"h3_r6,omitempty"`    // Uber H3 Resolution 6 Cell Index
-	H3Index           string    `json:"h3_index,omitempty"` // Alias for H3R6
+	H3R6              string    `json:"h3_r6,omitempty"`
+	H3Index           string    `json:"h3_index,omitempty"`
+	QuarantineUntil   time.Time `json:"quarantine_until,omitempty"`
+	InQuarantine      bool      `json:"in_quarantine"`
+}
+
+// mdtCanonicalRoute matches a Montana highway class and number after separators are removed.
+var mdtCanonicalRoute = regexp.MustCompile(`^(I|US|MT|S|P|SR)-?(\d+)([A-Z])?$`)
+
+// NormalizeMDTRoute canonicalizes MDT highway labels such as "us 191" and "I-90".
+// Labels that are not a known highway class are returned trimmed and uppercased.
+func NormalizeMDTRoute(raw string) string {
+	clean := strings.ToUpper(strings.TrimSpace(raw))
+	if clean == "" || clean == "UNKNOWN" || clean == "N/A" || clean == "NA" {
+		return "Unknown"
+	}
+	clean = strings.ReplaceAll(clean, ".", "")
+	clean = strings.ReplaceAll(clean, "_", " ")
+	clean = strings.Join(strings.Fields(clean), " ")
+	compact := strings.ReplaceAll(clean, " ", "")
+	compact = strings.ReplaceAll(compact, "–", "-")
+	compact = strings.ReplaceAll(compact, "—", "-")
+	switch {
+	case strings.HasPrefix(compact, "INTERSTATE"):
+		compact = "I" + strings.TrimPrefix(compact, "INTERSTATE")
+	case strings.HasPrefix(compact, "MONTANA"):
+		compact = "MT" + strings.TrimPrefix(compact, "MONTANA")
+	}
+	match := mdtCanonicalRoute.FindStringSubmatch(compact)
+	if match == nil {
+		return clean
+	}
+	number := strings.TrimLeft(match[2], "0")
+	if number == "" {
+		number = "0"
+	}
+	return match[1] + "-" + number + match[3]
+}
+
+// InQuarantineAt reports whether a sensitive record is still inside the 30-day public delay.
+func (r MDTCarcassRecord) InQuarantineAt(refTime time.Time) bool {
+	if !r.IsSensitive || r.QuarantineUntil.IsZero() {
+		return false
+	}
+	return refTime.Before(r.QuarantineUntil)
+}
+
+// PublicRecord returns the privacy-compliant record for public feeds.
+// Sensitive records inside the 30-day delay are withheld.
+// Released sensitive records keep the H3 resolution 6 centroid and drop precise coordinates.
+func (r MDTCarcassRecord) PublicRecord(refTime time.Time) (MDTCarcassRecord, bool) {
+	if r.IsSensitive && r.InQuarantineAt(refTime) {
+		return MDTCarcassRecord{}, false
+	}
+	pub := r
+	pub.RawLatitude = 0
+	pub.RawLongitude = 0
+	pub.SMSX = 0
+	pub.SMSY = 0
+	pub.SMS_X_CORD = 0
+	pub.SMS_Y_CORD = 0
+	pub.InQuarantine = false
+	return pub, true
+}
+
+// MarshalJSON emits the public record. Precise state-plane and raw WGS84
+// coordinates are never encoded. Sensitive locations still inside the 30-day
+// delay are omitted entirely.
+func (r MDTCarcassRecord) MarshalJSON() ([]byte, error) {
+	type publicRecord struct {
+		CollectionDate    time.Time `json:"collection_date"`
+		Route             string    `json:"route"`
+		Milepost          float64   `json:"milepost"`
+		AnimalType        string    `json:"animal_type"`
+		NormalizedSpecies string    `json:"normalized_species"`
+		Gender            string    `json:"gender"`
+		Quantity          int       `json:"quantity"`
+		Longitude         float64   `json:"longitude,omitempty"`
+		Latitude          float64   `json:"latitude,omitempty"`
+		IsSensitive       bool      `json:"is_sensitive"`
+		H3R6              string    `json:"h3_r6,omitempty"`
+		H3Index           string    `json:"h3_index,omitempty"`
+		QuarantineUntil   time.Time `json:"quarantine_until,omitempty"`
+		InQuarantine      bool      `json:"in_quarantine"`
+	}
+	out := publicRecord{
+		CollectionDate:    r.CollectionDate,
+		Route:             r.Route,
+		Milepost:          r.Milepost,
+		AnimalType:        r.AnimalType,
+		NormalizedSpecies: r.NormalizedSpecies,
+		Gender:            r.Gender,
+		Quantity:          r.Quantity,
+		IsSensitive:       r.IsSensitive,
+		QuarantineUntil:   r.QuarantineUntil,
+		InQuarantine:      r.InQuarantine,
+	}
+	if !r.IsSensitive || !r.InQuarantine {
+		out.Longitude = r.Longitude
+		out.Latitude = r.Latitude
+		out.H3R6 = r.H3R6
+		out.H3Index = r.H3Index
+	}
+	return json.Marshal(out)
 }
 
 // Cell returns the H3 resolution 6 cell identifier.
@@ -249,10 +358,11 @@ func ParseMDT(r io.Reader) ([]MDTCarcassRecord, error) {
 
 // ParseMDTCarcassCSV parses MDT carcass salvage records from a CSV reader.
 // It performs:
-// 1. Header identification for `Collection Date`, `Route`, `Milepost`, `Animal Type`, `Gender`, `Quantity`, `SMS_X_CORD`, `SMS_Y_CORD`.
-// 2. Pure Go Lambert Conformal Conic coordinate transformation from Montana State Plane NAD83 (EPSG:32100) to WGS84 (EPSG:4326).
-// 3. Species normalization into canonical snake_case taxon names.
-// 4. Sensitive species policy enforcement: for grizzly bear, lynx, or wolf, coordinates are generalized to Uber H3 resolution 6 hexagon centroids (~36 km² cell area).
+//  1. Header identification for `Collection Date`, `Route`, `Milepost`, `Animal Type`, `Gender`, `Quantity`, `SMS_X_CORD`, `SMS_Y_CORD`.
+//  2. Pure Go Lambert Conformal Conic coordinate transformation from Montana State Plane NAD83 (EPSG:32100) to WGS84 (EPSG:4326).
+//  3. Species normalization into canonical snake_case taxon names.
+//  4. Sensitive species policy enforcement: grizzly bear, Canada lynx, gray wolf, and wolverine
+//     are generalized to Uber H3 resolution 6 centroids and withheld from public JSON for 30 days.
 func ParseMDTCarcassCSV(r io.Reader) ([]MDTCarcassRecord, error) {
 	if r == nil {
 		return nil, errors.New("nil CSV reader")
@@ -364,11 +474,7 @@ func ParseMDTCarcassCSV(r io.Reader) ([]MDTCarcassRecord, error) {
 			return nil, fmt.Errorf("row %d: invalid Collection Date %q: %w", lineNum, dateStr, err)
 		}
 
-		// Route
-		route := get(colRoute)
-		if route == "" {
-			route = "Unknown"
-		}
+		route := NormalizeMDTRoute(get(colRoute))
 
 		// Milepost (optional, defaults to 0.0)
 		var milepost float64
@@ -452,10 +558,10 @@ func ParseMDTCarcassCSV(r io.Reader) ([]MDTCarcassRecord, error) {
 		}
 
 		if isSensitive {
-			// Enforce sensitive species generalization:
-			// Generalize coordinates to the centroid of the H3 resolution 6 cell (~36 km² cell area).
 			rec.Latitude = centLat
 			rec.Longitude = centLon
+			rec.QuarantineUntil = collectionDate.Add(SensitiveQuarantineDuration)
+			rec.InQuarantine = rec.InQuarantineAt(time.Now().UTC())
 		} else {
 			rec.Latitude = rawLat
 			rec.Longitude = rawLon

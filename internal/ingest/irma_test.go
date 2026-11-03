@@ -676,4 +676,10 @@ func TestIRMAArtifact(t *testing.T) {
 	if !strings.Contains(a.License, "Public Domain") {
 		t.Errorf("expected Public Domain in license, got %s", a.License)
 	}
+	if a.SHA256 != "" {
+		t.Errorf("WHMMO CSV is not acquired; SHA256 must stay empty, got %q", a.SHA256)
+	}
+	if !a.RetrievedAt.IsZero() {
+		t.Errorf("WHMMO CSV is not acquired; RetrievedAt must stay zero, got %v", a.RetrievedAt)
+	}
 }

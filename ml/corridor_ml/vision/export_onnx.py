@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 import tempfile
 from typing import Optional, Sequence
@@ -10,6 +11,10 @@ import numpy as np
 import onnx
 from onnx import helper, TensorProto
 from onnxruntime.quantization import QuantType, quantize_dynamic
+
+# ONNX metadata key storing the logit label order. Reloaders must use this
+# list rather than a hard-coded species table, or class indices drift.
+CLASS_LABELS_META_KEY = "class_labels"
 
 # Standard 11 target wildlife species for North American and Sierra Nevada roadkill monitoring
 DEFAULT_TARGET_SPECIES: list[str] = [
@@ -187,8 +192,73 @@ def build_species_onnx_model(
         ir_version=10,
     )
 
+    write_class_labels(model, class_list)
+    _ensure_label_rank(model, class_list)
+
     onnx.checker.check_model(model)
     return model
+
+
+def read_class_labels(model: onnx.ModelProto) -> list[str] | None:
+    """Returns the logit label order stored on an ONNX model, if present."""
+    for prop in model.metadata_props:
+        if prop.key != CLASS_LABELS_META_KEY:
+            continue
+        parsed = json.loads(prop.value)
+        if not isinstance(parsed, list) or any(not isinstance(item, str) for item in parsed):
+            raise ValueError("ONNX class_labels metadata must be a JSON list of strings")
+        return list(parsed)
+    return None
+
+
+def write_class_labels(model: onnx.ModelProto, classes: Sequence[str]) -> None:
+    """Writes logit label order onto the model so export and reload stay aligned."""
+    payload = json.dumps(list(classes))
+    for prop in model.metadata_props:
+        if prop.key == CLASS_LABELS_META_KEY:
+            prop.value = payload
+            return
+    prop = model.metadata_props.add()
+    prop.key = CLASS_LABELS_META_KEY
+    prop.value = payload
+
+
+def _output_class_count(model: onnx.ModelProto) -> int | None:
+    if not model.graph.output:
+        return None
+    dims = model.graph.output[0].type.tensor_type.shape.dim
+    if not dims:
+        return None
+    count = dims[-1].dim_value
+    if count <= 0:
+        return None
+    return int(count)
+
+
+def _ensure_label_rank(model: onnx.ModelProto, classes: Sequence[str]) -> None:
+    count = _output_class_count(model)
+    if count is not None and count != len(classes):
+        raise ValueError(
+            f"class list length {len(classes)} does not match ONNX output dimension {count}"
+        )
+
+
+def _bind_class_labels(model: onnx.ModelProto, classes: Optional[Sequence[str]]) -> None:
+    """Keeps exported label metadata aligned with the graph's logit order."""
+    embedded = read_class_labels(model)
+    if classes is None:
+        if embedded is not None:
+            _ensure_label_rank(model, embedded)
+        return
+
+    provided = list(classes)
+    if embedded is not None and provided != embedded:
+        raise ValueError(
+            "class list does not match the label order embedded in the ONNX model"
+        )
+    if embedded is None:
+        write_class_labels(model, provided)
+    _ensure_label_rank(model, provided)
 
 
 def export_species_model(
@@ -215,6 +285,7 @@ def export_species_model(
 
     if model is None:
         model = build_species_onnx_model(weights=weights, classes=classes)
+    _bind_class_labels(model, classes)
 
     if not quantize_int8:
         onnx.save(model, str(destination))

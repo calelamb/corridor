@@ -1,9 +1,13 @@
 package ingest
 
 import (
+	"encoding/json"
+	"fmt"
 	"math"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"corridor/internal/geo"
 )
@@ -13,14 +17,18 @@ func TestMDTCarcassArtifact(t *testing.T) {
 	if artifact.SourceID == "" {
 		t.Error("expected non-empty SourceID")
 	}
-	if len(artifact.SHA256) != 64 {
-		t.Errorf("expected 64-char SHA256, got %d chars: %s", len(artifact.SHA256), artifact.SHA256)
+	if artifact.SHA256 != "" {
+		t.Errorf("SHA256 must stay empty until CarcassData2016-2025.xlsx is acquired and listed in data/SHA256SUMS, got %q", artifact.SHA256)
 	}
-	if !strings.Contains(artifact.URL, "mdt.mt.gov") {
-		t.Errorf("expected mdt.mt.gov in URL, got %s", artifact.URL)
+	const catalogURL = "https://www.mdt.mt.gov/publications/docs/datastats/crashdata/CarcassData2016-2025.xlsx"
+	if artifact.URL != catalogURL {
+		t.Errorf("URL = %s, want catalog %s", artifact.URL, catalogURL)
 	}
-	if artifact.RetrievedAt.IsZero() {
-		t.Error("expected non-zero RetrievedAt")
+	// Retrieval timestamp recorded in data/sweeps/2026-09-21/artifacts.json.
+	// The workbook bytes are not in this repository, so this is not a re-hash.
+	wantRetrieved := time.Date(2026, 9, 21, 21, 8, 51, 0, time.UTC)
+	if !artifact.RetrievedAt.Equal(wantRetrieved) {
+		t.Errorf("RetrievedAt = %s, want recorded sweep retrieval %s", artifact.RetrievedAt.Format(time.RFC3339), wantRetrieved.Format(time.RFC3339))
 	}
 }
 
@@ -147,6 +155,30 @@ func TestMDTSpeciesNormalization(t *testing.T) {
 			sens := IsMDTSensitiveSpecies(tt.input)
 			if sens != tt.isSensitive {
 				t.Errorf("IsMDTSensitiveSpecies(%q) = %v, want %v", tt.input, sens, tt.isSensitive)
+			}
+		})
+	}
+}
+
+func TestMDTRouteNormalization(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{input: "us 191", want: "US-191"},
+		{input: "US-191", want: "US-191"},
+		{input: "U.S. 93", want: "US-93"},
+		{input: "I 90", want: "I-90"},
+		{input: "I-090", want: "I-90"},
+		{input: "mt-83", want: "MT-83"},
+		{input: "Interstate 15", want: "I-15"},
+		{input: "", want: "Unknown"},
+		{input: "Frontage Rd", want: "FRONTAGE RD"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			if got := NormalizeMDTRoute(tt.input); got != tt.want {
+				t.Errorf("NormalizeMDTRoute(%q) = %q, want %q", tt.input, got, tt.want)
 			}
 		})
 	}
@@ -331,6 +363,148 @@ func TestMDTCarcassCSV_SensitiveSpeciesGeneralization(t *testing.T) {
 	}
 }
 
+func TestMDTSensitivePublicJSONOmitsPreciseCoordinates(t *testing.T) {
+	const easting = 479836.847
+	const northing = 159775.029
+	now := time.Now().UTC()
+	releasedOn := now.Add(-60 * 24 * time.Hour).Format("2006-01-02")
+	quarantinedOn := now.Add(-2 * 24 * time.Hour).Format("2006-01-02")
+	csvData := fmt.Sprintf(`Collection Date,Route,Milepost,Animal Type,Gender,Quantity,SMS_X_CORD,SMS_Y_CORD
+%s,us 191,35.0,Grizzly Bear,Male,1,479836.847,159775.029
+%s,MT-83,14.2,Wolverine,Unknown,1,479836.847,159775.029
+%s,US-89,8.0,Canada Lynx,Female,1,479836.847,159775.029
+%s,US-191,4.0,Gray Wolf,Male,1,479836.847,159775.029
+%s,I-90,12.0,Mule Deer,Female,1,479836.847,159775.029
+`, releasedOn, releasedOn, quarantinedOn, releasedOn, releasedOn)
+
+	records, err := ParseMDTCarcassCSV(strings.NewReader(csvData))
+	if err != nil {
+		t.Fatalf("unexpected parse error: %v", err)
+	}
+	if len(records) != 5 {
+		t.Fatalf("expected 5 records, got %d", len(records))
+	}
+
+	released := []MDTCarcassRecord{records[0], records[1], records[3]}
+	for _, rec := range released {
+		if !rec.IsSensitive {
+			t.Fatalf("%s must be sensitive", rec.NormalizedSpecies)
+		}
+		if rec.InQuarantine || rec.InQuarantineAt(now) {
+			t.Fatalf("%s dated %s should be outside the 30-day delay", rec.NormalizedSpecies, rec.CollectionDate.Format("2006-01-02"))
+		}
+		assertSensitivePublicRecord(t, rec, now, easting, northing)
+	}
+
+	lynx := records[2]
+	if lynx.NormalizedSpecies != "lynx" || !lynx.IsSensitive {
+		t.Fatalf("expected a sensitive lynx, got %+v", lynx)
+	}
+	if !lynx.InQuarantine || !lynx.InQuarantineAt(now) {
+		t.Fatal("lynx collected 2 days ago must stay in the 30-day delay")
+	}
+	wantUntil := lynx.CollectionDate.Add(SensitiveQuarantineDuration)
+	if !lynx.QuarantineUntil.Equal(wantUntil) {
+		t.Fatalf("quarantine until %s, want %s", lynx.QuarantineUntil, wantUntil)
+	}
+	if _, ok := lynx.PublicRecord(now); ok {
+		t.Fatal("public record must be withheld during the 30-day delay")
+	}
+	payload, err := json.Marshal(lynx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(payload)
+	if strings.Contains(text, `"latitude"`) || strings.Contains(text, `"longitude"`) || strings.Contains(text, `"h3_r6"`) {
+		t.Fatalf("quarantined sensitive location was published: %s", text)
+	}
+	assertPayloadOmitsPrecisePoint(t, text, lynx.RawLatitude, lynx.RawLongitude, easting, northing)
+
+	deer := records[4]
+	if deer.IsSensitive {
+		t.Fatal("mule deer must not be sensitive")
+	}
+	if deer.Route != "I-90" || records[0].Route != "US-191" {
+		t.Fatalf("routes = %q, %q", records[0].Route, deer.Route)
+	}
+	deerJSON, err := json.Marshal(deer)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var published struct {
+		Latitude  float64 `json:"latitude"`
+		Longitude float64 `json:"longitude"`
+	}
+	if err := json.Unmarshal(deerJSON, &published); err != nil {
+		t.Fatal(err)
+	}
+	if math.Abs(published.Latitude-deer.RawLatitude) > 1e-6 || math.Abs(published.Longitude-deer.RawLongitude) > 1e-6 {
+		t.Fatalf("non-sensitive public coordinates changed: got (%.6f, %.6f)", published.Latitude, published.Longitude)
+	}
+}
+
+func assertSensitivePublicRecord(t *testing.T, rec MDTCarcassRecord, now time.Time, easting, northing float64) {
+	t.Helper()
+	cell, err := ParseH3Cell(rec.H3R6)
+	if err != nil {
+		t.Fatalf("%s H3 cell: %v", rec.NormalizedSpecies, err)
+	}
+	if cell.Resolution() > 6 {
+		t.Fatalf("%s H3 resolution %d is finer than 6", rec.NormalizedSpecies, cell.Resolution())
+	}
+	centroidLat, centroidLon := cell.LatLng().Lat, cell.LatLng().Lng
+	if math.Abs(rec.Latitude-centroidLat) > 1e-6 || math.Abs(rec.Longitude-centroidLon) > 1e-6 {
+		t.Fatalf("%s public coordinates are not the H3 centroid", rec.NormalizedSpecies)
+	}
+	if math.Abs(rec.Latitude-rec.RawLatitude) < 1e-5 && math.Abs(rec.Longitude-rec.RawLongitude) < 1e-5 {
+		t.Fatalf("%s public coordinates still equal the raw point", rec.NormalizedSpecies)
+	}
+	pub, ok := rec.PublicRecord(now)
+	if !ok {
+		t.Fatalf("%s should be public after the 30-day delay", rec.NormalizedSpecies)
+	}
+	if pub.RawLatitude != 0 || pub.RawLongitude != 0 || pub.SMSX != 0 || pub.SMSY != 0 {
+		t.Fatalf("%s public record retained precise coordinates", rec.NormalizedSpecies)
+	}
+	payload, err := json.Marshal(rec)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var decoded struct {
+		Latitude  float64 `json:"latitude"`
+		Longitude float64 `json:"longitude"`
+	}
+	if err := json.Unmarshal(payload, &decoded); err != nil {
+		t.Fatal(err)
+	}
+	if math.Abs(decoded.Latitude-rec.RawLatitude) < 1e-5 && math.Abs(decoded.Longitude-rec.RawLongitude) < 1e-5 {
+		t.Fatalf("%s JSON repeated the raw point: %s", rec.NormalizedSpecies, payload)
+	}
+	if math.Abs(decoded.Latitude-centroidLat) > 1e-6 || math.Abs(decoded.Longitude-centroidLon) > 1e-6 {
+		t.Fatalf("%s JSON coordinates are not the H3 centroid: %s", rec.NormalizedSpecies, payload)
+	}
+	assertPayloadOmitsPrecisePoint(t, string(payload), rec.RawLatitude, rec.RawLongitude, easting, northing)
+}
+
+func assertPayloadOmitsPrecisePoint(t *testing.T, payload string, rawLat, rawLon, easting, northing float64) {
+	t.Helper()
+	forbidden := []string{
+		"raw_latitude",
+		"raw_longitude",
+		"sms_x_cord",
+		"sms_y_cord",
+		strconv.FormatFloat(easting, 'f', -1, 64),
+		strconv.FormatFloat(northing, 'f', -1, 64),
+		strconv.FormatFloat(rawLat, 'f', 5, 64),
+		strconv.FormatFloat(rawLon, 'f', 5, 64),
+	}
+	for _, secret := range forbidden {
+		if secret != "" && strings.Contains(payload, secret) {
+			t.Errorf("public JSON contains precise value %q in %s", secret, payload)
+		}
+	}
+}
+
 func TestMDTCarcassCSV_BOMAndHeaderVariations(t *testing.T) {
 	// Test UTF-8 BOM, snake_case headers, extra spaces, mixed case
 	csvWithBOM := "\uFEFFcollection_date,route,milepost,animal_type,gender,quantity,sms_x_cord,sms_y_cord\n" +
@@ -343,8 +517,8 @@ func TestMDTCarcassCSV_BOMAndHeaderVariations(t *testing.T) {
 	if len(records) != 1 {
 		t.Fatalf("expected 1 record, got %d", len(records))
 	}
-	if records[0].Route != "US 191" {
-		t.Errorf("expected Route 'US 191', got %q", records[0].Route)
+	if records[0].Route != "US-191" {
+		t.Errorf("expected Route 'US-191', got %q", records[0].Route)
 	}
 	if records[0].NormalizedSpecies != "elk" {
 		t.Errorf("expected NormalizedSpecies 'elk', got %q", records[0].NormalizedSpecies)

@@ -35,13 +35,13 @@
 			id: 'rocky-mountain',
 			name: 'Rocky Mountain National Park',
 			shortName: 'Rocky Mountain',
-			bounds: [-105.90, 40.15, -105.45, 40.55]
+			bounds: [-105.9, 40.15, -105.45, 40.55]
 		},
 		{
 			id: 'olympic',
 			name: 'Olympic National Park',
 			shortName: 'Olympic',
-			bounds: [-124.65, 47.45, -123.10, 48.15]
+			bounds: [-124.65, 47.45, -123.1, 48.15]
 		}
 	];
 </script>
@@ -99,14 +99,41 @@
 
 	let activePark = $state('');
 	let pillElements: (HTMLButtonElement | null)[] = $state([]);
+	// Extent chosen while createRangerMap is still pending. A plain let is
+	// intentional: the fit effect reapplies it when `handle` appears.
+	let queuedExtent: [number, number, number, number] | null = null;
+	let queuedParkId = '';
+	let extentAtQueue: [number, number, number, number] | null = null;
+
+	function boundsEqual(
+		left: [number, number, number, number] | null,
+		right: [number, number, number, number] | null
+	): boolean {
+		if (left === right) return true;
+		if (!left || !right) return false;
+		return (
+			left[0] === right[0] && left[1] === right[1] && left[2] === right[2] && left[3] === right[3]
+		);
+	}
 
 	$effect(() => {
 		activePark = selectedPark;
 	});
 
+	function showExtent(extent: [number, number, number, number], parkId: string) {
+		activePark = parkId;
+		if (handle) {
+			queuedExtent = null;
+			handle.fit(extent);
+			return;
+		}
+		queuedExtent = [extent[0], extent[1], extent[2], extent[3]];
+		queuedParkId = parkId;
+		extentAtQueue = fit ? [fit[0], fit[1], fit[2], fit[3]] : null;
+	}
+
 	function selectPark(park: NationalPark) {
-		activePark = park.id;
-		handle?.fit(park.bounds);
+		showExtent(park.bounds, park.id);
 		onparkselect?.(park);
 	}
 
@@ -117,6 +144,7 @@
 			selectPark(park);
 		} else {
 			activePark = '';
+			queuedExtent = null;
 		}
 	}
 
@@ -216,21 +244,32 @@
 	$effect(() => {
 		const bounds = fit;
 		const map = handle;
+		if (!map) return;
 		// MapLibre emits moveend synchronously; its callback must not become
 		// a dependency of this fit intent or camera writes retrigger fitting.
-		if (bounds && map) {
-			untrack(() => {
-				map.fit(bounds);
-				const matched = NATIONAL_PARKS.find(
-					(p) =>
-						Math.abs(p.bounds[0] - bounds[0]) < 0.01 &&
-						Math.abs(p.bounds[1] - bounds[1]) < 0.01 &&
-						Math.abs(p.bounds[2] - bounds[2]) < 0.01 &&
-						Math.abs(p.bounds[3] - bounds[3]) < 0.01
-				);
-				activePark = matched ? matched.id : '';
-			});
-		}
+		// A park chosen before the handle exists is applied once and wins over
+		// the fit prop from that moment. A later, different fit still replaces it.
+		untrack(() => {
+			if (queuedExtent && (!bounds || boundsEqual(bounds, extentAtQueue))) {
+				const next = queuedExtent;
+				const parkId = queuedParkId;
+				queuedExtent = null;
+				map.fit(next);
+				activePark = parkId;
+				return;
+			}
+			queuedExtent = null;
+			if (!bounds) return;
+			map.fit(bounds);
+			const matched = NATIONAL_PARKS.find(
+				(p) =>
+					Math.abs(p.bounds[0] - bounds[0]) < 0.01 &&
+					Math.abs(p.bounds[1] - bounds[1]) < 0.01 &&
+					Math.abs(p.bounds[2] - bounds[2]) < 0.01 &&
+					Math.abs(p.bounds[3] - bounds[3]) < 0.01
+			);
+			activePark = matched ? matched.id : '';
+		});
 	});
 </script>
 
@@ -279,11 +318,7 @@
 	</div>
 
 	<!-- Accessible Pill Group with Roving Tabindex & Arrow Key Navigation -->
-	<div
-		class="park-pills"
-		role="radiogroup"
-		aria-label="National park quick extents"
-	>
+	<div class="park-pills" role="radiogroup" aria-label="National park quick extents">
 		{#each NATIONAL_PARKS as park, i (park.id)}
 			<button
 				type="button"
@@ -308,15 +343,9 @@
 		aria-label="Zoom out"
 		onclick={() => handle?.zoom(-1)}>−</button
 	><button aria-label="Reset north" onclick={() => handle?.north()}>N ↑</button>
-	<button
-		aria-label="Fit pilot coverage"
-		onclick={() => {
-			activePark = '';
-			handle?.fit([-117, 42, -112, 44]);
-		}}>⌖</button
-	><button
-		aria-label="Fit Yosemite corridor"
-		onclick={() => selectPark(NATIONAL_PARKS[0])}
+	<button aria-label="Fit pilot coverage" onclick={() => showExtent([-117, 42, -112, 44], '')}
+		>⌖</button
+	><button aria-label="Fit Yosemite corridor" onclick={() => selectPark(NATIONAL_PARKS[0])}
 		>🏔</button
 	>
 </div>
@@ -421,6 +450,7 @@
 
 	.park-pill {
 		flex-shrink: 0;
+		width: max-content;
 		min-height: 48px;
 		min-width: 48px;
 		padding: 8px 14px;

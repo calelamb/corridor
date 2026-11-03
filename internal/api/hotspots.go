@@ -65,18 +65,41 @@ func (s service) Hotspots(ctx context.Context, req HotspotsRequestObject) (Hotsp
 		}), nil
 	}
 
-	// 2. Database segments if SegmentStore is available
-	var dbSegments []db.SegmentSummary
+	// 2. Database segments when a segment store is configured.
+	// Failures and datasets with no observations must not fall through to the
+	// reference corridors or be published as zero-score hotspots.
 	if store := s.segmentStore(); store != nil {
 		var filter db.SegmentFilter
 		filter.BBox = bboxVals
-		if segs, err := store.Segments(ctx, filter); err == nil && len(segs) > 0 {
-			dbSegments = segs
+		segs, err := store.Segments(ctx, filter)
+		if err != nil {
+			s.logFailure(ctx, "hotspots_segments")
+			return Hotspots503JSONResponse{UnavailableJSONResponse(ErrorEnvelope{
+				Status: Error,
+				Error:  "Hotspot analysis service unavailable",
+			})}, nil
 		}
-	}
-
-	if len(dbSegments) > 0 {
-		items, err := computeHotspotsFromDBSegments(dbSegments, methodStr, bw)
+		if len(segs) == 0 {
+			if bboxVals == nil {
+				s.logFailure(ctx, "hotspots_empty")
+				return Hotspots503JSONResponse{UnavailableJSONResponse(ErrorEnvelope{
+					Status: Error,
+					Error:  "Hotspot data unavailable",
+				})}, nil
+			}
+			return Hotspots200JSONResponse(HotspotsEnvelope{
+				Status: HotspotsEnvelopeStatusSuccess,
+				Data:   []HotspotItem{},
+			}), nil
+		}
+		if !segmentsHaveObservations(segs) {
+			s.logFailure(ctx, "hotspots_unmonitored")
+			return Hotspots503JSONResponse{UnavailableJSONResponse(ErrorEnvelope{
+				Status: Error,
+				Error:  "Hotspot data unavailable",
+			})}, nil
+		}
+		items, err := computeHotspotsFromDBSegments(segs, methodStr, bw)
 		if err != nil {
 			s.logFailure(ctx, "hotspots_db_compute")
 			return Hotspots503JSONResponse{UnavailableJSONResponse(ErrorEnvelope{
@@ -97,6 +120,15 @@ func (s service) Hotspots(ctx context.Context, req HotspotsRequestObject) (Hotsp
 		Status: HotspotsEnvelopeStatusSuccess,
 		Data:   items,
 	}), nil
+}
+
+func segmentsHaveObservations(segs []db.SegmentSummary) bool {
+	for _, seg := range segs {
+		if !math.IsNaN(seg.RiskScore) && !math.IsInf(seg.RiskScore, 0) && seg.RiskScore > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func computeHotspotsFromReferenceCorridors(bboxVals *[4]float64, method string, bandwidth float64) []HotspotItem {

@@ -93,20 +93,27 @@ func prioritizeCmd(ctx context.Context, args []string, stdout, stderr io.Writer)
 		}
 	}
 
-	// Fallback to configured segment provider if database had no results or was unavailable
+	// Fallback to configured segment provider if database had no results or was unavailable.
+	// A park that resolves to a highway must narrow the segment slice before the
+	// greedy knapsack. Otherwise a same-state project can spend the budget first
+	// and the park highway never becomes a candidate.
 	if len(candidates) == 0 {
 		segments, err := defaultCandidateProvider.GetSegments(ctx, *state)
 		if err != nil {
 			return fmt.Errorf("load candidate segments: %w", err)
 		}
+		if *park != "" && resolvedHighway != "" {
+			segments = filterSegmentsByHighway(segments, resolvedHighway)
+		}
 		candidates = prioritize.GenerateCandidatesFromSegmentsWithOptions(segments, opts, cfg)
 	}
 
-	// Apply park highway filter if park was specified
+	// Safety net for database candidates, which are not highway-scoped above.
+	// Applied only for --park, so a state-only query still keeps every highway in that state.
 	if *park != "" && resolvedHighway != "" {
 		filtered := make([]prioritize.CandidateSite, 0, len(candidates))
 		for _, c := range candidates {
-			if strings.EqualFold(c.HighwayRef, resolvedHighway) || strings.HasPrefix(strings.ToUpper(c.HighwayRef), strings.ToUpper(resolvedHighway)) {
+			if highwayRefMatches(c.HighwayRef, resolvedHighway) {
 				filtered = append(filtered, c)
 			}
 		}
@@ -153,6 +160,23 @@ func loadPrioritizeConfig() prioritize.PrioritizeConfig {
 		return cfg
 	}
 	return prioritize.DefaultConfig()
+}
+
+func highwayRefMatches(ref, want string) bool {
+	if want == "" {
+		return false
+	}
+	return strings.EqualFold(ref, want) || strings.HasPrefix(strings.ToUpper(ref), strings.ToUpper(want))
+}
+
+func filterSegmentsByHighway(segments []prioritize.SegmentRecord, highway string) []prioritize.SegmentRecord {
+	matched := make([]prioritize.SegmentRecord, 0, len(segments))
+	for _, seg := range segments {
+		if highwayRefMatches(seg.HighwayRef, highway) {
+			matched = append(matched, seg)
+		}
+	}
+	return matched
 }
 
 func resolveParkFilter(park, state string) (string, string) {
@@ -241,7 +265,9 @@ func (p *defaultReferenceSegmentProvider) GetSegments(ctx context.Context, state
 				"deer": 0.80,
 			},
 		},
-		// WY US-89 - Grand Teton Jackson Hole corridor (milepost 18.0 - 18.4)
+		// WY US-89 - synthetic Grand Teton reference, Jackson Hole corridor (milepost 18.0 - 18.4).
+		// Risk scores are planning placeholders, not measured collision rates.
+		// P10/P90 stay in proportion to the previous 5.2 and 4.8 intervals.
 		{
 			ID:             uuid.MustParse("00000000-0000-0000-0002-000000000001"),
 			HighwayRef:     "US-89",
@@ -249,10 +275,10 @@ func (p *defaultReferenceSegmentProvider) GetSegments(ctx context.Context, state
 			MilepostStart:  18.0,
 			MilepostEnd:    18.2,
 			LengthM:        100.0,
-			RiskScore:      5.2,
+			RiskScore:      6.0,
 			PercentileRank: 98.0,
-			P10:            3.2,
-			P90:            7.2,
+			P10:            3.6923, // 3.2 * (6.0 / 5.2)
+			P90:            8.3077, // 7.2 * (6.0 / 5.2)
 			SpeciesBreakdown: map[string]float64{
 				"mule_deer": 0.50,
 				"pronghorn": 0.30,
@@ -266,17 +292,19 @@ func (p *defaultReferenceSegmentProvider) GetSegments(ctx context.Context, state
 			MilepostStart:  18.2,
 			MilepostEnd:    18.4,
 			LengthM:        100.0,
-			RiskScore:      4.8,
+			RiskScore:      5.6,
 			PercentileRank: 97.0,
-			P10:            2.9,
-			P90:            6.6,
+			P10:            3.3833, // 2.9 * (5.6 / 4.8)
+			P90:            7.7,    // 6.6 * (5.6 / 4.8)
 			SpeciesBreakdown: map[string]float64{
 				"mule_deer": 0.50,
 				"pronghorn": 0.30,
 				"elk":       0.20,
 			},
 		},
-		// MT US-2 - Glacier National Park Marias Pass / Southern Boundary corridor (milepost 152.0 - 152.4)
+		// MT US-2 - synthetic Glacier reference, Marias Pass / Southern Boundary (milepost 152.0 - 152.4).
+		// Risk scores are planning placeholders, not measured collision rates.
+		// P10/P90 stay in proportion to the previous 5.5 and 4.6 intervals.
 		{
 			ID:             uuid.MustParse("00000000-0000-0000-0003-000000000001"),
 			HighwayRef:     "US-2",
@@ -284,10 +312,10 @@ func (p *defaultReferenceSegmentProvider) GetSegments(ctx context.Context, state
 			MilepostStart:  152.0,
 			MilepostEnd:    152.2,
 			LengthM:        100.0,
-			RiskScore:      5.5,
+			RiskScore:      7.0,
 			PercentileRank: 98.5,
-			P10:            3.5,
-			P90:            7.5,
+			P10:            4.4545, // 3.5 * (7.0 / 5.5)
+			P90:            9.5455, // 7.5 * (7.0 / 5.5)
 			SpeciesBreakdown: map[string]float64{
 				"grizzly_bear":  0.40,
 				"bighorn_sheep": 0.35,
@@ -301,10 +329,10 @@ func (p *defaultReferenceSegmentProvider) GetSegments(ctx context.Context, state
 			MilepostStart:  152.2,
 			MilepostEnd:    152.4,
 			LengthM:        100.0,
-			RiskScore:      4.6,
+			RiskScore:      6.0,
 			PercentileRank: 97.5,
-			P10:            3.0,
-			P90:            6.8,
+			P10:            3.9130, // 3.0 * (6.0 / 4.6)
+			P90:            8.8696, // 6.8 * (6.0 / 4.6)
 			SpeciesBreakdown: map[string]float64{
 				"grizzly_bear":  0.40,
 				"bighorn_sheep": 0.35,

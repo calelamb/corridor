@@ -219,6 +219,22 @@ def adjust_traffic_for_snow(
     return base_aadt
 
 
+def _traffic_with_snow_adjustment(
+    base_aadt: float,
+    elevation_m: float,
+    month: int,
+    lat: Optional[float],
+    pass_closed: bool,
+    closure_traffic_factor: float,
+) -> float:
+    """Zero a closed pass; otherwise apply latitude-aware shoulder scaling."""
+    if pass_closed:
+        if base_aadt <= 0.0:
+            return 0.0
+        return base_aadt * closure_traffic_factor
+    return adjust_traffic_for_snow(base_aadt, elevation_m, month, lat=lat)
+
+
 def _extract_lat_lons(segments_df: gpd.GeoDataFrame) -> tuple[np.ndarray, np.ndarray]:
     """Helper to extract latitude and longitude arrays from GeoDataFrame attributes or geometries."""
     n_rows = len(segments_df)
@@ -670,9 +686,21 @@ class FeatureExtractor:
             elevation_values=elev_for_closure,
         )
 
-        # Optional seasonal traffic adjustment for closed passes
+        # Closed passes use closure_traffic_factor. Open alpine roads keep shoulder scaling.
         if adjust_closed_traffic:
-            aadt_vals = np.where(pass_closed > 0.5, aadt_vals * closure_traffic_factor, aadt_vals)
+            traffic_lats, _traffic_lons = _extract_lat_lons(segments_df)
+            adjusted_aadt = np.empty(n_rows, dtype=np.float64)
+            for i in range(n_rows):
+                segment_lat = None if np.isnan(traffic_lats[i]) else float(traffic_lats[i])
+                adjusted_aadt[i] = _traffic_with_snow_adjustment(
+                    float(aadt_vals[i]),
+                    float(elev_vals[i]),
+                    eff_month,
+                    segment_lat,
+                    bool(pass_closed[i] > 0.5),
+                    closure_traffic_factor,
+                )
+            aadt_vals = adjusted_aadt
 
         result = pd.DataFrame(
             {

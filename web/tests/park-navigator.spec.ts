@@ -117,7 +117,7 @@ test.describe('Multi-Park Navigator & Hotspot Controls', () => {
 		await expect(controls).toBeVisible();
 
 		// Bandwidth slider has 250m to 2000m range
-		const slider = page.getByRole('slider', { name: /Hotspot smoothing bandwidth/i });
+		const slider = page.getByRole('slider', { name: /Network Smoothing Bandwidth/i });
 		await expect(slider).toBeVisible();
 		await expect(slider).toHaveAttribute('aria-valuemin', '250');
 		await expect(slider).toHaveAttribute('aria-valuemax', '2000');

@@ -250,3 +250,38 @@ class TestONNXExport:
         assert Path(res_path).exists()
         size_mb = os.path.getsize(res_path) / (1024 * 1024)
         assert size_mb < 35.0
+
+    def test_export_roundtrip_keeps_eleventh_class_index(self, tmp_path: Path):
+        """Reloading an export must keep logit 10 on the label it was built with.
+
+        The default list puts mountain_lion at index 10. A model built with that
+        slot swapped has to come back as the swapped label, including after INT8
+        quantization and when the output directory does not exist yet.
+        """
+        classes = list(TARGET_SPECIES)
+        classes[0], classes[10] = classes[10], classes[0]
+        assert classes[10] == "mule_deer"
+        assert classes[0] == "mountain_lion"
+        assert len(classes) == 11
+
+        fc2_b = np.full(len(classes), -10.0, dtype=np.float32)
+        fc2_b[10] = 10.0
+        model_proto = build_species_onnx_model(weights={"fc2_b": fc2_b}, classes=classes)
+
+        fp32_path = tmp_path / "exports" / "nested" / "swapped_fp32.onnx"
+        int8_path = tmp_path / "exports" / "nested" / "swapped_int8.onnx"
+        export_species_model(fp32_path, quantize_int8=False, model=model_proto, classes=classes)
+        export_species_model(int8_path, quantize_int8=True, model=model_proto, classes=classes)
+
+        img_bytes = _create_sample_image_bytes(format="JPEG")
+        for path in (fp32_path, int8_path):
+            reloaded = SpeciesClassifier(model_path=path)
+            assert reloaded.classes == classes
+            assert reloaded.classes[10] == "mule_deer"
+
+            top = reloaded.predict_top_k(img_bytes, k=1)
+            assert top[0][0] == "mule_deer"
+            assert top[0][1] > 0.9
+
+            with pytest.raises(ValueError, match="(?i)class list"):
+                SpeciesClassifier(model_path=path, classes=TARGET_SPECIES)

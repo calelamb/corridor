@@ -62,3 +62,32 @@ func TestIngestNPSRoadsMissingFile(t *testing.T) {
 		t.Fatal("missing nps roads accepted")
 	}
 }
+
+func TestIngestSubcommands(t *testing.T) {
+	ctx := context.Background()
+
+	// Test help
+	if err := Run(ctx, []string{"ingest", "help"}, io.Discard, io.Discard); err != nil {
+		t.Fatalf("ingest help failed: %v", err)
+	}
+
+	// Test unknown subcommand
+	if err := Run(ctx, []string{"ingest", "unknown"}, io.Discard, io.Discard); err == nil {
+		t.Fatal("expected error for unknown subcommand")
+	}
+
+	// Test irma missing file flag
+	if err := Run(ctx, []string{"ingest", "irma"}, io.Discard, io.Discard); err == nil {
+		t.Fatal("expected error for missing --file flag")
+	}
+
+	// Test mdt missing file flag
+	if err := Run(ctx, []string{"ingest", "mdt"}, io.Discard, io.Discard); err == nil {
+		t.Fatal("expected error for missing --file flag")
+	}
+
+	// Test caltrans missing file and url flag
+	if err := Run(ctx, []string{"ingest", "caltrans"}, io.Discard, io.Discard); err == nil {
+		t.Fatal("expected error for missing --file or --url flag")
+	}
+}

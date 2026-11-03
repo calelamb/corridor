@@ -67,6 +67,11 @@ func (s service) Mitigation(ctx context.Context, req MitigationRequestObject) (M
 
 	items := make([]CandidateSite, 0, len(candidates))
 	for _, c := range candidates {
+		// A candidate with no avoided collisions is an empty dataset scored as
+		// zero risk. Do not publish it as a successful mitigation site.
+		if len(c.Segments) == 0 || c.ExpectedAvoidedCollisions <= 0 || math.IsNaN(c.ExpectedAvoidedCollisions) || math.IsInf(c.ExpectedAvoidedCollisions, 0) {
+			continue
+		}
 		segUUIDs := make([]openapi_types.UUID, len(c.Segments))
 		for j, id := range c.Segments {
 			segUUIDs[j] = id
@@ -89,6 +94,13 @@ func (s service) Mitigation(ctx context.Context, req MitigationRequestObject) (M
 			P90Bcr:                    c.P90BCR,
 			Rationale:                 c.Rationale,
 		})
+	}
+	if len(candidates) > 0 && len(items) == 0 {
+		s.logFailure(ctx, "mitigation_empty_collisions")
+		return Mitigation503JSONResponse{UnavailableJSONResponse(ErrorEnvelope{
+			Status: Error,
+			Error:  "Mitigation data unavailable",
+		})}, nil
 	}
 
 	return Mitigation200JSONResponse(MitigationEnvelope{

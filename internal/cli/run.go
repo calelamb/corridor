@@ -23,23 +23,34 @@ Commands:
   migrate                         Execute database schema migrations
   setup                           Provision database roles and private storage buckets
   health                          Verify API service connectivity and readiness
-  ingest all                      Execute full ingestion pipeline
+  ingest <subcommand> [flags]     Execute ingestion pipeline or source-specific parser
   prioritize [flags]              Compute benefit-cost ratio mitigation site prioritization
   hotspot [flags]                 Identify collision hotspots using NKDE or Getis-Ord Gi*
   evidence [flags]                Query peer-reviewed scientific evidence and research catalog
   seed-segments                   Populate benchmark road segments and risk scores
   outreach [flags]                Generate federal outreach email drafts, briefs, and CRM ledger
 
+Subcommands for ingest:
+  all                             Execute full ingestion pipeline
+  irma --file <path> [--park <code>] [--json]
+                                  Parse NPS IRMA wildlife observation and mortality records
+  mdt --file <path> [--json]      Parse MDT Montana statewide carcass records
+  caltrans (--file <path> | --url <url>) [--json]
+                                  Parse Caltrans AADT and highway postmile records
+
 Flags for prioritize:
   --budget <float>                Budget limit in USD (default: 5000000)
   --min-bcr <float>               Minimum Benefit-Cost Ratio filter (default: 1.0)
   --state <string>                Two-letter state filter (default: "WY")
+  --park <string>                 Park filter (e.g. YOSE, YELL, GRTE, GLAC, ROMO)
   --json                          Output results as JSON array
 
 Flags for hotspot:
   --method <string>               Algorithm: "nkde" or "getis_ord" (default: "nkde")
   --bandwidth <float>             Bandwidth in meters (default: 500.0)
   --limit <int>                   Maximum top segments to display (default: 10)
+  --state <string>                Two-letter state filter (e.g. CA, WY, MT, CO)
+  --park <string>                 National Park filter (e.g. YOSE, YELL, GRTE, GLAC, ROMO)
   --json                          Output results as JSON array
 
 Flags for evidence:
@@ -55,11 +66,7 @@ Flags for outreach:
 func Run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	if len(args) == 0 {
 		_, _ = fmt.Fprintln(stdout, helpUsage)
-		return errors.New("usage: corridorctl help|init-dev|migrate|setup|health|ingest all|prioritize|hotspot|evidence|seed-segments|outreach")
-	}
-
-	if len(args) == 2 && args[0] == "ingest" && args[1] == "all" {
-		return ingestAll(ctx, stdout)
+		return errors.New("usage: corridorctl help|init-dev|migrate|setup|health|ingest <all|irma|mdt|caltrans>|prioritize|hotspot|evidence|seed-segments|outreach")
 	}
 
 	switch args[0] {
@@ -94,7 +101,7 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 		}
 		return health(ctx)
 	case "ingest":
-		return errors.New("usage: corridorctl ingest all")
+		return ingestCmd(ctx, args[1:], stdout, stderr)
 	case "prioritize":
 		return prioritizeCmd(ctx, args[1:], stdout, stderr)
 	case "hotspot":

@@ -49,7 +49,12 @@
 			method = urlMethod;
 		}
 		const urlBandwidth = Number(searchParams.get('bandwidth'));
-		if (urlBandwidth && Number.isFinite(urlBandwidth) && urlBandwidth >= 250 && urlBandwidth <= 2000) {
+		if (
+			urlBandwidth &&
+			Number.isFinite(urlBandwidth) &&
+			urlBandwidth >= 250 &&
+			urlBandwidth <= 2000
+		) {
 			bandwidth = urlBandwidth;
 		}
 		fetchHotspots(method, bandwidth);
@@ -123,10 +128,12 @@
 			<div class="section-title-bar">
 				<div>
 					<h2>Identified Hotspot Highway Segments</h2>
-					<span class="results-count">
-						Showing {hotspots.length} significant {hotspots.length === 1 ? 'segment' : 'segments'}
-						(Method: {METHODS.find((m) => m.id === method)?.name}, Bandwidth: {bandwidth}m)
-					</span>
+					{#if hotspots.length > 0}
+						<span class="results-count">
+							Showing {hotspots.length} significant {hotspots.length === 1 ? 'segment' : 'segments'}
+							(Method: {METHODS.find((m) => m.id === method)?.name}, Bandwidth: {bandwidth}m)
+						</span>
+					{/if}
 				</div>
 			</div>
 
@@ -135,7 +142,8 @@
 					<h3>No significant clusters found</h3>
 					<p>
 						At {bandwidth}m bandwidth using {METHODS.find((m) => m.id === method)?.name}, no
-						segments met statistical significance threshold p &lt; 0.05. Try adjusting bandwidth or
+						segments met statistical significance threshold p &lt; 0.05. An absence of significant
+						clusters does not indicate a safe roadway or zero risk. Try adjusting bandwidth or
 						switching methods.
 					</p>
 				</div>
@@ -221,8 +229,6 @@
 		font-size: 1rem;
 		color: var(--muted);
 	}
-
-
 
 	.significance-reference {
 		display: grid;

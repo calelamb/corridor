@@ -130,8 +130,11 @@ func loadHotspotData(ctx context.Context, state, park string) (*hotspot.RoadGrap
 	if ref := hotspot.FindReferenceCorridor(state, park); ref != nil {
 		return ref.Graph, ref.Events, nil
 	}
+	if strings.TrimSpace(state) != "" || strings.TrimSpace(park) != "" {
+		return nil, nil, errors.New("hotspot risk unavailable: no reference corridor for the requested park or state")
+	}
 
-	// Default reference corridor: Yellowstone US-191 corridor
+	// Unfiltered demo: Yellowstone US-191 reference corridor.
 	corridor := hotspot.ReferenceYellowstoneCorridor()
 	return corridor.Graph, corridor.Events, nil
 }

@@ -21,6 +21,7 @@ type HotspotResult struct {
 }
 
 // AnalyzeHotspots runs statistical hotspot analysis (NKDE and Getis-Ord Gi*) on the graph.
+// Missing events return an error so an empty input is not a corridor of zero scores.
 func (g *RoadGraph) AnalyzeHotspots(events []EventPoint, method string, bandwidthMeters float64) ([]HotspotResult, error) {
 	if bandwidthMeters <= 0 {
 		return nil, errors.New("bandwidth must be positive")
@@ -52,10 +53,15 @@ func (g *RoadGraph) AnalyzeHotspots(events []EventPoint, method string, bandwidt
 
 	densities := make([]float64, len(segments))
 	rawCounts := make([]float64, len(segments))
+	observed := 0
 	for i, seg := range segments {
 		s := scoreMap[seg.ID]
 		densities[i] = s.Density
 		rawCounts[i] = float64(s.RawCount)
+		observed += s.RawCount
+	}
+	if observed == 0 {
+		return nil, errors.New("hotspot risk unavailable: event set is empty or does not intersect the road graph")
 	}
 
 	var giScores []float64

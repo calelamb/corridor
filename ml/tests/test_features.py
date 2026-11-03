@@ -644,5 +644,52 @@ def test_snow_depth_and_closure_parity_with_go_covariates():
     assert adjust_traffic_for_snow(8000.0, 1200.0, 1) == 8000.0
 
 
+def test_extract_matches_latitude_aware_snow_traffic_edges():
+    """Feature rows must follow the same snow traffic rules as the scalar helpers.
+
+    Covers February, elevation exactly on the latitude-aware threshold, southern
+    Sierra roads below 2500 m versus northern roads at 2000 m, negative elevation,
+    and June/October shoulder scaling. Closed passes contribute zero traffic.
+    """
+    cases = [
+        # lat, lon, elevation_m, month, aadt
+        (37.91, -119.26, 2500.0, 10, 3500.0),  # Sierra, exactly 2500 m, October
+        (37.91, -119.26, 2500.0, 6, 3500.0),  # Sierra, exactly 2500 m, June
+        (37.91, -119.26, 2499.999, 10, 3500.0),  # just below Sierra threshold
+        (36.2, -118.2, 2200.0, 6, 3500.0),  # southern Sierra, below 2500 m
+        (36.2, -118.2, 2200.0, 1, 1000.0),  # southern winter, stays open
+        (48.0, -113.7, 2000.0, 6, 2800.0),  # northern, exactly 2000 m, June
+        (48.0, -113.7, 2000.0, 10, 2800.0),  # northern, exactly 2000 m, October
+        (48.0, -113.7, 1999.9, 10, 2800.0),  # just below northern threshold
+        (48.0, -113.7, 2000.0, 2, 2800.0),  # February, exactly on threshold
+        (48.0, -113.7, 1999.9, 2, 2800.0),  # February, just below threshold
+        (48.0, -113.7, 2200.0, 1, 1000.0),  # northern winter above 2000 m
+        (36.5, -117.1, -86.0, 1, 500.0),  # negative elevation
+        (36.5, -117.1, -86.0, 2, 500.0),
+    ]
+    extractor = FeatureExtractor()
+    for lat, lon, elev, month, aadt in cases:
+        gdf = gpd.GeoDataFrame(
+            {
+                "lat": [lat],
+                "lon": [lon],
+                "elevation_m": [elev],
+                "aadt": [aadt],
+                "geometry": [LineString([(lon, lat), (lon + 0.01, lat)])],
+            },
+            crs="EPSG:4326",
+        )
+        result = extractor.extract_covariates(gdf, adjust_closed_traffic=True, month=month)
+        expect_closed = is_pass_seasonally_closed(elev, month, lat=lat)
+        expect_aadt = adjust_traffic_for_snow(aadt, elev, month, lat=lat)
+        assert result.loc[0, "seasonal_pass_closed"] == (1.0 if expect_closed else 0.0)
+        assert result.loc[0, "aadt"] == expect_aadt
+        assert result.loc[0, "snow_depth_cm"] >= 0.0
+        if elev < 0:
+            assert result.loc[0, "snow_depth_cm"] == 0.0
+            assert expect_closed is False
+            assert expect_aadt == aadt
+
+
 
 

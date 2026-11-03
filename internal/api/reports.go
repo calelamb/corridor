@@ -12,6 +12,7 @@ import (
 	"math"
 	"strings"
 
+	"corridor/internal/auth"
 	"corridor/internal/db"
 
 	"github.com/google/uuid"
@@ -253,12 +254,7 @@ func (s service) CreateReport(ctx context.Context, req CreateReportRequestObject
 	// Idempotency check: return existing report if previously recorded
 	existing, err := store.GetReport(ctx, b.Id)
 	if err == nil && existing != nil {
-		return CreateReport200JSONResponse{
-			Status: ReportEnvelopeStatusSuccess,
-			Data:   toAPIFieldReport(*existing),
-			Error:  nil,
-			Meta:   nil,
-		}, nil
+		return s.reportResult(ctx, *existing, false), nil
 	}
 
 	conf := "unconfirmed"
@@ -315,25 +311,42 @@ func (s service) CreateReport(ctx context.Context, req CreateReportRequestObject
 	}
 
 	if !isNew {
-		return CreateReport200JSONResponse{
+		return s.reportResult(ctx, *createdRecord, false), nil
+	}
+	return s.reportResult(ctx, *createdRecord, true), nil
+}
+
+// reportResult serializes a stored report for the caller. The live stream
+// receives the precise record; each subscriber applies its own role filter.
+func (s service) reportResult(ctx context.Context, record FieldReportRecord, created bool) CreateReportResponseObject {
+	raw := toAPIFieldReport(record)
+	if created {
+		if b := s.broadcaster(); b != nil {
+			b.Broadcast(raw)
+		}
+	}
+	shown, err := redactFieldReport(auth.RoleFromContext(ctx), raw)
+	if err != nil {
+		s.logFailure(ctx, "report_privacy")
+		return CreateReport503JSONResponse{UnavailableJSONResponse(ErrorEnvelope{
+			Status: Error,
+			Error:  "Field reporting service unavailable",
+		})}
+	}
+	if created {
+		return CreateReport201JSONResponse{
 			Status: ReportEnvelopeStatusSuccess,
-			Data:   toAPIFieldReport(*createdRecord),
+			Data:   shown,
 			Error:  nil,
 			Meta:   nil,
-		}, nil
+		}
 	}
-
-	apiReport := toAPIFieldReport(*createdRecord)
-	if b := s.broadcaster(); b != nil {
-		b.Broadcast(apiReport)
-	}
-
-	return CreateReport201JSONResponse{
+	return CreateReport200JSONResponse{
 		Status: ReportEnvelopeStatusSuccess,
-		Data:   apiReport,
+		Data:   shown,
 		Error:  nil,
 		Meta:   nil,
-	}, nil
+	}
 }
 
 func (s service) UploadReportPhoto(ctx context.Context, req UploadReportPhotoRequestObject) (UploadReportPhotoResponseObject, error) {

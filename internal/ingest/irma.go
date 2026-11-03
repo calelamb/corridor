@@ -26,16 +26,17 @@ const (
 	SensitiveQuarantineDuration = 30 * 24 * time.Hour
 )
 
-// IRMAArtifact returns the provenance artifact metadata for NPS IRMA Reference 2317362.
+// IRMAArtifact returns catalog metadata for NPS IRMA Reference 2317362.
+// The WHMMO CSV is not in this repository and is not listed in data/SHA256SUMS.
+// SHA256 and RetrievedAt stay empty until that file is actually acquired and hashed.
 func IRMAArtifact() Artifact {
 	return Artifact{
-		SourceID:    "23173620-0000-4000-8000-000000231736",
-		Name:        "NPS IRMA 2317362 · Wildlife Mortality and Morbidity Observations (WHMMO)",
-		URL:         "https://irma.nps.gov/DataStore/Reference/Profile/2317362",
-		License:     "Public Domain · U.S. National Park Service",
-		SHA256:      "",
-		ObjectKey:   "irma/2317362/WHMMO_data.csv",
-		RetrievedAt: time.Date(2026, 11, 2, 0, 0, 0, 0, time.UTC),
+		SourceID:  "23173620-0000-4000-8000-000000231736",
+		Name:      "NPS IRMA 2317362 · Wildlife Mortality and Morbidity Observations (WHMMO)",
+		URL:       "https://irma.nps.gov/DataStore/Reference/Profile/2317362",
+		License:   "Public Domain · U.S. National Park Service",
+		SHA256:    "",
+		ObjectKey: "irma/2317362/WHMMO_data.csv",
 	}
 }
 

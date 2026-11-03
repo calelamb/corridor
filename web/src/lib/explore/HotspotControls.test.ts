@@ -25,7 +25,9 @@ describe('HotspotControls Component', () => {
 		expect(getisBtn.getAttribute('aria-pressed')).toBe('false');
 
 		// Check algorithm dropdown
-		const select = screen.getByRole('combobox', { name: /statistical algorithm/i }) as HTMLSelectElement;
+		const select = screen.getByRole('combobox', {
+			name: /^Statistical Algorithm:?$/i
+		}) as HTMLSelectElement;
 		expect(select).toBeTruthy();
 		expect(select.value).toBe('nkde');
 	});
@@ -36,7 +38,9 @@ describe('HotspotControls Component', () => {
 			bandwidth: 750
 		});
 
-		const slider = screen.getByRole('slider', { name: /bandwidth/i }) as HTMLInputElement;
+		const slider = screen.getByRole('slider', {
+			name: /^Network Smoothing Bandwidth:?$/i
+		}) as HTMLInputElement;
 		expect(slider).toBeTruthy();
 		expect(slider.min).toBe('250');
 		expect(slider.max).toBe('2000');
@@ -70,7 +74,7 @@ describe('HotspotControls Component', () => {
 			onchange
 		});
 
-		const select = screen.getByRole('combobox', { name: /statistical algorithm/i });
+		const select = screen.getByRole('combobox', { name: /^Statistical Algorithm:?$/i });
 		await fireEvent.change(select, { target: { value: 'density' } });
 
 		expect(onchange).toHaveBeenCalledWith({
@@ -87,7 +91,7 @@ describe('HotspotControls Component', () => {
 			onchange
 		});
 
-		const slider = screen.getByRole('slider', { name: /bandwidth/i });
+		const slider = screen.getByRole('slider', { name: /^Network Smoothing Bandwidth:?$/i });
 		await fireEvent.input(slider, { target: { value: '1250' } });
 
 		expect(onchange).toHaveBeenCalledWith({
@@ -126,10 +130,14 @@ describe('HotspotControls Component', () => {
 			disabled: true
 		});
 
-		const select = screen.getByRole('combobox', { name: /statistical algorithm/i }) as HTMLSelectElement;
+		const select = screen.getByRole('combobox', {
+			name: /^Statistical Algorithm:?$/i
+		}) as HTMLSelectElement;
 		expect(select.disabled).toBe(true);
 
-		const slider = screen.getByRole('slider', { name: /bandwidth/i }) as HTMLInputElement;
+		const slider = screen.getByRole('slider', {
+			name: /^Network Smoothing Bandwidth:?$/i
+		}) as HTMLInputElement;
 		expect(slider.disabled).toBe(true);
 
 		const nkdeBtn = screen.getByRole('button', { name: /Network KDE/i }) as HTMLButtonElement;

@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"sync"
 	"time"
+
+	"corridor/internal/auth"
 )
 
 // Broadcaster distributes real-time field reports to connected subscribers.
@@ -78,12 +80,13 @@ func (r StreamReports200Response) VisitStreamReportsResponse(w http.ResponseWrit
 	w.Header().Set("X-Accel-Buffering", "no")
 	w.WriteHeader(http.StatusOK)
 
-	// Initial connect handshake comment
-	_, _ = fmt.Fprintf(w, ": connected\n\n")
-	flusher.Flush()
-
+	// Subscribe before the handshake so a report published immediately after
+	// the client observes ": connected" is not dropped.
 	sub, unsub := r.Broadcaster.Subscribe()
 	defer unsub()
+
+	_, _ = fmt.Fprintf(w, ": connected\n\n")
+	flusher.Flush()
 
 	ticker := time.NewTicker(15 * time.Second)
 	defer ticker.Stop()
@@ -102,7 +105,15 @@ func (r StreamReports200Response) VisitStreamReportsResponse(w http.ResponseWrit
 			if !ok {
 				return nil
 			}
-			payload, err := json.Marshal(report)
+			role := auth.RoleFromContext(r.Context)
+			if !reportVisibleToRole(role, report, time.Now()) {
+				continue
+			}
+			shown, redactErr := redactFieldReport(role, report)
+			if redactErr != nil {
+				continue
+			}
+			payload, err := json.Marshal(shown)
 			if err != nil {
 				continue
 			}

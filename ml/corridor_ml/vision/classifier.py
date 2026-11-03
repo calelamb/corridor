@@ -17,6 +17,7 @@ from corridor_ml.vision.export_onnx import (
     DEFAULT_TARGET_SPECIES,
     build_species_onnx_model,
     export_species_model,
+    read_class_labels,
 )
 
 # Standard North American wildlife carcass monitoring targets
@@ -72,6 +73,16 @@ def preprocess_image(image_bytes: bytes) -> np.ndarray:
     return tensor.astype(np.float32)
 
 
+def _inference_class_count(session: ort.InferenceSession) -> int | None:
+    outputs = session.get_outputs()
+    if not outputs or not outputs[0].shape:
+        return None
+    count = outputs[0].shape[-1]
+    if isinstance(count, int) and count > 0:
+        return count
+    return None
+
+
 class SpeciesClassifier:
     """Roadkill wildlife carcass classifier for field reporting and verification.
 
@@ -101,18 +112,33 @@ class SpeciesClassifier:
         If model_path is provided, loads the existing ONNX model from disk.
         Otherwise, builds and initializes an in-memory optimized ONNX computational graph.
         """
-        self.classes: list[str] = list(classes if classes is not None else TARGET_SPECIES)
         self._model_path: Optional[str] = None
         self._model_proto: Optional[onnx.ModelProto] = None
 
         if model_path is not None:
             path_str = str(model_path)
+            embedded = read_class_labels(onnx.load(path_str))
+            if embedded is not None:
+                if classes is not None and list(classes) != embedded:
+                    raise ValueError(
+                        "class list does not match the label order embedded in the ONNX model"
+                    )
+                self.classes = embedded
+            else:
+                self.classes = list(classes if classes is not None else TARGET_SPECIES)
             self._session = ort.InferenceSession(path_str)
             self._model_path = path_str
         else:
+            self.classes = list(classes if classes is not None else TARGET_SPECIES)
             self._model_proto = build_species_onnx_model(classes=self.classes)
             # Create session directly from serialized in-memory proto
             self._session = ort.InferenceSession(self._model_proto.SerializeToString())
+
+        output_count = _inference_class_count(self._session)
+        if output_count is not None and output_count != len(self.classes):
+            raise ValueError(
+                f"class list length {len(self.classes)} does not match ONNX output dimension {output_count}"
+            )
 
     def preprocess(self, image_bytes: bytes) -> np.ndarray:
         """Helper to preprocess raw image bytes into model input tensor."""

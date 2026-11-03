@@ -463,6 +463,57 @@ func TestGetisOrdGi_ValidationErrors(t *testing.T) {
 	}
 }
 
+func TestAnalyzeHotspots_EmptyEventsAreNotZeroRisk(t *testing.T) {
+	g := buildLinearHighway(8, 160.934)
+
+	for _, events := range [][]hotspot.EventPoint{nil, {}} {
+		results, err := g.AnalyzeHotspots(events, "nkde", 500)
+		if err == nil {
+			t.Fatalf("empty event set returned success with %d results", len(results))
+		}
+		if len(results) != 0 {
+			t.Fatalf("empty event set returned %d scored segments; callers can show that as zero collisions", len(results))
+		}
+	}
+
+	// Events that do not lie on this graph are not an observed zero.
+	unmatched := []hotspot.EventPoint{
+		{ID: "off-graph", SegmentID: "not-a-segment", DistanceAlongSegmentM: 80, Weight: 1},
+	}
+	results, err := g.AnalyzeHotspots(unmatched, "density", 500)
+	if err == nil || len(results) != 0 {
+		t.Fatalf("unmatched events returned err=%v results=%d; want unavailable, not a zero-score corridor", err, len(results))
+	}
+
+	// A segment with no events is a true zero when other segments were observed.
+	observed := []hotspot.EventPoint{
+		{ID: "e1", SegmentID: "seg-00", DistanceAlongSegmentM: 80, Weight: 1},
+		{ID: "e2", SegmentID: "seg-00", DistanceAlongSegmentM: 80, Weight: 1},
+	}
+	results, err = g.AnalyzeHotspots(observed, "density", 100)
+	if err != nil {
+		t.Fatalf("observed events failed: %v", err)
+	}
+	var sawPositive, sawZero bool
+	for _, r := range results {
+		if r.SegmentID == "seg-00" {
+			if r.Score != 2 || r.RawCount != 2 {
+				t.Errorf("seg-00 score=%v raw=%d, want 2 and 2", r.Score, r.RawCount)
+			}
+			sawPositive = r.Score > 0
+		}
+		if r.RawCount == 0 {
+			if r.Score != 0 {
+				t.Errorf("segment %s raw count 0 has score %v, want 0", r.SegmentID, r.Score)
+			}
+			sawZero = true
+		}
+	}
+	if !sawPositive || !sawZero {
+		t.Fatalf("expected one positive score and a true zero elsewhere, got %+v", results)
+	}
+}
+
 func TestGetisOrdGi_WithDistanceThreshold(t *testing.T) {
 	// 10-segment linear highway
 	g := buildLinearHighway(10, 100.0)
@@ -480,4 +531,3 @@ func TestGetisOrdGi_WithDistanceThreshold(t *testing.T) {
 		t.Errorf("expected positive z-scores at cluster, got %f, %f", results[4].ZScore, results[5].ZScore)
 	}
 }
-
