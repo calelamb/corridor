@@ -375,3 +375,43 @@ Addressed runtime and integration issues discovered during live testing:
   - Verified 100% test pass rate across all browsers: **144 passing tests (0 failed, 0 skipped)** across Chromium, Firefox, and WebKit against the live backend service.
   - All changes committed and pushed to `main` without AI attribution.
 
+## Multi-State Ingestion Expansion, Privacy Enforcement & Multi-Park Hardening — 2026-11-03
+
+Executed cross-stack multi-state ingestion integration, strict dual-resolution privacy enforcement, and multi-park test hardening:
+
+1. **Multi-State & Trans-Boundary Ingestion Suite (`internal/ingest/`, `internal/cli/`, `data/SOURCES.md`):**
+   - Registered catalog sources S38–S47 in `data/SOURCES.md` with verified URLs, licensing status, and documented bias notes.
+   - Implemented pure Go ingestion parsers for:
+     - **WYDOT (`internal/ingest/wydot.go`):** Parses WYDOT 511 Roadkill Reports feature JSON with H3-r6 spatial generalization and 30-day delay for sensitive species.
+     - **IDFG (`internal/ingest/idfg.go`):** Parses Idaho Fish & Game roadkill observations, deduplicating multi-report carcasses and masking sensitive species coordinates.
+     - **UDOT (`internal/ingest/udot.go`):** Parses Utah DOT animal-involved crash locations with EPSG:26912 to WGS84 reprojection.
+     - **Parks Canada Banff (`internal/ingest/banff.go`):** Parses gold-standard Trans-Canada Highway wildlife crossing count CSVs (S44/S45), strictly maintaining null vs zero count semantics and withholding ungrounded geometries.
+     - **NCDOT (`internal/ingest/ncdot.go`):** Parses North Carolina animal collision point records along Great Smoky Mountains approaches (I-40 Pigeon River Gorge).
+     - **VDOT (`internal/ingest/vdot.go`):** Parses Virginia DOT carcass removals along Shenandoah National Park corridors, enforcing sensitive species quarantine for black bear records.
+   - Connected all parsers into `corridorctl ingest <all|irma|mdt|caltrans|wydot|udot|idfg|banff|ncdot|vdot>`.
+
+2. **Strict Dual-Resolution Privacy Enforcement (`internal/api/privacy.go`, `privacy_regression_test.go`):**
+   - Enforced Uber H3 resolution 6 (~36 km²) spatial generalization and 30-day delay across public APIs, SSE incident streams (`/v1/stream/reports`), mitigation candidate briefs, and reporting exports.
+   - Protected species roster includes Sierra Nevada bighorn sheep, Pacific fisher, California black bear, grizzly bear, Canada lynx, gray wolf, and wolverine.
+   - Standardized on pure Go `github.com/akhenakh/goh3` for deterministic cell calculations.
+
+3. **Multi-Park Hotspot Engine & Olympic Bounds Scoping (`internal/api/hotspots.go`, `internal/hotspot/`):**
+   - Scoped hotspot calculations strictly to requested park bounding boxes (YOSE, YELL, GRTE, GLAC, ROMO, OLYM).
+   - Eliminated fallback leakage where requesting an unmonitored park (e.g. Olympic) would return Yellowstone or default reference hotspots.
+   - Ensured empty or unmonitored park extents are cleanly handled and never rendered as zero risk.
+
+4. **Python ML Pipeline & 11-Class Vision ONNX Export (`ml/`):**
+   - Quantized INT8 ONNX models with embedded `class_labels` metadata props for 11 species classes.
+   - Matched Python's alpine snow depth and SWE calculation rounding (`math.copysign` / half away from zero) to Go's exact math library behavior.
+   - All 70 pytest tests pass cleanly via `uv run pytest`.
+
+5. **WebKit & WCAG 2.2 AA Accessibility Hardening (`web/`):**
+   - Injected synchronous theme initialization script into `<head>` in `web/src/app.html` to eliminate client-hydration theme flashes and race conditions during Axe accessibility audits.
+   - Styled `.park-select` dropdown with `-webkit-appearance: none`, `appearance: none`, `height: 48px`, and SVG chevron, guaranteeing compliance with >= 48px tactile touch target requirements in WebKit/Safari.
+   - All 396 Playwright tests and 73 Vitest tests pass cleanly across Chromium, Firefox, and WebKit with 0 accessibility violations.
+
+6. **Go Test Isolation & Verification Loop (`scripts/bugfix_loop.sh`, `internal/geo/`):**
+   - Added `//go:build integration` tags to `internal/geo/snap_test.go` and `internal/geo/fuzz_test.go` to cleanly separate Docker container requirements from unit test runs.
+   - Expanded `scripts/bugfix_loop.sh` to execute `CGO_ENABLED=0 go test ./...` across all packages in the project.
+
+
