@@ -37,6 +37,9 @@ Subcommands for ingest:
   mdt --file <path> [--json]      Parse MDT Montana statewide carcass records
   caltrans (--file <path> | --url <url>) [--json]
                                   Parse Caltrans AADT and highway postmile records
+  wydot --file <path> [--json]    Parse a WYDOT Roadkill Reports feature JSON page
+  udot --file <path> [--json]     Parse a UDOT Crash Locations feature JSON page
+  idfg --file <path> [--json]     Parse an IDFG Roadkill Observations feature JSON page
 
 Flags for prioritize:
   --budget <float>                Budget limit in USD (default: 5000000)
@@ -66,7 +69,7 @@ Flags for outreach:
 func Run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	if len(args) == 0 {
 		_, _ = fmt.Fprintln(stdout, helpUsage)
-		return errors.New("usage: corridorctl help|init-dev|migrate|setup|health|ingest <all|irma|mdt|caltrans>|prioritize|hotspot|evidence|seed-segments|outreach")
+		return errors.New("usage: corridorctl help|init-dev|migrate|setup|health|ingest <all|irma|mdt|caltrans|wydot|udot|idfg>|prioritize|hotspot|evidence|seed-segments|outreach")
 	}
 
 	switch args[0] {

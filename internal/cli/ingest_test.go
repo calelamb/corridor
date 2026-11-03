@@ -1,14 +1,18 @@
 package cli
 
 import (
+	"bytes"
 	"context"
 	"corridor/internal/ingest"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 )
 
 func TestIngestMissingAndChangedArtifact(t *testing.T) {
@@ -89,5 +93,33 @@ func TestIngestSubcommands(t *testing.T) {
 	// Test caltrans missing file and url flag
 	if err := Run(ctx, []string{"ingest", "caltrans"}, io.Discard, io.Discard); err == nil {
 		t.Fatal("expected error for missing --file or --url flag")
+	}
+
+	for _, name := range []string{"wydot", "udot", "idfg"} {
+		if err := Run(ctx, []string{"ingest", name}, io.Discard, io.Discard); err == nil {
+			t.Fatalf("expected error for missing --file flag on %s", name)
+		}
+	}
+}
+
+func TestIngestStateFeedSummaryOmitsCoordinates(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	now := time.Now().UTC().UnixMilli()
+	idfgPath := filepath.Join(dir, "idfg.json")
+	body := fmt.Sprintf(`{"features":[{"attributes":{"OBJECTID":2,"species":"GRAY WOLF","observed":%d,"highway":"US-20","latitude":44.41,"longitude":-111.35}}]}`, now)
+	if err := os.WriteFile(idfgPath, []byte(body), 0600); err != nil {
+		t.Fatal(err)
+	}
+	var stdout, stderr bytes.Buffer
+	if err := Run(ctx, []string{"ingest", "idfg", "--file", idfgPath, "--json"}, &stdout, &stderr); err != nil {
+		t.Fatalf("idfg ingest: %v stderr %s", err, stderr.String())
+	}
+	out := stdout.String()
+	if strings.Contains(out, "-111.35") || strings.Contains(out, "latitude") {
+		t.Fatalf("summary leaked a coordinate: %s", out)
+	}
+	if !strings.Contains(out, `"withheld_sensitive": 1`) {
+		t.Fatalf("recent wolf was not withheld: %s", out)
 	}
 }

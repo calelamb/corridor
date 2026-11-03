@@ -578,6 +578,12 @@ func TestIRMAToCorridorRecord(t *testing.T) {
 	if sensCorridor.Uncertainty != 6000.0 {
 		t.Errorf("expected 6000m uncertainty for generalized sensitive record, got %f", sensCorridor.Uncertainty)
 	}
+	if sensCorridor.Latitude == 37.8821 || sensCorridor.Longitude == -119.2612 {
+		t.Errorf("sensitive corridor record kept the reported point %f,%f", sensCorridor.Latitude, sensCorridor.Longitude)
+	}
+	if sensCorridor.Latitude == 0 || sensCorridor.Longitude == 0 {
+		t.Error("sensitive corridor record dropped the generalized point")
+	}
 	if sensCorridor.Survey != "NPS-IRMA-YOSE" {
 		t.Errorf("expected Survey NPS-IRMA-YOSE, got %s", sensCorridor.Survey)
 	}

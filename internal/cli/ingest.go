@@ -25,7 +25,7 @@ import (
 
 func ingestCmd(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	if len(args) == 0 {
-		return errors.New("usage: corridorctl ingest <all|irma|mdt|caltrans> [flags]")
+		return errors.New("usage: corridorctl ingest <all|irma|mdt|caltrans|wydot|udot|idfg> [flags]")
 	}
 
 	switch args[0] {
@@ -40,6 +40,12 @@ func ingestCmd(ctx context.Context, args []string, stdout, stderr io.Writer) err
 		return ingestMDTCmd(ctx, args[1:], stdout, stderr)
 	case "caltrans":
 		return ingestCaltransCmd(ctx, args[1:], stdout, stderr)
+	case "wydot":
+		return ingestWYDOTCmd(ctx, args[1:], stdout, stderr)
+	case "udot":
+		return ingestUDOTCmd(ctx, args[1:], stdout, stderr)
+	case "idfg":
+		return ingestIDFGCmd(ctx, args[1:], stdout, stderr)
 	case "help", "--help", "-h":
 		const ingestHelp = `corridorctl ingest - Run data ingestion pipelines and parsers
 
@@ -53,11 +59,14 @@ Subcommands:
   mdt --file <path> [--json]      Parse MDT Montana statewide carcass records
   caltrans (--file <path> | --url <url>) [--json]
                                   Parse Caltrans AADT and highway postmile records
+  wydot --file <path> [--json]    Parse a WYDOT Roadkill Reports feature JSON page
+  udot --file <path> [--json]     Parse a UDOT Crash Locations feature JSON page
+  idfg --file <path> [--json]     Parse an IDFG Roadkill Observations feature JSON page
 `
 		_, err := fmt.Fprint(stdout, ingestHelp)
 		return err
 	default:
-		return fmt.Errorf("unsupported ingest command %q; usage: corridorctl ingest <all|irma|mdt|caltrans> [flags]", args[0])
+		return fmt.Errorf("unsupported ingest command %q; usage: corridorctl ingest <all|irma|mdt|caltrans|wydot|udot|idfg> [flags]", args[0])
 	}
 }
 
@@ -235,6 +244,143 @@ func ingestMDTCmd(ctx context.Context, args []string, stdout, stderr io.Writer) 
 	_, err = fmt.Fprintf(stdout, "Ingested %d MDT carcass records (%d animals across %d routes).\n",
 		len(records), totalAnimals, len(routes))
 	return err
+}
+
+func ingestWYDOTCmd(ctx context.Context, args []string, stdout, stderr io.Writer) error {
+	_ = ctx
+	records, err := readFeatureFile(args, stderr, "wydot", ingest.ParseWYDOTRoadkill)
+	if err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return nil
+		}
+		return err
+	}
+	public := 0
+	withheld := 0
+	now := time.Now().UTC()
+	for _, rec := range records {
+		if _, ok := rec.PublicRecord(now); ok {
+			public++
+		} else if rec.IsSensitive {
+			withheld++
+		}
+	}
+	return writeFeatureSummary(stdout, argsJSON(args), featureSummary{
+		Source:            ingest.WYDOTRoadkillArtifact().Name,
+		License:           ingest.WYDOTRoadkillArtifact().License,
+		RecordsRead:       len(records),
+		PublicRecords:     public,
+		WithheldSensitive: withheld,
+	})
+}
+
+func ingestUDOTCmd(ctx context.Context, args []string, stdout, stderr io.Writer) error {
+	_ = ctx
+	records, err := readFeatureFile(args, stderr, "udot", ingest.ParseUDOTCrashes)
+	if err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return nil
+		}
+		return err
+	}
+	wild := 0
+	for _, rec := range records {
+		if rec.WildAnimal() {
+			wild++
+		}
+	}
+	return writeFeatureSummary(stdout, argsJSON(args), featureSummary{
+		Source:        ingest.UDOTCrashLocationsArtifact().Name,
+		License:       ingest.UDOTCrashLocationsArtifact().License,
+		RecordsRead:   len(records),
+		PublicRecords: len(records),
+		WildAnimal:    wild,
+	})
+}
+
+func ingestIDFGCmd(ctx context.Context, args []string, stdout, stderr io.Writer) error {
+	_ = ctx
+	records, err := readFeatureFile(args, stderr, "idfg", ingest.ParseIDFGRoadkill)
+	if err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return nil
+		}
+		return err
+	}
+	public := 0
+	withheld := 0
+	now := time.Now().UTC()
+	for _, rec := range records {
+		if _, ok := rec.PublicRecord(now); ok {
+			public++
+		} else if rec.IsSensitive {
+			withheld++
+		}
+	}
+	return writeFeatureSummary(stdout, argsJSON(args), featureSummary{
+		Source:            ingest.IDFGRoadkillArtifact().Name,
+		License:           ingest.IDFGRoadkillArtifact().License,
+		RecordsRead:       len(records),
+		PublicRecords:     public,
+		WithheldSensitive: withheld,
+	})
+}
+
+type featureSummary struct {
+	Source            string `json:"source"`
+	License           string `json:"license"`
+	RecordsRead       int    `json:"records_read"`
+	PublicRecords     int    `json:"public_records"`
+	WithheldSensitive int    `json:"withheld_sensitive,omitempty"`
+	WildAnimal        int    `json:"wild_animal,omitempty"`
+}
+
+func argsJSON(args []string) bool {
+	for _, arg := range args {
+		if arg == "--json" || arg == "-json" {
+			return true
+		}
+	}
+	return false
+}
+
+func writeFeatureSummary(stdout io.Writer, jsonOutput bool, summary featureSummary) error {
+	if jsonOutput {
+		enc := json.NewEncoder(stdout)
+		enc.SetIndent("", "  ")
+		return enc.Encode(summary)
+	}
+	_, err := fmt.Fprintf(stdout, "Parsed %d %s records (%d public, %d sensitive withheld).\n",
+		summary.RecordsRead, summary.Source, summary.PublicRecords, summary.WithheldSensitive)
+	return err
+}
+
+func readFeatureFile[T any](args []string, stderr io.Writer, name string, parse func(io.Reader) ([]T, error)) ([]T, error) {
+	fs := flag.NewFlagSet("ingest "+name, flag.ContinueOnError)
+	fs.SetOutput(stderr)
+	filePath := fs.String("file", "", "Path to an ArcGIS feature JSON page")
+	_ = fs.Bool("json", false, "Output a count summary as JSON")
+	if err := fs.Parse(args); err != nil {
+		return nil, err
+	}
+	if *filePath == "" {
+		return nil, fmt.Errorf("usage: corridorctl ingest %s --file <path>", name)
+	}
+	// #nosec G304 -- operator-specified file path for CLI ingestion
+	file, err := os.Open(*filePath)
+	if err != nil {
+		return nil, fmt.Errorf("open %s file: %w", name, err)
+	}
+	defer func() {
+		if err := file.Close(); err != nil {
+			slog.Warn("resource cleanup failed", "error", err)
+		}
+	}()
+	records, err := parse(file)
+	if err != nil {
+		return nil, fmt.Errorf("parse %s dataset: %w", name, err)
+	}
+	return records, nil
 }
 
 func ingestCaltransCmd(ctx context.Context, args []string, stdout, stderr io.Writer) error {

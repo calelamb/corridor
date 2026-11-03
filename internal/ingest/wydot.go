@@ -44,10 +44,10 @@ type WYDOTRoadkillRecord struct {
 	CardinalDirection string    `json:"cardinal_direction"`
 	County            string    `json:"county"`
 	District          int       `json:"district"`
-	Longitude         float64   `json:"longitude"`
-	Latitude          float64   `json:"latitude"`
-	RawLongitude      float64   `json:"raw_longitude,omitempty"`
-	RawLatitude       float64   `json:"raw_latitude,omitempty"`
+	Longitude         float64   `json:"longitude,omitempty"`
+	Latitude          float64   `json:"latitude,omitempty"`
+	RawLongitude      float64   `json:"-"`
+	RawLatitude       float64   `json:"-"`
 	Species           string    `json:"species"`
 	OtherSpecies      string    `json:"other_species"`
 	NormalizedSpecies string    `json:"normalized_species"`
@@ -154,6 +154,18 @@ func wydotRecordFromAttributes(attrs map[string]any) (WYDOTRoadkillRecord, error
 		rec.PublicAfter = received.Add(wydotSensitivePublicDelay)
 	}
 	return rec, nil
+}
+
+// PublicRecord is the feed copy. Sensitive reports stay withheld until
+// PublicAfter. Raw coordinates are never copied onto that view.
+func (r WYDOTRoadkillRecord) PublicRecord(refTime time.Time) (WYDOTRoadkillRecord, bool) {
+	if r.IsSensitive && (r.PublicAfter.IsZero() || refTime.Before(r.PublicAfter)) {
+		return WYDOTRoadkillRecord{}, false
+	}
+	pub := r
+	pub.RawLatitude = 0
+	pub.RawLongitude = 0
+	return pub, true
 }
 
 // NormalizeWYDOTSpecies maps labels observed on the Roadkill Reports layer

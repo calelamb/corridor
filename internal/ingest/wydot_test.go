@@ -1,6 +1,7 @@
 package ingest
 
 import (
+	"encoding/json"
 	"math"
 	"strings"
 	"testing"
@@ -163,6 +164,48 @@ func TestParseWYDOTRoadkillSyntheticSchema(t *testing.T) {
 	}
 	if records[3].NormalizedSpecies != "mountain_lion" {
 		t.Fatalf("lion species = %q", records[3].NormalizedSpecies)
+	}
+}
+
+func TestWYDOTPublicRecordHidesRawCoordinates(t *testing.T) {
+	records, err := ParseWYDOTRoadkill(strings.NewReader(syntheticWYDOTRoadkillJSON))
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	wolf := records[2]
+	body, err := json.Marshal(wolf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(body, &payload); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := payload["raw_longitude"]; ok {
+		t.Fatalf("internal JSON included raw_longitude: %s", body)
+	}
+	if lon, ok := payload["longitude"].(float64); ok && math.Abs(lon-(-110.5)) < 1e-6 {
+		t.Fatalf("internal JSON kept the reported longitude: %s", body)
+	}
+	if _, ok := wolf.PublicRecord(wolf.Received); ok {
+		t.Fatal("sensitive record was public on the day it was received")
+	}
+	pub, ok := wolf.PublicRecord(wolf.PublicAfter)
+	if !ok {
+		t.Fatal("sensitive record stayed withheld after the delay")
+	}
+	pubBody, err := json.Marshal(pub)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pub.RawLongitude != 0 {
+		t.Fatalf("public record kept the reported longitude: %s", pubBody)
+	}
+	if err := json.Unmarshal(pubBody, &payload); err != nil {
+		t.Fatal(err)
+	}
+	if lon, ok := payload["longitude"].(float64); ok && math.Abs(lon-(-110.5)) < 1e-6 {
+		t.Fatalf("public JSON kept the reported longitude: %s", pubBody)
 	}
 }
 

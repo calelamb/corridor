@@ -49,10 +49,13 @@ type SegmentRecord struct {
 }
 
 // PrioritizeOptions configures budget limits, minimum BCR, state filtering, and risk thresholds.
+// Highway, when set, drops other highways before the greedy knapsack so a
+// same-state project cannot spend the budget first.
 type PrioritizeOptions struct {
 	Budget        float64
 	MinBCR        *float64
 	State         *string
+	Highway       string
 	MinPercentile float64
 }
 
@@ -228,7 +231,18 @@ func GenerateCandidatesFromSegmentsWithOptions(segments []SegmentRecord, opts Pr
 		candidates = filtered
 	}
 
-	// 5. Sort candidates by BCR descending
+	// 5. Restrict to one highway before sorting and spending the budget.
+	if highway := strings.TrimSpace(opts.Highway); highway != "" {
+		filtered := make([]CandidateSite, 0, len(candidates))
+		for _, c := range candidates {
+			if strings.EqualFold(c.HighwayRef, highway) || strings.HasPrefix(strings.ToUpper(c.HighwayRef), strings.ToUpper(highway)) {
+				filtered = append(filtered, c)
+			}
+		}
+		candidates = filtered
+	}
+
+	// 6. Sort candidates by BCR descending
 	sort.Slice(candidates, func(i, j int) bool {
 		if math.Abs(candidates[i].BCR-candidates[j].BCR) > 1e-6 {
 			return candidates[i].BCR > candidates[j].BCR
@@ -239,7 +253,7 @@ func GenerateCandidatesFromSegmentsWithOptions(segments []SegmentRecord, opts Pr
 		return candidates[i].ID.String() < candidates[j].ID.String()
 	})
 
-	// 6. Handle budget optimization
+	// 7. Handle budget optimization
 	if opts.Budget == 0.0 {
 		return []CandidateSite{}
 	}
@@ -669,5 +683,3 @@ func (e *Engine) CandidateSite(ctx context.Context, id uuid.UUID) (*CandidateSit
 	}
 	return nil, nil
 }
-
-

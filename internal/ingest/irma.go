@@ -142,6 +142,10 @@ func (r IRMARecord) ToRecord() Record {
 		end = r.ObservationDate.AddDate(1, 0, 0)
 	}
 
+	lon, lat := r.Longitude, r.Latitude
+	if r.IsSensitive && r.HasCoordinates {
+		lon, lat = r.GeneralizedLon, r.GeneralizedLat
+	}
 	return Record{
 		ID:          r.RawID,
 		Species:     sp,
@@ -149,8 +153,8 @@ func (r IRMARecord) ToRecord() Record {
 		Survey:      fmt.Sprintf("NPS-IRMA-%s", r.ParkCode),
 		Reference:   fmt.Sprintf("IRMA:2317362:%s:%s", r.ParkCode, r.RawID),
 		Precision:   r.DatePrecision,
-		Longitude:   r.Longitude,
-		Latitude:    r.Latitude,
+		Longitude:   lon,
+		Latitude:    lat,
 		Uncertainty: unc,
 		Start:       r.ObservationDate,
 		End:         end,

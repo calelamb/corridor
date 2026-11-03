@@ -257,6 +257,56 @@ func TestClusterAdjacentHighRiskSegments(t *testing.T) {
 	}
 }
 
+func TestHighwayFilterBeforeKnapsack(t *testing.T) {
+	cfg := prioritize.DefaultConfig()
+	expensive := prioritize.SegmentRecord{
+		ID:             uuid.New(),
+		HighwayRef:     "US-191",
+		State:          "WY",
+		MilepostStart:  12.0,
+		MilepostEnd:    12.2,
+		LengthM:        200.0,
+		RiskScore:      8.0,
+		PercentileRank: 99.0,
+		P10:            5.0,
+		P90:            11.0,
+		SpeciesBreakdown: map[string]float64{
+			"moose": 1.0,
+		},
+	}
+	parkHighway := prioritize.SegmentRecord{
+		ID:             uuid.New(),
+		HighwayRef:     "US-89",
+		State:          "WY",
+		MilepostStart:  18.0,
+		MilepostEnd:    18.2,
+		LengthM:        200.0,
+		RiskScore:      6.0,
+		PercentileRank: 98.0,
+		P10:            4.0,
+		P90:            8.0,
+		SpeciesBreakdown: map[string]float64{
+			"elk": 1.0,
+		},
+	}
+	segments := []prioritize.SegmentRecord{expensive, parkHighway}
+	open := prioritize.GenerateCandidatesFromSegmentsWithOptions(segments, prioritize.PrioritizeOptions{
+		Budget:        5000000,
+		MinPercentile: 90,
+	}, cfg)
+	if len(open) == 0 || open[0].HighwayRef != "US-191" {
+		t.Fatalf("statewide budget should select the higher-BCR US-191 project, got %+v", open)
+	}
+	park := prioritize.GenerateCandidatesFromSegmentsWithOptions(segments, prioritize.PrioritizeOptions{
+		Budget:        5000000,
+		Highway:       "US-89",
+		MinPercentile: 90,
+	}, cfg)
+	if len(park) != 1 || park[0].HighwayRef != "US-89" {
+		t.Fatalf("park highway filter ran after the knapsack, got %+v", park)
+	}
+}
+
 func TestBudgetOptimization_KnapsackGreedy(t *testing.T) {
 	cfg := prioritize.DefaultConfig()
 
@@ -840,5 +890,3 @@ func TestSensitiveSpeciesConfigFile(t *testing.T) {
 		}
 	}
 }
-
-

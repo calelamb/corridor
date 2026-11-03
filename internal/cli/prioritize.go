@@ -79,6 +79,9 @@ func prioritizeCmd(ctx context.Context, args []string, stdout, stderr io.Writer)
 		State:         state,
 		MinPercentile: cfg.MinPercentile,
 	}
+	if *park != "" && resolvedHighway != "" {
+		opts.Highway = resolvedHighway
+	}
 
 	var candidates []prioritize.CandidateSite
 
